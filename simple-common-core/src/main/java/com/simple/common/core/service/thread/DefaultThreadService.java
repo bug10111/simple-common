@@ -43,31 +43,6 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
         }
     }
 
-    /**
-     * 延时执行任务
-     *
-     * @param task     任务
-     * @param time     延迟时间
-     * @param timeUnit 时间单位
-     */
-    @Override
-    public void schedule(TimerTask task, int time, TimeUnit timeUnit) {
-        executor.schedule(task, time, timeUnit);
-    }
-
-    /**
-     * 定期以固定速率执行任务
-     *
-     * @param task        任务
-     * @param InitialTime 初始延迟时间
-     * @param fixedTime   任务完成后每fixedTime时间执行一次
-     * @param timeUnit    时间单位
-     */
-    @Override
-    public void scheduleWithFixedDelay(TimerTask task, int InitialTime, int fixedTime, TimeUnit timeUnit) {
-        executor.scheduleWithFixedDelay(task, InitialTime, fixedTime, timeUnit);
-    }
-
     @Override
     public ScheduledThreadPoolExecutor getExecutor() {
         return this.executor;

@@ -13,25 +13,6 @@ import java.util.concurrent.TimeUnit;
 public interface ThreadService {
 
     /**
-     * 延时执行任务
-     *
-     * @param task     任务
-     * @param time     延迟时间
-     * @param timeUnit 时间单位
-     */
-    void schedule(TimerTask task, int time, TimeUnit timeUnit);
-
-    /**
-     * 定期以固定速率执行任务
-     *
-     * @param task        任务
-     * @param InitialTime 初始延迟时间
-     * @param fixedTime   任务完成后每fixedTime时间执行一次
-     * @param timeUnit    时间单位
-     */
-    void scheduleWithFixedDelay(TimerTask task, int InitialTime, int fixedTime, TimeUnit timeUnit);
-
-    /**
      * 获取线程池执行对象
      * @return 执行对象
      */
@@ -41,6 +22,29 @@ public interface ThreadService {
      * 关闭线程池
      */
     void shutdown();
+
+    /**
+     * 延时执行任务
+     *
+     * @param task     任务
+     * @param time     延迟时间
+     * @param timeUnit 时间单位
+     */
+    default void schedule(TimerTask task, int time, TimeUnit timeUnit){
+        getExecutor().schedule(task, time, timeUnit);
+    }
+
+    /**
+     * 定期以固定速率执行任务
+     *
+     * @param task        任务
+     * @param InitialTime 初始延迟时间
+     * @param fixedTime   任务完成后每fixedTime时间执行一次
+     * @param timeUnit    时间单位
+     */
+    default void scheduleWithFixedDelay(TimerTask task, int InitialTime, int fixedTime, TimeUnit timeUnit){
+        getExecutor().scheduleWithFixedDelay(task, InitialTime, fixedTime, timeUnit);
+    }
 
     /**
      * 定期以固定速率执行任务
