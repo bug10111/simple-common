@@ -110,7 +110,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
     protected abstract void more(T runBody, Map<String, String> parameters);
 
     /**
-     * 超过最大次数
+     * 执行异常
      *
      * @param runBody 参数
      */

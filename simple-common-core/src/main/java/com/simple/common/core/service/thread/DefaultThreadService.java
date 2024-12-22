@@ -68,6 +68,11 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
         executor.scheduleWithFixedDelay(task, InitialTime, fixedTime, timeUnit);
     }
 
+    @Override
+    public ScheduledThreadPoolExecutor getExecutor() {
+        return this.executor;
+    }
+
     /**
      * 停止任务线程池
      */
@@ -108,8 +113,17 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
           AbortPolicy：这是默认的策略。当线程池无法接受新任务时，会抛出 RejectedExecutionException
           DiscardPolicy：该策略会悄悄地丢弃无法执行的任务，不会抛出异常
           DiscardOldestPolicy：该策略会丢弃线程池中最旧的未处理任务，然后尝试提交当前任务
+          如果服务器核心数为N（Runtime.getRuntime().availableProcessors()），线程池核心线程数设置推荐：
+          1. 应用为io密集型
+            核心线程数：2N + 1
+            最大线程数：核心线程数 * 2到4
+          2. 应用为cpu密集型：
+            核心线程数：N或者N + 1
+            最大线程数：核心线程数 * 1或者2
          */
-        executor = new ScheduledThreadPoolExecutor(30, new ThreadPoolExecutor.CallerRunsPolicy()) {
+        int corePoolSize = Runtime.getRuntime().availableProcessors() * 2 +1;
+
+        executor = new ScheduledThreadPoolExecutor(corePoolSize, new ThreadPoolExecutor.CallerRunsPolicy()) {
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
@@ -118,7 +132,7 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
         };
 
         // 设置最大线程数
-        executor.setMaximumPoolSize(50);
+        executor.setMaximumPoolSize(corePoolSize * 4);
 
         // 设置空闲线程存活时间
         executor.setKeepAliveTime(60, TimeUnit.SECONDS);

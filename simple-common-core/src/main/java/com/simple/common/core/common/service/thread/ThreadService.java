@@ -1,6 +1,7 @@
 package com.simple.common.core.common.service.thread;
 
 import java.util.TimerTask;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -29,6 +30,12 @@ public interface ThreadService {
      * @param timeUnit    时间单位
      */
     void scheduleWithFixedDelay(TimerTask task, int InitialTime, int fixedTime, TimeUnit timeUnit);
+
+    /**
+     * 获取线程池执行对象
+     * @return 执行对象
+     */
+    ScheduledThreadPoolExecutor getExecutor();
 
     /**
      * 关闭线程池
