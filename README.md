@@ -12,3 +12,7 @@
 - ScheduledThreadPoolExecutor 任务调度，支持延迟任务和循环任务
 - 各类工具包（主要源于hutool：https://www.hutool.cn/）
 2. 测试包：simple-common-test
+
+#### 公众号地址
+框架的最新动态和用法，会在第一时间在公众号发布，欢迎关注点赞
+![输入图片说明](image.png)
