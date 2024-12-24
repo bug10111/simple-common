@@ -7,8 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Created with IntelliJ IDEA
- * <p>
- * minio配置类
+ *  Description: 阿里配置类
  *
  * @author 兄台丶请冷静
  */

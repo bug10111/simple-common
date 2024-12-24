@@ -7,8 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Created with IntelliJ IDEA on 2023/11/29/22:44.
- * <p>
- * 服务相关配置
+ * Description: 服务相关配置
  *
  * @author 兄台丶请冷静
  */
