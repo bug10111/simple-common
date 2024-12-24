@@ -3,6 +3,7 @@ package com.simple.common.core.common.service.cycle;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.simple.common.core.common.service.thread.ThreadService;
+import com.simple.common.core.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -48,8 +49,9 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
         Integer finalNum = num;
 
         if (num <= sum) {
-
-            log.debug("开始执行{}", num);
+            if(log.isDebugEnabled()){
+                log.debug("开始第{}次调度任务，参数：[{}]", num, JsonUtils.toJsonStr(runBody));
+            }
             threadService.schedule(new TimerTask() {
                 @Override
                 public void run() {
@@ -72,7 +74,6 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
                     }
                 }
             }, isAccumulate ? timeInterval * finalNum : timeInterval, TimeUnit.SECONDS);
-            log.debug("执行完毕{}", num);
         } else {
             more(runBody, parameters);
         }
@@ -88,7 +89,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
     }
 
     /**
-     * 需要执行的方法
+     * 需要执行的业务
      *
      * @param runBody 参数
      * @return 是否执行成功
@@ -96,7 +97,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
     protected abstract Boolean handler(T runBody, Map<String, String> parameters);
 
     /**
-     * 成功执行的方法
+     * 成功
      *
      * @param runBody 参数
      */

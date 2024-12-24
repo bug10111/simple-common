@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * Created by 兄台丶请冷静 on 2023/10/28 15:03
+ * Created by IntelliJ IDEA on 2023/10/28 15:03
  * 默认异常枚举
  *
  * @author 兄台丶请冷静

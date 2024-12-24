@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- 控制台彩色打印 -->
+    <conversionRule conversionWord="clr" converterClass="org.springframework.boot.logging.logback.ColorConverter"/>
+    <conversionRule conversionWord="wex"
+                    converterClass="org.springframework.boot.logging.logback.WhitespaceThrowableProxyConverter"/>
+    <conversionRule conversionWord="wEx"
+                    converterClass="org.springframework.boot.logging.logback.ExtendedWhitespaceThrowableProxyConverter"/>
+
+    <!-- 控制台输出格式 -->
+    <property name="CONSOLE_LOG_PATTERN"
+              value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger){cyan} %clr(%5.5L) %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <!--日志文件输出格式-->
+    <property name="CONSOLE_LOG_PATTERN_FILE" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level %logger Line:%-3L - %msg%n"/>
+
+    <!--定义日志存放的位置-->
+    <springProperty scope="context" name="SPRING_NAME" source="spring.application.name" defaultValue="demo"/>
+    <springProperty scope="context" name="COME_ON_LOG_PATH" source="log.path" defaultValue="/var/log/${SPRING_NAME}"/>
+
+    <!-- ****************************************************************************************** -->
+    <!-- ****************************** 本地开发只在控制台打印日志 ******************************** -->
+    <!-- ****************************************************************************************** -->
+    <springProfile name="local">
+
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <!--encoder 默认配置为PatternLayoutEncoder-->
+            <encoder>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                <charset>utf-8</charset>
+            </encoder>
+        </appender>
+
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+        </root>
+
+        <logger name="com.simple" level="debug" additivity="false">
+            <appender-ref ref="STDOUT"/>
+        </logger>
+
+    </springProfile>
+
+
+    <!-- ****************************************************************************************** -->
+    <!-- ********************** 生产环境记录info级别以上的信息 ********************** -->
+    <!-- ****************************************************************************************** -->
+    <springProfile name="produce">
+
+        <!-- 日志记录器，日期滚动记录 -->
+        <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+            <!-- 正在记录的日志文件的路径及文件名 -->
+            <file>${COME_ON_LOG_PATH}/log_error.log</file>
+
+            <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+
+                <!-- 归档的日志文件的路径和压缩格式 -->
+                <fileNamePattern>${COME_ON_LOG_PATH}/log-error-%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+
+                <!-- 保留30天的日志文件 -->
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+
+            <!-- 追加方式记录日志 -->
+            <append>true</append>
+
+            <!-- 日志文件的格式 -->
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <pattern>${CONSOLE_LOG_PATTERN_FILE}</pattern>
+                <charset>utf-8</charset>
+            </encoder>
+
+            <!-- 根据日志级别来过滤日志事件 -->
+            <filter class="ch.qos.logback.classic.filter.LevelFilter">
+                <!-- 定义日志级别 -->
+                <level>error</level>
+                <!-- 定义了当过滤器匹配到指定级别的日志事件时的行为。ACCEPT 表示接受并记录这些日志事件 -->
+                <onMatch>ACCEPT</onMatch>
+                <!-- 义了当过滤器没有匹配到指定级别的日志事件时的行为。DENY 表示拒绝并丢弃这些日志事件。 -->
+                <onMismatch>DENY</onMismatch>
+            </filter>
+        </appender>
+
+        <!-- 日志记录器，日期滚动记录 -->
+        <appender name="FILE_ALL" class="ch.qos.logback.core.rolling.RollingFileAppender">
+
+            <!-- 正在记录的日志文件的路径及文件名 -->
+            <file>${COME_ON_LOG_PATH}/log_total.log</file>
+
+            <!-- 日志记录器的滚动策略，按日期，按大小记录 -->
+            <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+
+                <!-- 归档的日志文件的路径和压缩格式 -->
+                <fileNamePattern>${COME_ON_LOG_PATH}/log-total%d{yyyy-MM-dd}.log.gz</fileNamePattern>
+
+                <!-- 保留30天的日志文件 -->
+                <maxHistory>30</maxHistory>
+            </rollingPolicy>
+
+            <!-- 追加方式记录日志 -->
+            <append>true</append>
+
+            <!-- 日志文件的格式 -->
+            <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                <pattern>${CONSOLE_LOG_PATTERN_FILE}</pattern>
+                <charset>utf-8</charset>
+            </encoder>
+        </appender>
+
+        <!--调用-->
+        <root level="info">
+            <appender-ref ref="FILE_ERROR"/>
+            <appender-ref ref="FILE_ALL"/>
+        </root>
+    </springProfile>
+
+</configuration>

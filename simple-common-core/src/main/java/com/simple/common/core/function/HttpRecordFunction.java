@@ -4,7 +4,7 @@ import com.simple.common.core.exception.AbstractException;
 import com.simple.common.core.exception.DefaultException;
 
 /**
- * Created by 兄台丶请冷静
+ * Created by IntelliJ IDEA
  *
  * @author 兄台丶请冷静
  */

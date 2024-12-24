@@ -51,7 +51,7 @@ public class RsaUtils {
     /**
      * 删除RSA密钥对
      *
-     * @param name       名称
+     * @param name 名称
      */
     public static void remRSA(String name) {
         map.remove(name);
@@ -106,8 +106,10 @@ public class RsaUtils {
 
     public static void main(String[] args) {
         Map<KeyType, String> rsaStr = createRsaStr();
-        log.debug("私钥：[{}]", rsaStr.get(KeyType.PrivateKey));
-        log.debug("公钥：[{}]", rsaStr.get(KeyType.PublicKey));
+        if (log.isDebugEnabled()) {
+            log.debug("私钥：[{}]", rsaStr.get(KeyType.PrivateKey));
+            log.debug("公钥：[{}]", rsaStr.get(KeyType.PublicKey));
+        }
         saveRSA("demo", rsaStr.get(KeyType.PublicKey), rsaStr.get(KeyType.PrivateKey));
         System.out.println(decryptStr("demo", encrypt("demo", "你好！", KeyType.PrivateKey), KeyType.PublicKey));
     }

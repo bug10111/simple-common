@@ -11,6 +11,17 @@ import java.util.Map;
 public interface CycleService<T> {
 
     /**
+     * 执行
+     *
+     * @param runBody      参数
+     * @param sum          请求次数
+     * @param isAccumulate 是否累加时间
+     * @param timeInterval 时间间隔 = sum * timeInterval
+     */
+    void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters);
+
+
+    /**
      * 均匀延迟时间执行
      *
      * @param runBody      参数
@@ -54,15 +65,4 @@ public interface CycleService<T> {
     default void runUniform(T runBody, Integer sum, Integer timeInterval, Map<String, String> parameters) {
         run(runBody, sum, timeInterval, false, parameters);
     }
-
-    /**
-     * 执行
-     *
-     * @param runBody      参数
-     * @param sum          请求次数
-     * @param isAccumulate 是否累加时间
-     * @param timeInterval 时间间隔 = sum * timeInterval
-     */
-    void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters);
-
 }

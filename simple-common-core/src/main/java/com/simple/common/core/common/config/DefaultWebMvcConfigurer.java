@@ -7,7 +7,7 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Created by 兄台丶请冷静 on 2023/10/28 13:25
+ * Created by IntelliJ IDEA on 2023/10/28 13:25
  * 跨域配置
  *
  * @author 兄台丶请冷静

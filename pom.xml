@@ -12,6 +12,7 @@
 
     <modules>
         <module>simple-common-core</module>
+        <module>simple-common-test</module>
     </modules>
 
     <properties>
@@ -21,6 +22,7 @@
         <maven-release-plugin.versinon>3.0.0-M7</maven-release-plugin.versinon>
         <spring-boot-maven-plugin.versinon>3.1.0</spring-boot-maven-plugin.versinon>
         <spring-boot.version>3.3.4</spring-boot.version>
+        <common.simple.version>1.0.0</common.simple.version>
 
         <hutool.version>5.8.32</hutool.version>
         <aviator.version>5.4.3</aviator.version>
@@ -74,6 +76,12 @@
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
                 <version>${knife4j.spring-webmvc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-core</artifactId>
+                <version>${common.simple.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
