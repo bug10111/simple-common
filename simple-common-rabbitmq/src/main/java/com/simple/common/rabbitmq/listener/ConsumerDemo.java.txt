@@ -1,0 +1,166 @@
+package com.simple.commom.rabbitmq.listener;
+
+import com.rabbitmq.client.Channel;
+import org.springframework.amqp.core.*;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
+
+
+/**
+ * Created with IntelliJ IDEA.
+ *
+ * @author 兄台丶请冷静
+ */
+@Configuration
+public class ConsumerDemo {
+
+    //交换机
+    public static final String confirm_exchange_name = "confirm_exchange";
+
+    //备份交换机
+    public static final String backup_exchange_name = "backup_confirm_exchange";
+
+    //队列
+    public static final String confirm_queue_name = "confirm_queue";
+
+    //备份队列
+    public static final String backup_confirm_queue_name = "backup_confirm_queue";
+
+
+    //报警队列
+    public static final String waring_confirm_queue_name = "waring_confirm_queue";
+
+    //routingKey
+    public static final String confirm_routing_key = "key";
+
+    /**
+     * 声明一个交换机
+     * <p>
+     * 返回交换机类型如下：
+     * 1.FanoutExchange：发布订阅，一个发送，多个同时接收
+     * 2.DirectExchange：路由模式，根据key发送到指定队列，发送方能绑定多个key，但是只能给一个key发送
+     * 3.TopicExchange：主题模式，多个主题key用“，”隔开，*号可以代替一个单词，#可以代替0个或者多个单词
+     *
+     * @return DirectExchange
+     */
+    @Bean("confirmExchange")
+    public DirectExchange confirmExchange() {
+
+        /*
+         * 1.name：交换机名称
+         * 2.durable：是否持久化，持久化会保存到磁盘，重启不会丢失数据
+         * 3.autoDelete：是否自动删除，当没有生产者或者消费者使用此队列，该队列会自动删除
+         * 4.arguments：其他参数 Map<String,Object>
+         *   a.备用交换机：map.put("alternate-exchange",backup_exchange_name);
+         *   b.插件延迟队列：map.put("x-delayed-type", "direct");(开启插件延时队列：交换机队列.setDelayed(true) ==> directExchange.setDelayed(true);)
+         * */
+        Map<String, Object> map = new HashMap<>();
+        map.put("alternate-exchange", backup_exchange_name);
+        return new DirectExchange(confirm_exchange_name, true, false, map);
+    }
+
+    /**
+     * 声明一队列
+     *
+     * @return Queue
+     */
+    @Bean("confirmQueue")
+    public Queue confirmQueue() {
+
+        /*
+         * 1.name：队列名
+         * 2.durable：是否持久化，持久化会保存到磁盘，重启不会丢失数据
+         * 3.exclusive：是否只对一个消费者消费，如果为true，则只能被当前创建的连接使用，而且当连接关闭后队列即被删除，且优先级高于durable
+         * 4.autoDelete：是否自动删除，当没有生产者或者消费者使用此队列，该队列会自动删除
+         * 5.arguments：其他参数 Map<String,Object>
+         *   a.设置过期时间(单位毫秒)-可在发送消息发设置：map.put("x-message-ttl",10000);
+         *
+         *   b.设置正常队列的死信交换机：map.put("x-dead-letter-exchange",dead_exchange);
+         *   c.设置死信RoutingKey：map.put("x-dead-letter-routing-key","lisi");
+         *
+         *   d.设置队列最大长度，超出部分进入死信：map.put("x-max-length",6);
+         *   e.设置为惰性队列：map.put("x-queue-mode","lazy");
+         * */
+        return new Queue(confirm_queue_name, true, false, false);
+
+    }
+
+    /**
+     * 绑定正常流程的交换机，队列，routingKey
+     *
+     * @return Binding
+     */
+    @Bean
+    public Binding queueBindingExchange(@Qualifier("confirmQueue") Queue queue,
+                                        @Qualifier("confirmExchange") DirectExchange directExchange) {
+        return BindingBuilder.bind(queue).to(directExchange).with(confirm_routing_key);
+    }
+
+    /**
+     * 声明一个备份的交换机
+     *
+     * @return
+     */
+    @Bean("backupConfirmExchange")
+    public FanoutExchange backupConfirmExchange() {
+        return new FanoutExchange(backup_exchange_name);
+    }
+
+    /**
+     * 声明一个备份队列
+     *
+     * @return
+     */
+    @Bean("backupConfirmQueue")
+    public Queue backupConfirmQueue() {
+        return QueueBuilder.durable(backup_confirm_queue_name).build();
+    }
+
+    /**
+     * 绑定备份
+     *
+     * @return Binding
+     */
+    @Bean
+    public Binding backupBindingExchange(@Qualifier("backupConfirmQueue") Queue queue,
+                                         @Qualifier("backupConfirmExchange") FanoutExchange directExchange) {
+        return BindingBuilder.bind(queue).to(directExchange);
+    }
+
+    /**
+     * 警告队列
+     *
+     * @return
+     */
+    @Bean("waringConfirmQueue")
+    public Queue waringConfirmQueue() {
+        return QueueBuilder.durable(waring_confirm_queue_name).build();
+    }
+
+    /**
+     * 绑定报警
+     *
+     * @return
+     */
+    @Bean
+    public Binding waringBindingExchange(@Qualifier("waringConfirmQueue") Queue queue,
+                                         @Qualifier("backupConfirmExchange") FanoutExchange directExchange) {
+        return BindingBuilder.bind(queue).to(directExchange);
+    }
+
+
+//    @RabbitListener(bindings = @QueueBinding(
+//            value = @org.springframework.amqp.rabbit.annotation.Queue(value = confirm_queue_name,declare = "true" ,exclusive = "false" ,autoDelete = "false"), //声明队列
+//            exchange = @org.springframework.amqp.rabbit.annotation.Exchange(value = confirm_exchange_name,declare = "true" ,autoDelete = "false"), //声明交换机
+//            key = confirm_routing_key //声明key
+//    ),concurrency =  "10")
+    @RabbitListener(queues = confirm_queue_name,concurrency = "10",ackMode = "MANUAL")
+    public void receiveMessage(Message message, Channel channel) {
+
+    }
+}

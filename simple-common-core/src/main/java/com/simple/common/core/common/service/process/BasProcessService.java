@@ -4,7 +4,7 @@ import com.simple.common.core.common.enums.process.DefaultKindProcess;
 import org.springframework.core.Ordered;
 
 /**
- * Created with IntelliJ IDEA on 2023/12/04/17:24.
+ * Created with IntelliJ IDEA
  * <p>
  * 定义流程基类接口
  *

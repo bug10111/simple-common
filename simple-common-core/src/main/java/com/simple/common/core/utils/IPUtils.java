@@ -13,7 +13,7 @@ import java.net.NetworkInterface;
 import java.util.Enumeration;
 
 /**
- * Created by IntelliJ IDEA on 2023/11/6 11:16
+ * Created by IntelliJ IDEA
  * <p>
  * ip地址获取工具类
  *

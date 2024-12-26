@@ -3,8 +3,7 @@ package com.simple.common.core.utils;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Created with IntelliJ IDEA on 2023/11/30/22:54.
- * <p>
+ * Created with IntelliJ IDEA
  * 序列化工具
  *
  * @author 兄台丶请冷静

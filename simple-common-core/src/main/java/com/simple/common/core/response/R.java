@@ -5,7 +5,7 @@ import com.simple.common.core.exception.DefaultExceptionEnum;
 import lombok.Data;
 
 /**
- * Created by IntelliJ IDEA on 2023/10/28 14:51
+ * Created by IntelliJ IDEA
  * 统一数据返回,选择性使用，使用时，建议满足HttpState规范
  *
  * @author 兄台丶请冷静

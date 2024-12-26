@@ -1,7 +1,7 @@
 package com.simple.common.core.common.enums.process;
 
 /**
- * Created with IntelliJ IDEA on 2023/12/04/18:05.
+ * Created with IntelliJ IDEA
  * 流程定义接口
  *
  * @author 兄台丶请冷静

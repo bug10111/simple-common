@@ -5,8 +5,7 @@ import com.simple.common.core.function.ReturnValueFunction;
 
 /**
  * Created by IntelliJ IDEA
- * <p>
- * 统一锁的接口，所有的锁的使用，包括分布式锁，都需要实现这个接口
+ * Description: 统一锁的接口，所有的锁的使用，包括分布式锁，都需要实现这个接口
  *
  * @author 兄台丶请冷静
  */
@@ -14,9 +13,6 @@ public interface LockService {
 
     /**
      * 可重入锁
-     * <p>
-     * 可重入锁指的是同一个线程里面，可以再次获取锁
-     * 分布式锁根据key来加锁，意味着在不同接口，不同线程，只要是同一个锁标志，都会排队执行
      * 案例：扣库存
      *
      * @param key      加锁的key
@@ -26,9 +22,6 @@ public interface LockService {
 
     /**
      * 可重入锁
-     * <p>
-     * 可重入锁指的是同一个线程里面，可以再次获取锁
-     * 分布式锁根据key来加锁，意味着在不同接口，不同线程，只要是同一个锁标志，都会排队执行
      * 案例：扣库存
      *
      * @param key      加锁的key

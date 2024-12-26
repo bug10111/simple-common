@@ -1,7 +1,7 @@
 package com.simple.common.core.exception;
 
 /**
- * Created by IntelliJ IDEA on 2023/10/28 13:43
+ * Created by IntelliJ IDEA
  * 异常状态基类
  *
  * @author 兄台丶请冷静

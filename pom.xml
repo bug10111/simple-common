@@ -13,6 +13,8 @@
     <modules>
         <module>simple-common-core</module>
         <module>simple-common-test</module>
+        <module>simple-common-redis</module>
+        <module>simple-common-rabbitmq</module>
     </modules>
 
     <properties>
@@ -30,6 +32,7 @@
         <net.version>3.11.1</net.version>
         <knife4j.versinon>4.5.0</knife4j.versinon>
         <knife4j.spring-webmvc.version>6.1.14</knife4j.spring-webmvc.version>
+        <redisson.version>3.36.0</redisson.version>
     </properties>
 
     <dependencyManagement>
@@ -73,6 +76,12 @@
             </dependency>
 
             <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
                 <version>${knife4j.spring-webmvc.version}</version>
@@ -81,6 +90,18 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-core</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-redis</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-rabbitmq</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>

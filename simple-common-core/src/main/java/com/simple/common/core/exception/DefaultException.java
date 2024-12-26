@@ -6,7 +6,7 @@ import lombok.EqualsAndHashCode;
 import lombok.experimental.Accessors;
 
 /**
- * Created by IntelliJ IDEA on 2023/10/28 13:45
+ * Created by IntelliJ IDEA
  * 自定义默认异常
  *
  * @author 兄台丶请冷静
