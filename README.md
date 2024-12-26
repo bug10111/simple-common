@@ -16,11 +16,15 @@
 - 循环任务调度
 - ScheduledThreadPoolExecutor 任务调度，支持延迟任务和循环任务
 - 各类工具包（主要源于hutool：https://www.hutool.cn/）
-2. redis包：simple-common-redis
+
+2. redis包：simple-common-redis 开发完成
 - 分布式锁，包含公平锁、非公平锁、信号量、闭锁。完整的封装，一键式调用。
 - 自定义缓存注解，使用过程中常见的雪崩、穿透、击穿都做了处理
 - 自定义限流注解，采用令牌桶方式。包含单位时长、单位时长允许次数、等待时间、最高等待时间后的异常信息等常用核心参数。
-3. 测试包：simple-common-test
+
+3. rabbitmq包：simple-common-rabbitmq 开发中 
+
+4. 测试包：simple-common-test
 
 #### 公众号地址
  **框架的最新动态和用法，会在第一时间在公众号发布，欢迎关注点赞** 
