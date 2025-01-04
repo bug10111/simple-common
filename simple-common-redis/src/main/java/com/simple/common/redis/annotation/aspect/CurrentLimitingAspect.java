@@ -21,7 +21,6 @@ import java.lang.reflect.Method;
  *
  * @author 兄台丶请冷静
  */
-@Order(1)
 @Aspect
 @Slf4j
 @Component

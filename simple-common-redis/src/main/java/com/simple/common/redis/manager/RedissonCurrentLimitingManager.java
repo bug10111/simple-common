@@ -9,6 +9,7 @@ import com.simple.common.redis.common.enums.CurrentLimitingRulesEnum;
 import com.simple.common.redis.common.manager.CurrentLimitingManager;
 import com.simple.common.core.common.properties.LockProperties;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RRateLimiter;
 import org.redisson.api.RateIntervalUnit;
@@ -17,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.concurrent.TimeUnit;
 
@@ -25,10 +27,9 @@ import java.util.concurrent.TimeUnit;
  *
  * @author 兄台丶请冷静
  */
+@Slf4j
 @Service
 public class RedissonCurrentLimitingManager implements CurrentLimitingManager<CurrentLimiting> {
-
-    private static final Logger log = LoggerFactory.getLogger(RedissonCurrentLimitingManager.class);
 
     @Autowired
     private Redisson redisson;
@@ -80,7 +81,12 @@ public class RedissonCurrentLimitingManager implements CurrentLimitingManager<Cu
     protected RRateLimiter getRRateLimiter(String key, CurrentLimiting currentLimiting) {
         RRateLimiter rateLimiter = redisson.getRateLimiter(key);
         if (!rateLimiter.isExists()) {
-            rateLimiter.trySetRate(RateType.PER_CLIENT, currentLimiting.sum(), currentLimiting.time(), RateIntervalUnit.SECONDS);
+            synchronized (RedissonCurrentLimitingManager.class){
+                 rateLimiter = redisson.getRateLimiter(key);
+                if (!rateLimiter.isExists()) {
+                    rateLimiter.trySetRate(RateType.PER_CLIENT, currentLimiting.sum(), currentLimiting.time(), RateIntervalUnit.SECONDS);
+                }
+            }
         }
         return rateLimiter;
     }
