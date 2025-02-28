@@ -16,6 +16,8 @@
         <module>simple-common-redis</module>
         <module>simple-common-rabbitmq</module>
         <module>simple-common-eventbus</module>
+        <module>simple-common-annex</module>
+        <module>simple-common-mp</module>
     </modules>
 
     <properties>
@@ -34,6 +36,9 @@
         <knife4j.versinon>4.5.0</knife4j.versinon>
         <knife4j.spring-webmvc.version>6.1.14</knife4j.spring-webmvc.version>
         <redisson.version>3.36.0</redisson.version>
+        <amazonaws.version>1.12.594</amazonaws.version>
+        <minio.version>8.5.10</minio.version>
+        <mp.versinon>3.5.9</mp.versinon>
     </properties>
 
     <dependencyManagement>
@@ -44,6 +49,29 @@
                 <version>${spring-boot.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-bom</artifactId>
+                <version>${mp.versinon}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!--aws s3-->
+            <dependency>
+                <groupId>com.amazonaws</groupId>
+                <artifactId>aws-java-sdk-bom</artifactId>
+                <version>${amazonaws.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.minio</groupId>
+                <artifactId>minio</artifactId>
+                <version>${minio.version}</version>
             </dependency>
 
             <dependency>
@@ -77,15 +105,15 @@
             </dependency>
 
             <dependency>
-                <groupId>org.redisson</groupId>
-                <artifactId>redisson</artifactId>
-                <version>${redisson.version}</version>
-            </dependency>
-
-            <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-webmvc</artifactId>
                 <version>${knife4j.spring-webmvc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
 
             <dependency>
@@ -111,13 +139,23 @@
                 <artifactId>simple-common-eventbus</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-annex</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-mp</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
-
     <build>
         <plugins>
-
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-release-plugin</artifactId>
@@ -167,8 +205,6 @@
                 <filtering>true</filtering>
             </resource>
         </resources>
-
-
     </build>
 
     <profiles>

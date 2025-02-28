@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.simple.common</groupId>
+        <artifactId>simple-common</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>simple-common-annex</artifactId>
+    <packaging>jar</packaging>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-java-sdk-s3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.minio</groupId>
+            <artifactId>minio</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-mp</artifactId>
+            <!--表示在编译时需要该依赖，但是在运行时不需要它,由其他程序提供-->
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -74,3 +74,11 @@ springdoc:
     - group: '测试服务'
       paths-to-match: '/**'
       packages-to-scan: com.simple.common.test.controller
+
+simple:
+  annex: # 附件上传配置
+    server-url: http://192.168.10.101:9000
+    access-key: admin
+    access-secret: rXd5BErpRk
+    expire-time: 30
+    algorithm: md5
