@@ -49,6 +49,7 @@ public interface CycleService<T> {
      * @param runBody      参数
      * @param sum          请求次数
      * @param timeInterval 时间间隔 = sum * timeInterval
+     * @param parameters 需要携带的参数
      */
     default void runAccumulate(T runBody, Integer sum, Integer timeInterval, Map<String, String> parameters) {
         run(runBody, sum, timeInterval, true, parameters);
@@ -61,6 +62,7 @@ public interface CycleService<T> {
      * @param runBody      参数
      * @param sum          请求次数
      * @param timeInterval 时间间隔 = sum * timeInterval
+     * @param parameters 需要携带的参数
      */
     default void runUniform(T runBody, Integer sum, Integer timeInterval, Map<String, String> parameters) {
         run(runBody, sum, timeInterval, false, parameters);

@@ -15,6 +15,7 @@
         <module>simple-common-test</module>
         <module>simple-common-redis</module>
         <module>simple-common-rabbitmq</module>
+        <module>simple-common-eventbus</module>
     </modules>
 
     <properties>
@@ -102,6 +103,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-rabbitmq</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-eventbus</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>

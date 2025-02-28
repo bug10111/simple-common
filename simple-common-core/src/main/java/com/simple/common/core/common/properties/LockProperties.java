@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
 /**
- * Created by IntelliJ IDEA on
+ * Created by IntelliJ IDEA
  * Description: 缓存要用到的配置
  *
  * @author 兄台丶请冷静

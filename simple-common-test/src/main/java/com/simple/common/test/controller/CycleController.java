@@ -25,7 +25,7 @@ public class CycleController {
     @Autowired
     private DefaultCycleService defaultCycleService;
 
-    @Operation(summary = "远程http查询订单")
+    @Operation(summary = "远程http查询订单（依赖event）")
     @PostMapping("select")
     public R<Object> select() {
         DataDemo dataDemo = new DataDemo().setDemoName2("测试数据1").setDemoName2("测试数据2");

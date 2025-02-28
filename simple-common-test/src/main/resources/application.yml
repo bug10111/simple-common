@@ -51,6 +51,17 @@ spring:
         min-idle: 10 # 连接池中的最小空闲连接
         max-active: 100 # 连接池的最大数据库连接数。设为0表示无限制。一般设置为并发量
         max-wait: 3000 # 从连接池中获取连接的最大等待时间（毫秒）
+  rabbitmq:
+    addresses: develop.dev.joyswon.com:5672
+    username: admin
+    password: Abc$123456789
+    listener:
+      simple:
+        acknowledge-mode: MANUAL # 确认模式：MANUAL-手动ack，AUTO-自动ack，失败需要手动抛出异常，NONE-没有ack
+        prefetch: 1 # 未确认消息的最大数量，也叫作分发模式：0-轮训，每台服务器一次循环，1-公平分发，是服务器压力进行分发，> 1：预取数据的数量-适当增大可以提升消费速度
+        default-requeue-rejected: false # 消费失败的q是否重新放回队列重新消费
+        # concurrency: 1 # 消费线程数
+        # max-concurrency: 10 # 消费线程最大数量
 # doc文档配置
 springdoc:
   swagger-ui:

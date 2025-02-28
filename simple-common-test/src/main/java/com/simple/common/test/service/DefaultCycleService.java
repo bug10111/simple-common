@@ -2,6 +2,7 @@ package com.simple.common.test.service;
 
 import com.simple.common.core.common.service.cycle.AbsCycleService;
 import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.eventbus.common.service.AbsEventCycleService;
 import com.simple.common.test.common.entity.cycle.DataDemo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +16,7 @@ import java.util.Map;
  * @author 兄台丶请冷静
  */
 @Component
-public class DefaultCycleService extends AbsCycleService<DataDemo> {
+public class DefaultCycleService extends AbsEventCycleService<DataDemo> {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultCycleService.class);
 
@@ -27,7 +28,6 @@ public class DefaultCycleService extends AbsCycleService<DataDemo> {
     protected Boolean handler(DataDemo runBody, Map<String, String> parameters) {
         //todo 模拟http查单请求
         log.debug("查询中。。。。");
-        AssertUtils.error("业务异常");
         return false;
     }
 
