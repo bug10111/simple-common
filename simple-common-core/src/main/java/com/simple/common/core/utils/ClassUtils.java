@@ -4,6 +4,8 @@ import cn.hutool.core.util.ClassUtil;
 import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created with IntelliJ IDEA
@@ -57,5 +59,19 @@ public class ClassUtils extends ClassUtil {
         Field field = getField(t.getClass(), fieldName);
         assert field != null : "不存在" + fieldName + "属性";
         return field.get(t);
+    }
+
+    /**
+     * 获取对象所有属性名称
+     * @param t 对象
+     */
+    @SneakyThrows
+    public static <T> List<String> getFieldNames(T t) {
+        List<String> list = new ArrayList<>();
+        Field[] fields = t.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            list.add(field.getName());
+        }
+        return list;
     }
 }

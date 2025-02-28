@@ -18,6 +18,7 @@
         <module>simple-common-eventbus</module>
         <module>simple-common-annex</module>
         <module>simple-common-mp</module>
+        <module>simple-common-doc</module>
     </modules>
 
     <properties>
@@ -39,6 +40,7 @@
         <amazonaws.version>1.12.594</amazonaws.version>
         <minio.version>8.5.10</minio.version>
         <mp.versinon>3.5.9</mp.versinon>
+        <poi.tl.version>1.12.2</poi.tl.version>
     </properties>
 
     <dependencyManagement>
@@ -117,6 +119,12 @@
             </dependency>
 
             <dependency>
+                <groupId>com.deepoove</groupId>
+                <artifactId>poi-tl</artifactId>
+                <version>${poi.tl.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-core</artifactId>
                 <version>${common.simple.version}</version>
@@ -149,6 +157,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-mp</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-doc</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>
