@@ -12,7 +12,6 @@
 
     <modules>
         <module>simple-common-core</module>
-        <module>simple-common-test</module>
         <module>simple-common-redis</module>
         <module>simple-common-rabbitmq</module>
         <module>simple-common-eventbus</module>
@@ -23,6 +22,8 @@
         <module>simple-common-logs</module>
         <module>simple-common-xxljob</module>
         <module>simple-common-sms</module>
+        <module>simple-common-auth</module>
+        <module>simple-common-test</module>
     </modules>
 
     <properties>
@@ -50,6 +51,8 @@
         <xxl.job.version>2.4.1</xxl.job.version>
         <sdk-core.version>4.6.4</sdk-core.version>
         <dysmsapi20170525.version>2.0.24</dysmsapi20170525.version>
+        <jjwt.version>0.12.6</jjwt.version>
+        <jbcrypt.version>0.4</jbcrypt.version>
     </properties>
 
     <dependencyManagement>
@@ -158,6 +161,18 @@
             </dependency>
 
             <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.xuxueli</groupId>
                 <artifactId>xxl-job-core</artifactId>
                 <version>${xxl.job.version}</version>
@@ -220,6 +235,18 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-logs-client</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-auth-client</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-auth-server</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
 
