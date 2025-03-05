@@ -42,6 +42,16 @@
         </dependency>
 
         <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-excel</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-mp</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>

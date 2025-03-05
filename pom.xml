@@ -19,6 +19,7 @@
         <module>simple-common-annex</module>
         <module>simple-common-mp</module>
         <module>simple-common-doc</module>
+        <module>simple-common-excel</module>
     </modules>
 
     <properties>
@@ -41,6 +42,8 @@
         <minio.version>8.5.10</minio.version>
         <mp.versinon>3.5.9</mp.versinon>
         <poi.tl.version>1.12.2</poi.tl.version>
+        <easy.excel.version>4.0.3</easy.excel.version>
+        <poi.version>5.3.0</poi.version>
     </properties>
 
     <dependencyManagement>
@@ -125,6 +128,18 @@
             </dependency>
 
             <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>easyexcel</artifactId>
+                <version>${easy.excel.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-core</artifactId>
                 <version>${common.simple.version}</version>
@@ -163,6 +178,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-doc</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-excel</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>
