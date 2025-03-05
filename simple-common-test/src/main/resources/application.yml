@@ -44,7 +44,7 @@ mybatis-plus:
       logic-not-delete-value: 0
 spring:
   application:
-    name: simple-common-test
+    name: common-test
   profiles:
     active: @spring.active@
 
