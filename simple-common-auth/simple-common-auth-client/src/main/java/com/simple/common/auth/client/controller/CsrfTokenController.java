@@ -34,7 +34,7 @@ public class CsrfTokenController {
     @Autowired
     private CsrfService csrfService;
 
-    @Operation(summary = "获取CSRF Token，建议在页面初始化前调用，调用成功后，再调用目标接口", parameters = {
+    @Operation(summary = "获取CSRF Token，建议在页面初始化前调用，调用成功后，渲染到表单标签里面，例如按钮的某个属性中。再调用目标接口携带参数", parameters = {
                     @Parameter(name = "path", description = "目标接口path") })
     @GetMapping("/generate")
     public R<Object> generateCsrfToken(String path) {

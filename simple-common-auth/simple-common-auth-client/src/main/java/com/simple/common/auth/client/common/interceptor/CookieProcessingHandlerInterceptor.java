@@ -11,13 +11,13 @@ import org.springframework.web.servlet.HandlerInterceptor;
 
 /**
  * Created with IntelliJ IDEA
- * Description:Csrf拦截器
+ * Description:Cookie处理拦截器
  *
  * @author 兄台丶请冷静
  */
 @Slf4j
 @Component
-public class CsrfHandlerInterceptor implements HandlerInterceptor {
+public class CookieProcessingHandlerInterceptor implements HandlerInterceptor {
 
     @Autowired
     private ClientAuthInfo clientAuthInfo;
@@ -50,9 +50,13 @@ public class CsrfHandlerInterceptor implements HandlerInterceptor {
 
                 // 设置SameSite属性为Strict,表示完全禁止第三方cookie,也就是在跨站时，均不会携带cookie,可以有效防止CSRF攻击
                 // 不分非正规或者古董浏览器，可能不兼容
+                //一般和CSRF token一起使用，可以杜绝绝大多数场景
                 response.addHeader("Set-Cookie", cookie + "; SameSite=Strict");
                 response.addCookie(cookie);
             }
         }
+
+        //强制浏览器启用XSS过滤
+        response.addHeader("X-XSS-Protection", "1; mode=block");
     }
 }

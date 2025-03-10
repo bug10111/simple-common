@@ -99,6 +99,7 @@ public class DefaultLogManager implements LogManager {
             } else {
                 logDataEvent.setErrorMsg("未收集到有效异常信息");
             }
+            request.removeAttribute(CoreConstant.EXCEPTION);
         }
 
         logDataEvent.setRequestTime(duration);

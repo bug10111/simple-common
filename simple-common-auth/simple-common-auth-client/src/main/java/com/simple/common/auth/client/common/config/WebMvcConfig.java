@@ -1,7 +1,7 @@
 package com.simple.common.auth.client.common.config;
 
 import com.simple.common.auth.client.common.interceptor.AuthHandlerInterceptor;
-import com.simple.common.auth.client.common.interceptor.CsrfHandlerInterceptor;
+import com.simple.common.auth.client.common.interceptor.CookieProcessingHandlerInterceptor;
 import com.simple.common.core.common.config.DefaultWebMvcConfigurer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
@@ -19,7 +19,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 public class WebMvcConfig extends DefaultWebMvcConfigurer {
 
     @Autowired
-    private CsrfHandlerInterceptor csrfHandlerInterceptor;
+    private CookieProcessingHandlerInterceptor cookieProcessingHandlerInterceptor;
 
     @Autowired
     private AuthHandlerInterceptor authHandlerInterceptor;
@@ -29,7 +29,7 @@ public class WebMvcConfig extends DefaultWebMvcConfigurer {
      */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(csrfHandlerInterceptor).addPathPatterns("/**").order(1);
+        registry.addInterceptor(cookieProcessingHandlerInterceptor).addPathPatterns("/**").order(1);
         registry.addInterceptor(authHandlerInterceptor).addPathPatterns("/**").order(2);
     }
 

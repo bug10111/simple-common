@@ -293,7 +293,7 @@ CREATE TABLE "public"."sys_operation_logs" (
   "nickname" varchar(255) COLLATE "pg_catalog"."default",
   "oper_param" text COLLATE "pg_catalog"."default",
   "status" int2,
-  "error_msg" varchar(255) COLLATE "pg_catalog"."default",
+  "error_msg" text COLLATE "pg_catalog"."default",
   "request_time" int4,
   "error_data" text COLLATE "pg_catalog"."default",
   "create_time" timestamp(6),

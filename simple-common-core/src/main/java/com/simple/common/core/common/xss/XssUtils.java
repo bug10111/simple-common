@@ -1,4 +1,4 @@
-package com.simple.common.auth.client.common.xss;
+package com.simple.common.core.common.xss;
 
 import cn.hutool.http.HtmlUtil;
 import lombok.extern.slf4j.Slf4j;

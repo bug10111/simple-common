@@ -1,7 +1,7 @@
 package com.simple.common.test.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonInclude;
+import com.simple.common.core.common.aspect.XssSafe;
 import com.simple.common.eventbus.common.annotation.Event;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
@@ -19,6 +19,7 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class EventTestRequest {
 
+    @XssSafe
     @NotEmpty(message = "姓名不能为空")
     @Schema(description = "名称")
     private String name;

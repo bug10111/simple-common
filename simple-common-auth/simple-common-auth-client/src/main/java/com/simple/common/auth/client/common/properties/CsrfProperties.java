@@ -24,18 +24,18 @@ public class CsrfProperties {
     private String csrfTokenHeader = "X-CSRF-TOKEN";
 
     //缓存标志
-    private String xssKey = "xss:";
+    private String csrfKey = "csrf:";
 
     //缓存时间
     private int cacheTime = 60 * 10;
 
     /**
-     * 获取xss短token key
+     * 获取短token key
      *
      * @param url    请求路径
      * @param userId 用户Id
      */
     public String getKey(String url, String userId) {
-        return xssKey + userId + "&&" + url;
+        return csrfKey + userId + "&&" + url;
     }
 }
