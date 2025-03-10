@@ -55,8 +55,5 @@ public class CookieProcessingHandlerInterceptor implements HandlerInterceptor {
                 response.addCookie(cookie);
             }
         }
-
-        //强制浏览器启用XSS过滤
-        response.addHeader("X-XSS-Protection", "1; mode=block");
     }
 }

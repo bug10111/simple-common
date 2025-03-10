@@ -6,6 +6,7 @@ import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.auth.WhiteManager;
 import com.simple.common.auth.client.common.process.AuthProcess;
+import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.IPUtils;
@@ -39,6 +40,9 @@ public class AuthHandlerInterceptor implements HandlerInterceptor {
     @Autowired
     private WhiteManager whiteManager;
 
+    @Autowired
+    private AuthProperties authProperties;
+
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
@@ -65,7 +69,7 @@ public class AuthHandlerInterceptor implements HandlerInterceptor {
 
         //白名单放行
         if (UrlRulesUtils.matches(path, clientAuthInfo.getWhiteMap().keySet())) {
-            if(log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("URL==>[{}]请求被放行！请求不需登录，且在白名单内！", path);
             }
             return HandlerInterceptor.super.preHandle(request, response, handler);
@@ -93,7 +97,7 @@ public class AuthHandlerInterceptor implements HandlerInterceptor {
                     }
                 }
             }
-            if(log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("用户 [{}] ==> 接口 [{}] ==> token [{}] ", LoginUserUtils.getUserTemporary().getUserId(), path, header);
             }
 
