@@ -8,5 +8,5 @@
     1. 创建时间，统一命名为create_time
     2. 修改时间，统一命名为update_time
     3. 状态，统一命名为status，int2类型
-    4. 扩展，统一命名为reserver
+    4. 扩展，统一命名为reserver text类型
     5. 备注，统一命名为remark
