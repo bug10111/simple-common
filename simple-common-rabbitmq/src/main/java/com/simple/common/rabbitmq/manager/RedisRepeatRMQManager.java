@@ -27,7 +27,14 @@ public class RedisRepeatRMQManager implements RepeatRMQManager {
 
     @Override
     public boolean register(String queue, String msgId, Integer time, TimeUnit timeUnit) {
-        return redisTemplate.opsForValue().setIfAbsent(getRepeatedConsumptionKey(queue, msgId), "1", time, timeUnit);
+        Boolean b = redisTemplate.opsForValue().setIfAbsent(getRepeatedConsumptionKey(queue, msgId), "1", time, timeUnit);
+        assert b != null : "redis再消息队列消费注册时缓存异常";
+        return b;
+    }
+
+    @Override
+    public void update(String queue, String msgId, Integer time, TimeUnit timeUnit) {
+        redisTemplate.expire(getRepeatedConsumptionKey(queue, msgId),time, timeUnit);
     }
 
     @Override

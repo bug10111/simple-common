@@ -70,11 +70,11 @@ public class RabbitMqProcessAspect {
 
         //业务中有任何异常，都视为消费失败
         try {
-            boolean register = repeatRMQManager.register(message.getMessageProperties().getConsumerQueue(), correlationId, rabbitMqConsumption.effectiveTime(),
+            boolean register = repeatRMQManager.register(message.getMessageProperties().getConsumerQueue(), correlationId, rabbitMqConsumption.businessTime(),
                                                          rabbitMqConsumption.timeUnit());
             if (!register) {
-                log.info("队列exchange[{}]=>key[{}]=>id[{}]已消费，不执行业务", message.getMessageProperties().getReceivedExchange(),
-                         message.getMessageProperties().getReceivedRoutingKey(), correlationId);
+                log.info("队列exchange[{}]=>key[{}]=>id[{}]已消费，不执行业务", message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
+                         correlationId);
 
                 //手动提交，表示已经消费
                 ackRMQManager.basicAck(channel, message.getMessageProperties().getDeliveryTag());
@@ -85,23 +85,27 @@ public class RabbitMqProcessAspect {
             listManager.forEach(manager -> {
                 if (manager.getProcess().isExecute()) {
                     manager.execution(message, channel, rabbitMqConsumption);
-                    log.trace("队列exchange[{}]=>key[{}]=>id[{}]执行[{}]成功！", message.getMessageProperties().getReceivedExchange(),
-                              message.getMessageProperties().getReceivedRoutingKey(), correlationId, manager.getProcess().getMsg());
+                    log.trace("队列exchange[{}]=>key[{}]=>id[{}]执行[{}]成功！", message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
+                              correlationId, manager.getProcess().getMsg());
                 }
             });
 
             //执行业务
             joinPoint.proceed(args);
 
+            //业务执行完毕，立即更新重复时长
+            repeatRMQManager.update(message.getMessageProperties().getConsumerQueue(), correlationId, rabbitMqConsumption.businessTime(), rabbitMqConsumption.timeUnit());
+
+            //ack
             ackRMQManager.basicAck(channel, message.getMessageProperties().getDeliveryTag());
             if (log.isDebugEnabled()) {
-                log.debug("队列exchange[{}]=>key[{}]=>id[{}]==>[{}]消费成功！", message.getMessageProperties().getReceivedExchange(),
-                          message.getMessageProperties().getReceivedRoutingKey(), correlationId, new String(message.getBody()));
+                log.debug("队列exchange[{}]=>key[{}]=>id[{}]==>[{}]消费成功！", message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
+                          correlationId, new String(message.getBody()));
             }
 
         } catch (Exception e) {
-            log.error("队列exchange[{}]=>key[{}]=>id[{}]==>[{}]消费失败！", message.getMessageProperties().getReceivedExchange(),
-                      message.getMessageProperties().getReceivedRoutingKey(), correlationId, new String(message.getBody()), e);
+            log.error("队列exchange[{}]=>key[{}]=>id[{}]==>[{}]消费失败！", message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
+                      correlationId, new String(message.getBody()), e);
 
             //无法继续消费
             try {
@@ -112,8 +116,8 @@ public class RabbitMqProcessAspect {
                     }
                 }
             } catch (Exception ee) {
-                log.error("队列exchange[{}]=>key[{}]=>id[{}]重试失败！", message.getMessageProperties().getReceivedExchange(),
-                          message.getMessageProperties().getReceivedRoutingKey(), correlationId);
+                log.error("队列exchange[{}]=>key[{}]=>id[{}]重试失败！", message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
+                          correlationId);
             } finally {
                 //只要接收到消息，无论是否报错都要使消息可以继续执行
                 repeatRMQManager.remove(message.getMessageProperties().getConsumerQueue(), correlationId);
@@ -125,8 +129,7 @@ public class RabbitMqProcessAspect {
     protected boolean consumptionFailed(String correlationId, Message message, Channel channel, int retryCount, Exception e) {
 
         //消息重试，Redis key
-        String failedKey = failedRMQManager.getFailedMqRedisKey(rabbitMqProperties.getCalculation(), message.getMessageProperties().getConsumerQueue(),
-                                                                correlationId);
+        String failedKey = failedRMQManager.getFailedMqRedisKey(rabbitMqProperties.getCalculation(), message.getMessageProperties().getConsumerQueue(), correlationId);
 
         //获取储存的，消费失败的次数
         Long failedSum = failedRMQManager.getFailedSum(failedKey);

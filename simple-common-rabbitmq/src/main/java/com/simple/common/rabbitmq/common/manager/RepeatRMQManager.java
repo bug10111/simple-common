@@ -20,6 +20,15 @@ public interface RepeatRMQManager {
     boolean register(String queue, String msgId, Integer time, TimeUnit timeUnit);
 
     /**
+     * 更新时长
+     * @param queue    queue
+     * @param msgId    消息id
+     * @param time     保存时间
+     * @param timeUnit 时间单位
+     */
+    void update(String queue, String msgId, Integer time, TimeUnit timeUnit);
+
+    /**
      * 删除已消费标记
      *
      * @param queue queue
