@@ -24,6 +24,7 @@
         <module>simple-common-sms</module>
         <module>simple-common-auth</module>
         <module>simple-common-test</module>
+        <module>simple-common-websocket</module>
     </modules>
 
     <properties>
