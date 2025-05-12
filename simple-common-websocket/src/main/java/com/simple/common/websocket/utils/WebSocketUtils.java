@@ -1,5 +1,6 @@
-package com.simple.common.websocket.common.channel;
+package com.simple.common.websocket.utils;
 
+import com.simple.common.websocket.common.channel.ChannelMap;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.extern.slf4j.Slf4j;
@@ -13,7 +14,7 @@ import java.util.List;
  * @author qty
  */
 @Slf4j
-public class ChannelUtils {
+public class WebSocketUtils {
     private static final ChannelMap<String, String, ChannelHandlerContext> map = new ChannelMap<>();
 
     /**

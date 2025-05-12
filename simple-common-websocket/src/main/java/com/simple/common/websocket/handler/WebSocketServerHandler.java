@@ -1,21 +1,18 @@
 package com.simple.common.websocket.handler;
 
-import cn.hutool.core.util.ObjUtil;
 import cn.hutool.extra.spring.SpringUtil;
-import com.simple.common.websocket.common.channel.ChannelUtils;
+import com.simple.common.websocket.utils.WebSocketUtils;
 import com.simple.common.websocket.common.constant.WebSocketConstant;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.QueryStringDecoder;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.handler.timeout.IdleState;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -53,7 +50,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) {
-        ChannelUtils.del(type, cliKey, ctx);
+        WebSocketUtils.del(type, cliKey, ctx);
     }
 
     @Override
@@ -66,7 +63,7 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
             type = ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.TYPE)).get().toString();
 
             //加入通道管理
-            ChannelUtils.addMap(type, cliKey, ctx);
+            WebSocketUtils.addMap(type, cliKey, ctx);
             log.info("新链接加入 [{}] ===> [{}] ", type, cliKey);
         }
         super.channelRead(ctx, msg);
