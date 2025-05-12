@@ -1,9 +1,11 @@
 package com.simple.common.websocket.manager;
 
+import cn.hutool.core.util.ObjUtil;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.websocket.common.entity.InvocationTarget;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.lang.reflect.Method;
@@ -16,6 +18,7 @@ import java.util.Optional;
  *
  * @author qty
  */
+@Slf4j
 @Service
 public class DefaultWebSocketListeningManager implements WebSocketListeningManager {
 
@@ -31,11 +34,13 @@ public class DefaultWebSocketListeningManager implements WebSocketListeningManag
     @SneakyThrows
     public Optional<Object> invoke(String type, String cliKey, String msg) {
         Map<String, InvocationTarget> cliKeyMap = listenerMap.get(type);
-        AssertUtils.notEmptyParams(cliKeyMap, "不存在该类型：{} 的websocket监听器", type);
-
-        InvocationTarget target = cliKeyMap.get(cliKey);
-        AssertUtils.notEmptyParams(target, "不存在该类型下：{}==>客户端{} 的websocket监听器", type, cliKey);
-        Object invoke = target.method().invoke(target.bean(), msg);
-        return Optional.of(invoke);
+        if(ObjUtil.isNotEmpty(cliKeyMap)){
+            InvocationTarget target = cliKeyMap.get(cliKey);
+            if(ObjUtil.isNotEmpty(target)){
+                Object invoke = target.method().invoke(target.bean(), msg);
+                return Optional.of(invoke);
+            }
+        }
+        return Optional.empty();
     }
 }

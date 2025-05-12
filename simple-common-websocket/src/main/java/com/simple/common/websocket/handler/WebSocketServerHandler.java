@@ -61,29 +61,9 @@ public class WebSocketServerHandler extends SimpleChannelInboundHandler<WebSocke
 
         if (msg instanceof FullHttpRequest request) {
 
-            //解析uri，获取socket key,如果每户怄气到，直接返回，并断开连接
-            String uri = request.uri();
-            if (!uri.contains(WebSocketConstant.WEBSOCKET_PATH)) {
-                log.error("握手端点错误：{}", WebSocketConstant.WEBSOCKET_PATH);
-                return;
-            }
-            QueryStringDecoder queryDecoder = new QueryStringDecoder(uri);
-            List<String> strings = queryDecoder.parameters().get(WebSocketConstant.TYPE);
-            if (ObjUtil.isEmpty(strings)) {
-                log.error("握手连接中，必须包含参数：{}", WebSocketConstant.TYPE);
-                ctx.close();
-                return;
-            }
-
-            type = strings.get(0);
-            if (ObjUtil.isEmpty(type)) {
-                log.error("握手连接中，必须包含参数：{}", WebSocketConstant.TYPE);
-                ctx.close();
-                return;
-            }
-
             //获取从权限处理器中得到的客户端信息
             cliKey = ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.CLI_KEY)).get().toString();
+            type = ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.TYPE)).get().toString();
 
             //加入通道管理
             ChannelUtils.addMap(type, cliKey, ctx);
