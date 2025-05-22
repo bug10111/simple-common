@@ -64,7 +64,7 @@ public class LocalCacheFactory<K, V> {
      * @return 配置完成的 LoadingCache 实例
      */
     public LoadingCache<K, V> createLoadingCache(String cacheName, CacheLoader<K, V> loader, Consumer<CacheSpec<K, V>> configurator) {
-        return (LoadingCache<K, V>) getOrCreate(cacheName, CacheType.LOADING, spec -> {
+        return getOrCreate(cacheName, CacheType.LOADING, spec -> {
             configurator.accept(spec);
             spec.loader = loader;  // 注入加载器实现
         });
