@@ -39,7 +39,7 @@ public class ZipUtils extends ZipUtil {
     }
 
     /**
-     * 写入文件
+     * 写入文件，多个文件需要在ZipWriteFunction中循环调用
      *
      * @param zipOut   zip输出流
      * @param fileName 需要加入的文件名称

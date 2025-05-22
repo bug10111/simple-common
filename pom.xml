@@ -25,6 +25,7 @@
         <module>simple-common-auth</module>
         <module>simple-common-test</module>
         <module>simple-common-websocket</module>
+        <module>simple-common-cache</module>
     </modules>
 
     <properties>
@@ -267,6 +268,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-sms</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-cache</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>
