@@ -85,19 +85,15 @@ public class ResponseUtils {
     @SneakyThrows
     public static void writeResponse(String name, ByteArrayOutputStream byteArrayOutputStream) {
         HttpServletResponse response = HttpServletUtils.getResponse();
-        HttpServletRequest request = HttpServletUtils.getRequest();
-
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setCharacterEncoding("utf-8");
 
         // 这里URLEncoder.encode可以防止中文乱码
         String fileName = URLEncoder.encode(name, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename*=" + fileName);
 
-        String originalURL = request.getHeader("Origin");
-        if (originalURL != null) {
-            response.addHeader("Access-Control-Allow-Origin", originalURL);
-        }
+        //        String originalURL = request.getHeader("Origin");
+        //        if (originalURL != null) {
+        //            response.addHeader("Access-Control-Allow-Origin", originalURL);
+        //        }
         byteArrayOutputStream.writeTo(response.getOutputStream());
     }
 }
