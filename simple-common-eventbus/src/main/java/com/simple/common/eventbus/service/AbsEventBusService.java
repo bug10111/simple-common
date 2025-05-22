@@ -1,8 +1,8 @@
 package com.simple.common.eventbus.service;
 
-import cn.hutool.core.bean.BeanUtil;
 import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.core.utils.BeanUtils;
 import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.eventbus.common.annotation.Event;
 import com.simple.common.eventbus.common.constants.EventConstant;
@@ -46,13 +46,13 @@ public abstract class AbsEventBusService implements EventBusService {
 
     @Override
     public void push(Object obj, Class<?> eventClass) {
-        Object event = BeanUtil.copyProperties(obj, eventClass);
+        Object event = BeanUtils.copyProperties(obj, eventClass);
         push(event);
     }
 
     @Override
     public void push(Object obj, Class<?> eventClass, int time, TimeUnit timeUnit) {
-        Object event = BeanUtil.copyProperties(obj, eventClass);
+        Object event = BeanUtils.copyProperties(obj, eventClass);
         push(event, time, timeUnit);
     }
 

@@ -1,11 +1,8 @@
 package com.simple.common.logs.server.event;
 
-import com.simple.common.core.utils.BeanUtils;
 import com.simple.common.eventbus.common.annotation.EventHandler;
 import com.simple.common.logs.client.common.event.LogDataEvent;
-import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
-import com.simple.common.logs.server.common.view.SysOperationLogsView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

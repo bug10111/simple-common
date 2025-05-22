@@ -2,14 +2,11 @@ package com.simple.common.auth.server.common.manager.login;
 
 import cn.hutool.core.util.ObjUtil;
 import com.simple.common.auth.client.common.properties.AuthProperties;
-import com.simple.common.auth.server.common.entity.AbsUserDetails;
 import com.simple.common.core.utils.AssertUtils;
-import com.simple.common.core.utils.BeanUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**

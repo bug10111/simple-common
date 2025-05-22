@@ -1,6 +1,6 @@
 package com.simple.common.logs.server.service;
 
-import cn.hutool.core.bean.BeanUtil;
+import com.simple.common.core.utils.BeanUtils;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.eventbus.common.service.EventBusService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,26 +36,26 @@ class DefaultSysOperationLogsService implements SysOperationLogsService {
     @Override
     public IPage<SysOperationLogsPageResponse> findAll(FindAllSysOperationLogsRequest findAllRequest) {
         var pageInfo = sysOperationLogsView.findAll(findAllRequest);
-        return pageInfo.convert(entity -> BeanUtil.copyProperties(entity, SysOperationLogsPageResponse.class));
+        return pageInfo.convert(entity -> BeanUtils.copyProperties(entity, SysOperationLogsPageResponse.class));
     }
 
     @Override
     public SysOperationLogsInfoResponse findById(String id) {
         var sysOperationLogs = sysOperationLogsView.findById(id);
         AssertUtils.notEmptyParams(sysOperationLogs, "主键为[{}]的数据为空", id);
-        return BeanUtil.copyProperties(sysOperationLogs, SysOperationLogsInfoResponse.class);
+        return BeanUtils.copyProperties(sysOperationLogs, SysOperationLogsInfoResponse.class);
     }
 
     @Override
     public String save(CreateSysOperationLogsRequest createRequest) {
-        var entity = BeanUtil.copyProperties(createRequest, SysOperationLogs.class);
+        var entity = BeanUtils.copyProperties(createRequest, SysOperationLogs.class);
         sysOperationLogsView.save(entity);
         return entity.getId();
     }
 
     @Override
     public String updateById(UpdateSysOperationLogsRequest updateRequest) {
-        var entity = BeanUtil.copyProperties(updateRequest, SysOperationLogs.class);
+        var entity = BeanUtils.copyProperties(updateRequest, SysOperationLogs.class);
         sysOperationLogsView.updateById(entity);
         return entity.getId();
     }
