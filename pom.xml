@@ -37,7 +37,7 @@
         <spring-boot.version>3.3.4</spring-boot.version>
         <common.simple.version>1.0.0</common.simple.version>
 
-        <hutool.version>5.8.32</hutool.version>
+        <hutool.version>5.8.38</hutool.version>
         <aviator.version>5.4.3</aviator.version>
         <jbcrypt.version>0.4</jbcrypt.version>
         <net.version>3.11.1</net.version>
