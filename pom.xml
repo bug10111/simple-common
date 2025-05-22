@@ -46,9 +46,10 @@
         <amazonaws.version>1.12.594</amazonaws.version>
         <minio.version>8.5.10</minio.version>
         <mp.versinon>3.5.9</mp.versinon>
-        <poi.tl.version>1.12.2</poi.tl.version>
         <easy.excel.version>4.0.3</easy.excel.version>
-        <poi.version>5.3.0</poi.version>
+        <poi.tl.version>1.12.2</poi.tl.version>
+        <poi.version>5.4.1</poi.version>
+        <poi.ooxml.version>5.2.2</poi.ooxml.version>
         <xxl.job.version>2.4.1</xxl.job.version>
         <sdk-core.version>4.6.4</sdk-core.version>
         <dysmsapi20170525.version>2.0.24</dysmsapi20170525.version>
@@ -132,6 +133,18 @@
             </dependency>
 
             <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi-ooxml</artifactId>
+                <version>${poi.ooxml.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.poi</groupId>
+                <artifactId>poi</artifactId>
+                <version>${poi.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.deepoove</groupId>
                 <artifactId>poi-tl</artifactId>
                 <version>${poi.tl.version}</version>
@@ -141,12 +154,6 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>easyexcel</artifactId>
                 <version>${easy.excel.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.apache.poi</groupId>
-                <artifactId>poi-ooxml</artifactId>
-                <version>${poi.version}</version>
             </dependency>
 
             <dependency>
