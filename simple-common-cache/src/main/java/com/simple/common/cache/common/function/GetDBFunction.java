@@ -6,7 +6,13 @@ package com.simple.common.cache.common.function;
  *
  * @author qty
  */
-public interface GetDBFunction<T, R> extends CacheFunction<T, R> {
+@FunctionalInterface
+public interface GetDBFunction<T, R> {
 
-
+    /**
+     * 获取数据
+     *
+     * @param request 请求参数
+     */
+    T get(R request);
 }
