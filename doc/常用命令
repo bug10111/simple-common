@@ -1,2 +1,5 @@
 # 将所有源码下载下来
 mvn dependency:sources
+
+# 编译某个指定的类到指定目录
+javac -cp target/classes -d target/classes src/main/java/com/sjhy/plugin/tool/NameUtils.java
