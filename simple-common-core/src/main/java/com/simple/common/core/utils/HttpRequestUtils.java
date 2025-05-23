@@ -17,6 +17,27 @@ import java.util.Map;
 public class HttpRequestUtils {
 
     /**
+     * post请求
+     *
+     * @param url     请求路径
+     * @param heads   请求头
+     * @param body    请求参数
+     * @param outTime 请求超时时间 毫秒
+     * @return 数据返回
+     */
+    public static HttpRecord post(String url, Map<String, String> heads, Object body, Integer outTime) {
+        HttpRequest post = HttpRequest.post(url);
+        if (ObjUtil.isNotEmpty(body)) {
+            post.body(JsonUtils.toJsonStr(body));
+        }
+
+        if (ObjUtil.isNotEmpty(heads)) {
+            post.headerMap(heads, true);
+        }
+        return new HttpRecord(post.timeout(outTime).execute());
+    }
+
+    /**
      * get请求
      *
      * @param url     请求路径
