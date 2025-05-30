@@ -321,6 +321,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-resources-plugin</artifactId>
+                <version>${spring-boot-maven-plugin.versinon}</version>
                 <configuration>
                     <nonFilteredFileExtensions>
                         <!--过滤不转换的格式，这里主要是防止资源文件夹下的文件在编译后无法打开的问题-->
