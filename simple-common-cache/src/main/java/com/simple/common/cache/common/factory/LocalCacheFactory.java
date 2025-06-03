@@ -194,21 +194,28 @@ public class LocalCacheFactory<K, V> {
         //最大容量
         private long maximumSize = 500;
 
-        //过期时间
+        //写入后过期时间
         private long expireAfterWrite = 60 * 5;
 
+        //访问后过期时间
         private long expireAfterAccess = -1;
 
+        // 自动刷新配置（需要加载器）
         private long refreshAfterWrite = -1;
 
+        // 弱引用键（特殊场景使用）
         private boolean weakKeys = false;
 
+        // 软引用值（内存敏感场景）
         private boolean softValues = false;
 
+        // 统计开关
         private boolean recordStats = false;
 
+        // 移除监听器（异步执行）
         private RemovalListener<? super K, ? super V> removalListener = null;
 
+        // 自动刷新加载器
         private CacheLoader<K, V> loader = null;
 
         /**

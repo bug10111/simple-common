@@ -37,7 +37,7 @@
 - 接入了poi和easy excel
 - 封装了常用导入导出功能
 
-## 6. 接口请求logs：simple-common-logs 
+## 6. logs：simple-common-logs 
 - 记录请求url、IP、用户、请求参数、请求结果、异常信息等核心数据
 - 分Client 和 Server，Client收集日志，Server保存
 - 通讯基于eventbus 队列机制
@@ -62,10 +62,16 @@
 - 同上simple-common-mp，属于功能集成模块，方便扩展和管理，使用时候直接引入即可（xxl-job：https://gitee.com/xuxueli0323/xxl-job） 
 - 封装部份远程调用xxljob的功能接口,适配有时候需要程序中，业务自己建任务的情况，包括任务的增删改查、启动关闭
 
-## 12. 测试包：simple-common-test
+## 12. websocket：simple-common-websocket
+- 用netty简单封装的WebSocket，支持鉴权，帮助类静态发送消息，注解接收消息。
+
+## 13. 缓存包：simple-common-cache
+- 本地缓存依赖于caffeine，支持缓存过期和过期自动更新数据，针对新手做了简单封装，支持快速构建和开箱即用。利用function对多级缓存做了流程化处理。
+
+## 14. 测试包：simple-common-test
 - 使用样例和测试demo，可以直接运行
 
-## 13. 权限：simple-common-auth  **开发中** 
+## 15. 权限：simple-common-auth  **开发中** 
 - 以jwt为核心的登录鉴权一套，借助了点oauth2，基础功能和业务结束了，web网络安全上差了点意思，目前还不完善，慎用。先将xss，CSRF这些常见的处理一下，然后准备多恶补一下web安全相关的知识，再做升级。
 
 # 公众号地址
