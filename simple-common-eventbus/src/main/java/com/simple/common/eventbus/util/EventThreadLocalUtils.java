@@ -23,6 +23,15 @@ public class EventThreadLocalUtils {
     }
 
     /**
+     * 取值
+     *
+     * @param key   key
+     */
+    public static void get(String key) {
+        EVENT_BUS.get().get(key);
+    }
+
+    /**
      * 移除指定值
      *
      * @param key 要移除的key
