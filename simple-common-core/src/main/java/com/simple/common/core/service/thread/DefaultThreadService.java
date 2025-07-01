@@ -24,9 +24,8 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
      * 打印线程异常信息
      */
     private static void printException(Runnable r, Throwable t) {
-        if (t == null && r instanceof Future<?>) {
+        if (t == null && r instanceof Future<?> future) {
             try {
-                Future<?> future = (Future<?>) r;
                 if (future.isDone()) {
                     future.get();
                 }
