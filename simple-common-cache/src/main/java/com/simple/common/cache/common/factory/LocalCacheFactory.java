@@ -21,7 +21,7 @@ import java.util.function.Consumer;
  *
  * @param <K> 键类型
  * @param <V> 值类型
- * @author qty
+ * @author 兄台丶请冷静
  */
 public class LocalCacheFactory<K, V> {
 

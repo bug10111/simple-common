@@ -15,7 +15,7 @@ import io.netty.handler.timeout.IdleStateHandler;
 /**
  * Created with IntelliJ IDEA
  *
- * @author qty
+ * @author 兄台丶请冷静
  */
 public class WebSocketChannelInitializer extends ChannelInitializer<SocketChannel> {
 

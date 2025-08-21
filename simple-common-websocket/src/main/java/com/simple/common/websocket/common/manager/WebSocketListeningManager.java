@@ -7,7 +7,7 @@ import java.util.Optional;
  * Created with IntelliJ IDEA
  * Description: socket监听器注册、执行器
  *
- * @author qty
+ * @author 兄台丶请冷静
  */
 public interface WebSocketListeningManager {
 

@@ -4,7 +4,7 @@ package com.simple.common.cache.common.function;
  * Created with IntelliJ IDEA
  * Description: 获取db数据
  *
- * @author qty
+ * @author 兄台丶请冷静
  */
 @FunctionalInterface
 public interface GetDBFunction<T, R> {

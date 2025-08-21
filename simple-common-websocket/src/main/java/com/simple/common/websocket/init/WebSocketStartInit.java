@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: webSocket服务启动
  *
- * @author qty
+ * @author 兄台丶请冷静
  */
 @Slf4j
 @Component

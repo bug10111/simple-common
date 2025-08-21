@@ -9,7 +9,7 @@ import java.lang.annotation.Target;
  * Created with IntelliJ IDEA
  * Description: WebSocket消息分发，标记方法后会接收到对应的消息
  *
- * @author qty
+ * @author 兄台丶请冷静
  */
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
