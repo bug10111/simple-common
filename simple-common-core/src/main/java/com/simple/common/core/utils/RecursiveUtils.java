@@ -34,7 +34,7 @@ public class RecursiveUtils {
 
     /**
      * 自动递归
-     * 注意，手写sql的时候，查询的范围必须是 T 一一对应，多张表连接查询不能直接返回*，例如菜单查询需要：sys_menu.*
+     * 注意，手写sql的时候，查询的范围必须是 T 一一对应，多张表连接查询不能直接返回*
      *
      * @param list 需要递归的集合
      * @param <T>  需要排序的数据对象
@@ -45,7 +45,7 @@ public class RecursiveUtils {
 
     /**
      * 自动递归
-     * 注意，手写sql的时候，查询的范围必须是 T 一一对应，多张表连接查询不能直接返回*，例如菜单查询需要：sys_menu.*
+     * 注意，手写sql的时候，查询的范围必须是 T 一一对应，多张表连接查询不能直接返回*
      *
      * @param list        需要递归的集合
      * @param childrenKey 顺序字段
