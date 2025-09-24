@@ -30,7 +30,7 @@ public class RecursiveUtils {
     private static final String PARENT_ID_KEY = "parentId";
 
     // 定义子集合名称
-    private static final String CHILDREN_KEY = "children";
+    private static final String CHILDREN_KEY = "list";
 
     // 定义排序字段
     private static final String SERIAL_KEY = "serial";
@@ -94,10 +94,7 @@ public class RecursiveUtils {
         // 自动识别顶级节点（父ID为null、空字符串、0，或者父ID不在现有ID集合中的节点）
         Set<String> allIds = list.stream().map(item -> getFieldValue(item, ID_KEY)).filter(Objects::nonNull).map(Object::toString).collect(Collectors.toSet());
 
-        List<T> topLevelItems = list.stream().filter(item -> {
-            Object parentId = getFieldValue(item, PARENT_ID_KEY);
-            return parentId == null || parentId.toString().isEmpty() || "0".equals(parentId.toString()) || !allIds.contains(parentId.toString());
-        }).collect(Collectors.toList());
+        Set<Object> topLevelItems = list.stream().map(t ->  getFieldValue(t, PARENT_ID_KEY)).filter(parentId -> parentId == null || parentId.toString().isEmpty() || "0".equals(parentId.toString()) || !allIds.contains(parentId.toString())).collect(Collectors.toSet());
 
         // 如果有顶级节点，从顶级节点开始构建
         if (CollUtil.isNotEmpty(topLevelItems)) {
@@ -111,17 +108,19 @@ public class RecursiveUtils {
     /**
      * 从多个根节点构建森林（多棵树）
      */
-    private static <T> List<Tree<String>> buildTreeFromMultipleRoots(List<T> allItems, List<T> rootItems, TreeNodeConfig config, String childrenKey) {
+    private static <T> List<Tree<String>> buildTreeFromMultipleRoots(List<T> allItems, Set<Object> rootItems, TreeNodeConfig config, String childrenKey) {
         List<Tree<String>> forest = new ArrayList<>();
 
-        for (T rootItem : rootItems) {
-            String rootId = Objects.requireNonNull(getFieldValue(rootItem, PARENT_ID_KEY)).toString();
-            List<Tree<String>> tree = TreeUtil.build(allItems, rootId, config, (node, treeNode) -> {
-                configureTreeNode(treeNode, node, childrenKey);
-            });
-            if (CollUtil.isNotEmpty(tree)) {
-                forest.addAll(tree);
+        for (Object rootItem : rootItems) {
+            if(rootItem != null) {
+                List<Tree<String>> tree = TreeUtil.build(allItems, rootItem.toString(), config, (node, treeNode) -> {
+                    configureTreeNode(treeNode, node, childrenKey);
+                });
+                if (CollUtil.isNotEmpty(tree)) {
+                    forest.addAll(tree);
+                }
             }
+
         }
 
         return forest;
