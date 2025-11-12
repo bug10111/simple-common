@@ -81,7 +81,7 @@ public class RecursiveUtils {
     }
 
     /**
-     * 从数据的最高层级开始构建树（新增的核心方法）
+     * 从数据的最高层级开始构建树
      */
     private static <T> List<Tree<String>> buildTreeFromTopLevel(List<T> list, String childrenKey) {
         if (CollUtil.isEmpty(list)) {
@@ -127,7 +127,7 @@ public class RecursiveUtils {
     }
 
     /**
-     * 从固定根节点构建树（保持原有逻辑）
+     * 从固定根节点构建树
      */
     private static <T> List<Tree<String>> buildTreeFromRoot(List<T> list, String childrenKey, String rootId) {
         if (CollUtil.isEmpty(list)) {
