@@ -165,8 +165,7 @@ public class LocalCacheFactory<K, V> {
      * 使用泛型转换和类型开关确保类型安全
      */
     @SuppressWarnings("unchecked")
-    private <C extends Cache<K, V>> C buildCache(Caffeine<Object, Object> builder, // 关键修改处
-                                                 CacheType cacheType, CacheSpec<K, V> spec) {
+    private <C extends Cache<K, V>> C buildCache(Caffeine<Object, Object> builder, CacheType cacheType, CacheSpec<K, V> spec) {
         return (C) switch (cacheType) {
             case MANUAL -> builder.build();
             case LOADING -> {
