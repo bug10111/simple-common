@@ -26,16 +26,26 @@
         <module>simple-common-test</module>
         <module>simple-common-websocket</module>
         <module>simple-common-cache</module>
+        <module>simple-common-alibaba</module>
     </modules>
 
+    <distributionManagement>
+        <repository>
+            <id>maven-releases</id>
+            <name>Releases Repository</name>
+            <url>http://nexus.dev.joyswon.com/repository/maven-releases/</url>
+        </repository>
+    </distributionManagement>
+
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven-surefire-plugin.version>2.12.4</maven-surefire-plugin.version>
         <maven-release-plugin.versinon>3.0.0-M7</maven-release-plugin.versinon>
         <spring-boot-maven-plugin.versinon>3.1.0</spring-boot-maven-plugin.versinon>
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-clould-alibaba>2023.0.3.4</spring-clould-alibaba>
+        <spring-cloud.version>2023.0.3</spring-cloud.version>
         <common.simple.version>1.0.0</common.simple.version>
 
         <hutool.version>5.8.38</hutool.version>
@@ -66,6 +76,15 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
                 <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- 引入 Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
@@ -302,6 +321,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-cache</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-alibaba</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>

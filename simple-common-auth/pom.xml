@@ -11,6 +11,7 @@
 
     <artifactId>simple-common-auth</artifactId>
     <packaging>pom</packaging>
+
     <modules>
         <module>simple-common-auth-client</module>
         <module>simple-common-auth-server</module>

@@ -29,7 +29,7 @@ spring:
     active: @spring.active@
   threads:
     virtual:
-      enabled: true # 虚拟线程，需要jdk21或者以上。
+      enabled: false # 虚拟线程，需要jdk21或者以上。
   # entity时间类型数据格式化
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss # 数据库返回时间格式化
