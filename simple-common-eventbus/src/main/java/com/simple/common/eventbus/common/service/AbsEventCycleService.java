@@ -63,6 +63,7 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> {
                 if (event.getNum() < event.getSum()) {
                     //计数
                     event.setNum(event.getNum() + 1);
+                    addCounter(runBody,event.getReserve());
                     event.setBeanName(StrUtil.lowerFirst(this.getClass().getSimpleName()));
                     eventBusService.push(event, event.getIsAccumulate() ? event.getTimeInterval() * event.getNum() : event.getTimeInterval(), TimeUnit.SECONDS);
                 }

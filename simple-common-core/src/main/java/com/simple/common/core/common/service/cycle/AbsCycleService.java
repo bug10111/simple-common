@@ -44,12 +44,13 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      */
     protected void execution(T runBody, Integer sum, Integer num, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters) {
         num++;
+        addCounter(runBody,parameters);
 
         //重要，复制到临时变量
         Integer finalNum = num;
 
         if (num <= sum) {
-            if(log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("开始第{}次调度任务，参数：[{}]", num, JsonUtils.toJsonStr(runBody));
             }
             threadService.schedule(new TimerTask() {
@@ -116,5 +117,15 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      * @param runBody 参数
      */
     protected abstract void error(T runBody, Map<String, String> parameters);
+
+    /**
+     * 增加计数器
+     *
+     * @param runBody    参数
+     * @param parameters 头
+     */
+    protected void addCounter(T runBody, Map<String, String> parameters){
+
+    }
 
 }
