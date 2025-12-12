@@ -52,7 +52,7 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> {
             //执行任务
             boolean b = false;
             //第一次不执行，因为我的目的是第一次会延迟
-            if(event.getNum() != 0){
+            if (event.getNum() != 0) {
                 b = handler(runBody, event.getReserve());
             }
 
@@ -63,7 +63,7 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> {
                 if (event.getNum() < event.getSum()) {
                     //计数
                     event.setNum(event.getNum() + 1);
-                    addCounter(runBody,event.getReserve());
+                    addCounter(runBody, event.getReserve(), event.getNum());
                     event.setBeanName(StrUtil.lowerFirst(this.getClass().getSimpleName()));
                     eventBusService.push(event, event.getIsAccumulate() ? event.getTimeInterval() * event.getNum() : event.getTimeInterval(), TimeUnit.SECONDS);
                 }

@@ -44,7 +44,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      */
     protected void execution(T runBody, Integer sum, Integer num, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters) {
         num++;
-        addCounter(runBody,parameters);
+        addCounter(runBody, parameters, num);
 
         //重要，复制到临时变量
         Integer finalNum = num;
@@ -123,8 +123,9 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      *
      * @param runBody    参数
      * @param parameters 头
+     * @param count      当前重试次数
      */
-    protected void addCounter(T runBody, Map<String, Object> parameters){
+    protected void addCounter(T runBody, Map<String, Object> parameters, int count) {
 
     }
 
