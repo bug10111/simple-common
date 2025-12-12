@@ -18,7 +18,7 @@ public interface CycleService<T> {
      * @param isAccumulate 是否累加时间
      * @param timeInterval 时间间隔 = sum * timeInterval
      */
-    void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters);
+    void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters);
 
 
     /**
@@ -51,7 +51,7 @@ public interface CycleService<T> {
      * @param timeInterval 时间间隔 = sum * timeInterval
      * @param parameters 需要携带的参数
      */
-    default void runAccumulate(T runBody, Integer sum, Integer timeInterval, Map<String, String> parameters) {
+    default void runAccumulate(T runBody, Integer sum, Integer timeInterval, Map<String, Object> parameters) {
         run(runBody, sum, timeInterval, true, parameters);
     }
 
@@ -64,7 +64,7 @@ public interface CycleService<T> {
      * @param timeInterval 时间间隔 = sum * timeInterval
      * @param parameters 需要携带的参数
      */
-    default void runUniform(T runBody, Integer sum, Integer timeInterval, Map<String, String> parameters) {
+    default void runUniform(T runBody, Integer sum, Integer timeInterval, Map<String, Object> parameters) {
         run(runBody, sum, timeInterval, false, parameters);
     }
 }

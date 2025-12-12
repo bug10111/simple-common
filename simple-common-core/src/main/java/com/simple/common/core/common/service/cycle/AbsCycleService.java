@@ -29,7 +29,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
     }
 
     @Override
-    public void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters) {
+    public void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters) {
         execution(runBody, sum, 0, timeInterval, isAccumulate, parameters);
     }
 
@@ -42,7 +42,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      * @param timeInterval 时间间隔
      * @param isAccumulate 是否时间累加
      */
-    protected void execution(T runBody, Integer sum, Integer num, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters) {
+    protected void execution(T runBody, Integer sum, Integer num, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters) {
         num++;
         addCounter(runBody,parameters);
 
@@ -95,28 +95,28 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      * @param runBody 参数
      * @return 是否执行成功
      */
-    protected abstract Boolean handler(T runBody, Map<String, String> parameters);
+    protected abstract Boolean handler(T runBody, Map<String, Object> parameters);
 
     /**
      * 成功
      *
      * @param runBody 参数
      */
-    protected abstract void ok(T runBody, Map<String, String> parameters);
+    protected abstract void ok(T runBody, Map<String, Object> parameters);
 
     /**
      * 超过最大次数
      *
      * @param runBody 参数
      */
-    protected abstract void more(T runBody, Map<String, String> parameters);
+    protected abstract void more(T runBody, Map<String, Object> parameters);
 
     /**
      * 执行异常
      *
      * @param runBody 参数
      */
-    protected abstract void error(T runBody, Map<String, String> parameters);
+    protected abstract void error(T runBody, Map<String, Object> parameters);
 
     /**
      * 增加计数器
@@ -124,7 +124,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      * @param runBody    参数
      * @param parameters 头
      */
-    protected void addCounter(T runBody, Map<String, String> parameters){
+    protected void addCounter(T runBody, Map<String, Object> parameters){
 
     }
 

@@ -38,5 +38,5 @@ public class CycleEvent {
     private Boolean isAccumulate;
 
     //扩展参数
-    private Map<String, String> reserve;
+    private Map<String, Object> reserve;
 }

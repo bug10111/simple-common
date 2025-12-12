@@ -27,7 +27,7 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> {
     }
 
     @Override
-    public void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, String> parameters) {
+    public void run(T runBody, Integer sum, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters) {
         CycleEvent event = new CycleEvent();
         event.setRunBody(runBody);
         event.setSum(sum);
