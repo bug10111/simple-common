@@ -4,4 +4,6 @@ es
 
 优化oauth，全局自动将请求报文json转化为String的加密字符串
 RSA换国密
+用 RSA 安全传输 AES 密钥；
+用 AES 加密实际数据
 登录指纹
