@@ -1,5 +1,6 @@
 package com.simple.common.core.common.service.cycle;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -29,7 +30,7 @@ public interface CycleService<T> {
      * @param timeInterval 时间间隔 = sum * timeInterval
      */
     default void runUniform(T runBody, Integer sum, Integer timeInterval) {
-        run(runBody, sum, timeInterval, false, null);
+        run(runBody, sum, timeInterval, false, new HashMap<>());
     }
 
     /**
@@ -40,7 +41,7 @@ public interface CycleService<T> {
      * @param timeInterval 时间间隔 = sum * timeInterval
      */
     default void runAccumulate(T runBody, Integer sum, Integer timeInterval) {
-        run(runBody, sum, timeInterval, true, null);
+        run(runBody, sum, timeInterval, true, new HashMap<>());
     }
 
     /**
