@@ -58,7 +58,6 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
     }
 
     @Override
-    @Transactional
     @SneakyThrows
     public void handler(Object event) {
         EventData eventData = (EventData) event;
