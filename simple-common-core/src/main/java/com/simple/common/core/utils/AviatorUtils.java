@@ -2,7 +2,9 @@ package com.simple.common.core.utils;
 
 import com.googlecode.aviator.AviatorEvaluator;
 import com.googlecode.aviator.Expression;
+import com.simple.common.core.response.R;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -18,12 +20,24 @@ public class AviatorUtils {
      *
      * @param expression 表达式
      * @param vars       参数和数据(表达式变量，对应变量值)
-     * @param r          返回的数据类型
      * @return 返回的数据
      */
-    public static <R> R run(String expression, Map<String, Object> vars, Class<R> clazz) {
+    public static Object run(String expression, Map<String, Object> vars) {
         Expression compile = AviatorEvaluator.compile(expression);
-        Object result = compile.execute(vars);
-        return clazz.cast(result);
+        return compile.execute(vars);
+    }
+
+    public static void main(String[] args) {
+        String exp = "(var1 + var2 - var3) * sum";
+        Map<String, Object> map = new HashMap<>();
+        map.put("var1", 1);
+        map.put("var2", 2);
+        map.put("var3", 2);
+        map.put("sum", 10);
+        Object run =  AviatorUtils.run(exp, map);
+        for (String str : map.keySet()) {
+            System.out.println("参数：" + str + " = " + map.get(str));
+        }
+        System.out.println("计算公示：" + exp + "    计算结果：" + run);
     }
 }
