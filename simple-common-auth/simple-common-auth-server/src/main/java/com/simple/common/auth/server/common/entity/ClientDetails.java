@@ -11,7 +11,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * 需要构建的客户端信息对象
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)

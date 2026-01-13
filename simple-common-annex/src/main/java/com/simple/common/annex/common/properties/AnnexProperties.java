@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: minio配置类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

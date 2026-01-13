@@ -17,7 +17,7 @@ import java.util.Enumeration;
  * <p>
  * ip地址获取工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class IPUtils {
 

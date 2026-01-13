@@ -4,7 +4,7 @@ package com.simple.common.websocket.common.constant;
  * Created with IntelliJ IDEA
  * Description: websocket 常量
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class WebSocketConstant {
 

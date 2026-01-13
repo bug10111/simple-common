@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * Description: 线程池任务调度接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface ThreadService {
 

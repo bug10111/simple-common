@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * Description: 重复消费
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Service

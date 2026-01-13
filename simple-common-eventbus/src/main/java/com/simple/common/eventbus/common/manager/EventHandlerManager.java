@@ -6,7 +6,7 @@ import java.lang.reflect.Method;
  * Created with IntelliJ IDEA
  * Description: 事件管理接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface EventHandlerManager {
 

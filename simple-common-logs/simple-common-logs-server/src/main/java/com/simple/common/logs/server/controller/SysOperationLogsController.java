@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * 操作日志(sys_operation_logs)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "操作日志")

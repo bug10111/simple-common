@@ -20,7 +20,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 鉴权实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class WebSocketAuthHandler extends SimpleChannelInboundHandler<FullHttpRequest> {

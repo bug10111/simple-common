@@ -10,7 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * Created by IntelliJ IDEA
  * 跨域配置
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Configuration
 @EnableSpringUtil

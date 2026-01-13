@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: redis缓存配置
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

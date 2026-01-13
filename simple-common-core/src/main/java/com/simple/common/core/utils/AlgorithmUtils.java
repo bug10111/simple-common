@@ -12,7 +12,7 @@ import java.nio.charset.Charset;
  * 注意，严禁使用MD5加密密码登敏感数据，MD5不再安全
  * 摘要算法是一种能产生特殊输出格式的算法，这种算法的特点是：无论用户输入什么长度的原始数据，经过计算后输出的密文都是固定长度的
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class AlgorithmUtils {
 

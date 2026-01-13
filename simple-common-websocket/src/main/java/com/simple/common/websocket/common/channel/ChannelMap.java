@@ -8,7 +8,7 @@ import java.util.*;
  * Created with IntelliJ IDEA
  * Description: 通道存储map，key-key(多)-values(多)
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class ChannelMap<K, V, T> {

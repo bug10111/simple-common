@@ -7,7 +7,7 @@ import com.simple.common.core.common.service.process.BasProcessService;
  * Created with IntelliJ IDEA
  * Description: 登录成功后需要执行的事情
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LoginSucProcess extends BasProcessService {
 

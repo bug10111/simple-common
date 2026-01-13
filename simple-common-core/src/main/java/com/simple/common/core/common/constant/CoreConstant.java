@@ -4,7 +4,7 @@ package com.simple.common.core.common.constant;
  * Created with IntelliJ IDEA
  * Description: core常量
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class CoreConstant {
 

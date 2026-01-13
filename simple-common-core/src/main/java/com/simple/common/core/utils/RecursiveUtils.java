@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
 /**
  * 树形结构工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class RecursiveUtils {
 

@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * 操作日志(sys_operation_logs)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysOperationLogsView implements SysOperationLogsView {

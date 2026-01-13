@@ -4,7 +4,7 @@ package com.simple.common.redis.common.manager;
  * Created by IntelliJ IDEA
  * Description: 限流接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface CurrentLimitingManager<T> {
 

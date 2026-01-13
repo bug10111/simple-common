@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created with IntelliJ IDEA
  * Description: 事件过程中存值操作类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class EventThreadLocalUtils {
 

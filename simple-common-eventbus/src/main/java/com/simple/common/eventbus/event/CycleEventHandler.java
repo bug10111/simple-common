@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 自动重试任务的事件实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 
 @Slf4j

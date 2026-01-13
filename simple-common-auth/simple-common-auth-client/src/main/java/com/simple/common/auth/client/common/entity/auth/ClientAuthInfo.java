@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created with IntelliJ IDEA
  * 客户端权限信息
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class ClientAuthInfo {
 

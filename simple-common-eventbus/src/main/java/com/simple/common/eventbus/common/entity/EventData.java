@@ -13,7 +13,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 发送的事件消息体
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

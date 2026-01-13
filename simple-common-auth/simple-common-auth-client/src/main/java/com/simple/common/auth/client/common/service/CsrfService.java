@@ -4,7 +4,7 @@ package com.simple.common.auth.client.common.service;
  * Created with IntelliJ IDEA
  * Description: CSRF 服务接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface CsrfService {
 

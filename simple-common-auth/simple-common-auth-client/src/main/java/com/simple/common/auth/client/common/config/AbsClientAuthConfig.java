@@ -6,7 +6,7 @@ import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
  * Created with IntelliJ IDEA
  * 客户端权限配置基类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public abstract class AbsClientAuthConfig {
 

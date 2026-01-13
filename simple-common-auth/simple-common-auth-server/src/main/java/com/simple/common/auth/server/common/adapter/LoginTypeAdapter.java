@@ -6,7 +6,7 @@ import com.simple.common.auth.server.common.manager.login.LoginManager;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LoginTypeAdapter {
 

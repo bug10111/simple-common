@@ -14,7 +14,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 自定义function demo
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class DemoAviatorService extends DefAviatorFunction {

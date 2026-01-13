@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * Description: minio配置类
  *
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

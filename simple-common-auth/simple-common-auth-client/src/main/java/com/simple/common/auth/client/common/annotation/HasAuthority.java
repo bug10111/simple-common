@@ -6,7 +6,7 @@ import java.lang.annotation.*;
  * Created with IntelliJ IDEA
  * Description: 权限注解
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Documented
 @Target({ ElementType.METHOD })

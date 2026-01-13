@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 基于redis的消费失败处理
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class RedisFailedRMQManager implements FailedRMQManager {

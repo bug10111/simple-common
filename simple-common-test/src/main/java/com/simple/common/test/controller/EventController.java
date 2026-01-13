@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by IntelliJ IDEA on 2023/11/2 16:32
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @RequestMapping("event")

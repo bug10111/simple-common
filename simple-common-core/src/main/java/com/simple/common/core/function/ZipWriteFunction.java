@@ -7,7 +7,7 @@ import java.util.zip.ZipOutputStream;
  * Created with IntelliJ IDEA
  * Description: zip添加文件函数
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @FunctionalInterface
 public interface ZipWriteFunction {

@@ -25,7 +25,7 @@ import org.springframework.stereotype.Service;
  * Created with IntelliJ IDEA
  * Description: 阿里巴巴短信验证码发送
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Service("aliSmsService")

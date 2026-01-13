@@ -10,7 +10,7 @@ import java.lang.annotation.*;
  * Created with IntelliJ IDEA
  * Description: 扩展Validation检验XSS标签
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Documented
 @Constraint(validatedBy = XssValidator.class)

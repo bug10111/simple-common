@@ -25,7 +25,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 权限拦截器
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

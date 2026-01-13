@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * Created by IntelliJ IDEA
  * Description: redisson分布式锁的默认实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

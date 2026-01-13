@@ -6,7 +6,7 @@ import java.util.Arrays;
  * Created with IntelliJ IDEA
  * 字符串和字节转换
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class StringByByteUtils {
 

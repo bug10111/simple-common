@@ -4,7 +4,7 @@ package com.simple.common.auth.client.common.manager.auth;
  * Created with IntelliJ IDEA
  * Description: 白名单接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface WhiteManager {
 

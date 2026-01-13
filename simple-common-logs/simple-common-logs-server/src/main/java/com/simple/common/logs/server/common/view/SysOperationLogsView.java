@@ -10,7 +10,7 @@ import com.simple.common.logs.server.common.dto.FindSysOperationLogsRequest;
 /**
  * 操作日志(sys_operation_logs)数据库视图接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysOperationLogsView {
 

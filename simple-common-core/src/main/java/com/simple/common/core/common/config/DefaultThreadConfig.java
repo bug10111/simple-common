@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
  * Created with IntelliJ IDEA
  * Description: 线程池调度
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Configuration
 public class DefaultThreadConfig {

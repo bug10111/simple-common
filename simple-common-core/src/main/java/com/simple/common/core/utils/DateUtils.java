@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
  * Created with IntelliJ IDEA
  * Description: 时间操作工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class DateUtils extends DateUtil {

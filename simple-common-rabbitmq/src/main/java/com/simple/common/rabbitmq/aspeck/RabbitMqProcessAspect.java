@@ -26,7 +26,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: RabbitMQ消息消费处理
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Order(1)
 @Aspect

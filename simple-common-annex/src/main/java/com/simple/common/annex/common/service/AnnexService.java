@@ -11,7 +11,7 @@ import java.io.InputStream;
  * Created with IntelliJ IDEA
  * Description: 统一附件上传接口，所有的附件、图片上传都需要实现这个接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface AnnexService {
 

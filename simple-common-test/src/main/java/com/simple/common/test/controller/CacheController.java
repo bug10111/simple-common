@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Created by IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @RequestMapping("cache")

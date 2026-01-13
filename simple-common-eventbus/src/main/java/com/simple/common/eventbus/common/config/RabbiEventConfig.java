@@ -19,7 +19,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: RabbitMQ异步事件队列相关声明和创建
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @ComponentScan(basePackages = { "com.simple.common.eventbus" })
 @Component

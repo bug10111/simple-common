@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Created by IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Configuration
 @ComponentScan(basePackages = { "com.simple.common.redis.**" })

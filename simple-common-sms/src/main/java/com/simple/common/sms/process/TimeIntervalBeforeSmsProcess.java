@@ -20,7 +20,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description:验证码发送时间间隔校验
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 public class TimeIntervalBeforeSmsProcess implements CheckSmsProcess {

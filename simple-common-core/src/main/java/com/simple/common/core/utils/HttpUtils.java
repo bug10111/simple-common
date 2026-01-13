@@ -16,7 +16,7 @@ import java.util.Optional;
  * Created with IntelliJ IDEA
  * Description: http请求帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Deprecated
 @Slf4j

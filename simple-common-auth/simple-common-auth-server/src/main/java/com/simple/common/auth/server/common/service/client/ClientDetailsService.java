@@ -8,7 +8,7 @@ import org.springframework.http.HttpHeaders;
  * Created with IntelliJ IDEA
  * 客户端信息处理接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface ClientDetailsService {
 

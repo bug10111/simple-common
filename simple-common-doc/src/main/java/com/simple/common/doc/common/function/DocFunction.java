@@ -8,7 +8,7 @@ import org.apache.poi.xwpf.usermodel.XWPFTable;
  * Created with IntelliJ IDEA
  * Description: doc有参数的函数
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @FunctionalInterface
 public interface DocFunction<T> {

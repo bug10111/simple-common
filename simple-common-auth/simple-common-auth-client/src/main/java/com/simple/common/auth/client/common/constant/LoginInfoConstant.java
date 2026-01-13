@@ -4,7 +4,7 @@ package com.simple.common.auth.client.common.constant;
  * Created with IntelliJ IDEA
  * Description: 远程同步登录内省数据常量
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class LoginInfoConstant {
 

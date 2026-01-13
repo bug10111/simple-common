@@ -8,7 +8,7 @@ import java.io.IOException;
  * Created with IntelliJ IDEA
  * Description: 提交相关接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface AckRMQManager {
 

@@ -16,7 +16,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 记录token数据的对象
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Accessors(chain = true)

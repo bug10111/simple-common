@@ -11,7 +11,7 @@ import org.springframework.context.annotation.ComponentScan;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Configurable
 @ComponentScan(basePackages = "com.simple.common.auth.client")

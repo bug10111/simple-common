@@ -7,7 +7,7 @@ import java.lang.annotation.*;
 /**
  * Created by IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Documented
 @Target({ ElementType.METHOD })

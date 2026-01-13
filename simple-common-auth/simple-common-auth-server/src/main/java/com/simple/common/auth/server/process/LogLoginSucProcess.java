@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 登陆成功日志记录
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

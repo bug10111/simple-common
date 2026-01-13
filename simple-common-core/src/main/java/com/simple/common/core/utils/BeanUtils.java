@@ -10,7 +10,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 对象操作工具
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class BeanUtils extends BeanUtil {

@@ -6,7 +6,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 登录用户服务接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LoginUserService {
 

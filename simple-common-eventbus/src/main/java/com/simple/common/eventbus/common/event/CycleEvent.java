@@ -11,7 +11,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 自动重试任务的发布事件
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Event

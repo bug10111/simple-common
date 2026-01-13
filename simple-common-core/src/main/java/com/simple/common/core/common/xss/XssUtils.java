@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
  * Created with IntelliJ IDEA
  * XSS 防护工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class XssUtils {

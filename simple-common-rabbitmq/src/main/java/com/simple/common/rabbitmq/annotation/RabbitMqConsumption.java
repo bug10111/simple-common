@@ -7,7 +7,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * Description: RabbitMQ消息消费处理注解，使用需要设置手动ack模式
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Documented
 @Target({ ElementType.METHOD })

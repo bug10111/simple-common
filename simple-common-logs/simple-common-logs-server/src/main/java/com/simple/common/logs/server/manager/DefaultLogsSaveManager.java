@@ -35,7 +35,7 @@ import java.util.concurrent.TimeUnit;
  * 检查元素：
  * peek()：查看队列头元素但不移除，若队列空则返回 null。
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

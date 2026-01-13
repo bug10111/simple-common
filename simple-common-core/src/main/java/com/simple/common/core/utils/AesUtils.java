@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created with IntelliJ IDEA
  * AES对称加密工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class AesUtils {
 

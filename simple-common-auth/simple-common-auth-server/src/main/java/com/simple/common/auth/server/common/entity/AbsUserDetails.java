@@ -13,7 +13,7 @@ import java.util.Set;
  * Created with IntelliJ IDEA
  * 用户登录需要构建的基类数据
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)

@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * Created with IntelliJ IDEA
  * Description: 事件监听，标记的方法只能允许一个参数，切参数对象必须添加注解@Event,来标记这个对象是一个事件
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)

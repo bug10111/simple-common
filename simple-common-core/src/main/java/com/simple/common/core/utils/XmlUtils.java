@@ -13,7 +13,7 @@ import java.io.StringWriter;
  * Created with IntelliJ IDEA
  * Description: xml操作类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class XmlUtils extends XmlUtil {
 

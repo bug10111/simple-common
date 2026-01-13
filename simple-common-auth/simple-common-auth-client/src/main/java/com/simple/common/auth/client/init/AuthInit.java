@@ -17,7 +17,7 @@ import java.util.*;
  * Created with IntelliJ IDEA
  * 客户端权限信息初始化
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

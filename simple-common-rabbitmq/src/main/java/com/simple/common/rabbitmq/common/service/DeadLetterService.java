@@ -9,7 +9,7 @@ import org.springframework.amqp.core.Message;
  * Created with IntelliJ IDEA
  * Description: 消息消费失败的保存方法
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface DeadLetterService {
 

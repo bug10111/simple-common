@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Created with IntelliJ IDEA
  * Description: 用于获取CSRF Token的Controller
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "CSRF")

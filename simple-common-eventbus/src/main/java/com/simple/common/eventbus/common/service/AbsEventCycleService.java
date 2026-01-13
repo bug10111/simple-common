@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * Description: 基于事件的计划任务
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public abstract class AbsEventCycleService<T> extends AbsCycleService<T> {

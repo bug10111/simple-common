@@ -8,7 +8,7 @@ import com.simple.common.auth.server.common.entity.TokenData;
  * Created with IntelliJ IDEA
  * 登录用户数据处理接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LoginUserOperationManager extends LoginInfoManager {
 

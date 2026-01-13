@@ -5,7 +5,7 @@ import org.apache.poi.ss.usermodel.Row;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @FunctionalInterface
 public interface PoiExportFunction<T> {

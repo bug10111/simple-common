@@ -7,7 +7,7 @@ import com.simple.common.core.function.ReturnValueFunction;
  * Created by IntelliJ IDEA
  * Description: 统一锁的接口，所有的锁的使用，包括分布式锁，都需要实现这个接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LockService {
 

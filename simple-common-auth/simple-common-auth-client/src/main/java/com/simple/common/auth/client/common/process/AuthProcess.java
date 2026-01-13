@@ -8,7 +8,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Created with IntelliJ IDEA
  * Description: 权限过滤器处理器
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface AuthProcess extends BasProcessService {
 

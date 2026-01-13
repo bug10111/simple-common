@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * Created with IntelliJ IDEA
  * Description: 事件标记
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)

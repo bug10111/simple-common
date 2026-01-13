@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public abstract class AbsLockService implements LockService {
 

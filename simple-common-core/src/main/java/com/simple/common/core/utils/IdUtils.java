@@ -7,7 +7,7 @@ import cn.hutool.core.util.RandomUtil;
  * Created with IntelliJ IDEA
  * Description: 唯一ID生成
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class IdUtils {
 

@@ -6,7 +6,7 @@ import java.lang.annotation.*;
  * Created with IntelliJ IDEA
  * Description: CSRF防御注解，同时也能防重复提交
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Documented
 @Target({ ElementType.METHOD })

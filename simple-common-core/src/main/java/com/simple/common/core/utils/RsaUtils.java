@@ -19,7 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * 私钥加密，公钥解密
  * 即可以互换使用
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class RsaUtils {

@@ -4,7 +4,7 @@ package com.simple.common.core.utils;
  * Created with IntelliJ IDEA
  * 进制转换工具
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class DigitalTransformationUtils {
 

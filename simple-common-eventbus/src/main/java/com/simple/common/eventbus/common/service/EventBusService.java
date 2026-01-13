@@ -6,7 +6,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * Description: 事件发布器
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface EventBusService {
 

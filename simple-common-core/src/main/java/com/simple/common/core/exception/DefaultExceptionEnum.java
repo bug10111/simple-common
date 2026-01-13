@@ -7,7 +7,7 @@ import lombok.Getter;
  * Created by IntelliJ IDEA
  * 默认异常枚举
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @AllArgsConstructor

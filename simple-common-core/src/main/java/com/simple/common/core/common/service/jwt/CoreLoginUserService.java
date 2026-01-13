@@ -5,7 +5,7 @@ package com.simple.common.core.common.service.jwt;
  * <p>
  * 获取一些常规的用户数据，例如用户id
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface CoreLoginUserService {
 

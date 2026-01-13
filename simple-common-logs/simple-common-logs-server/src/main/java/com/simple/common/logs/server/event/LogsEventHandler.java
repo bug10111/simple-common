@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 日志事件实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class LogsEventHandler {

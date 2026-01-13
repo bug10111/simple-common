@@ -3,7 +3,7 @@ package com.simple.common.logs.client.common.manager;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LogUserManager {
 

@@ -20,7 +20,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * Description: 发送事件的抽象方法
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public abstract class AbsEventBusService implements EventBusService {

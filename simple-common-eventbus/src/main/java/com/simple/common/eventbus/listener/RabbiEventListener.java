@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class RabbiEventListener {

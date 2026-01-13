@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 短信验证码(sys_code_record)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysSmsCodeRepository extends BaseMapper<SysSmsCode> {

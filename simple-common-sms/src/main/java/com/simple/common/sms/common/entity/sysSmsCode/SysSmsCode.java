@@ -23,7 +23,7 @@ import java.util.Date;
  * callSuper = false 代表方法不调用父类继承的属性，只匹配子类本身是否相同
  * callSuper = true 代表方法需要调用父类继承的属性，同时匹配本身和父类的属性
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Schema(title = "短信验证码(sys_code_record)实体类")
 @Data //提供读写属性, 此外还提供了 equals()、hashCode()、toString() 方法

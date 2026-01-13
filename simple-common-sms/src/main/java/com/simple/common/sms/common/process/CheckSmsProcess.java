@@ -6,7 +6,7 @@ import com.simple.common.core.common.service.process.BasProcessService;
  * Created with IntelliJ IDEA
  * Description: 定义短信验证码校验接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface CheckSmsProcess extends BasProcessService {
 

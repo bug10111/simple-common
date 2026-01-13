@@ -8,7 +8,7 @@ import org.springframework.core.Ordered;
  * <p>
  * 定义流程基类接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface BasProcessService extends Ordered {
 

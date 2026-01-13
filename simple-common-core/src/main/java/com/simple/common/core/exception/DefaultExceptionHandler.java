@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 /**
  * Created by IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @ControllerAdvice

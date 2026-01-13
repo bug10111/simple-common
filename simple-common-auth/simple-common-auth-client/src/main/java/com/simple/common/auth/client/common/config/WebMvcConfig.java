@@ -12,7 +12,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
  * Created with IntelliJ IDEA
  * Description: 拦截器配置
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Configuration

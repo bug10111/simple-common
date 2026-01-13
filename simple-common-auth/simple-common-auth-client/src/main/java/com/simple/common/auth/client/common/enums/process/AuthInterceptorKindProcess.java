@@ -8,7 +8,7 @@ import lombok.Getter;
  * Created with IntelliJ IDEA
  * Description: 用户校验控制器
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @AllArgsConstructor

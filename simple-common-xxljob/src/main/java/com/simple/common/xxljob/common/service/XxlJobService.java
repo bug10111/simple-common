@@ -7,7 +7,7 @@ import com.simple.common.xxljob.common.dto.UpdateXxlJobTaskRequest;
  * Created with IntelliJ IDEA
  * Description: 手动创建定时任务
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface XxlJobService {
 

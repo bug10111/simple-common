@@ -4,7 +4,7 @@ package com.simple.common.cache.common.function;
  * Created with IntelliJ IDEA
  * Description: 获取redis数据
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface GetRedisFunction<T, R> {
 

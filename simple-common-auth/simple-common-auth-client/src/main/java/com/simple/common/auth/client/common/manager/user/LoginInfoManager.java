@@ -8,7 +8,7 @@ import java.util.Set;
  * Created with IntelliJ IDEA
  * Description: 登录信息管理器
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LoginInfoManager {
 

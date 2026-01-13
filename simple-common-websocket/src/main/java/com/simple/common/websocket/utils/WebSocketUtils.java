@@ -11,7 +11,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: websocket 通讯通道管理帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class WebSocketUtils {

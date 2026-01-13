@@ -14,7 +14,7 @@ import java.util.List;
  * <p>
  * auth配置类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

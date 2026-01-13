@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * 操作日志(sys_operation_logs)默认接口实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Transactional

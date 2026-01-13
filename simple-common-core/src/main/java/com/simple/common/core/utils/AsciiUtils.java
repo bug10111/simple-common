@@ -4,7 +4,7 @@ package com.simple.common.core.utils;
  * Created with IntelliJ IDEA
  * Ascii转换
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class AsciiUtils {
 

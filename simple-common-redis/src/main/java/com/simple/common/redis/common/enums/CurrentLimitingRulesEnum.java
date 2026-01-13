@@ -7,7 +7,7 @@ import lombok.Getter;
  * Created by IntelliJ IDEA
  * Description: 限流规则
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @AllArgsConstructor
 @Getter

@@ -7,7 +7,7 @@ import lombok.Getter;
  * Created with IntelliJ IDEA
  * Description: 文件存储类型
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @AllArgsConstructor

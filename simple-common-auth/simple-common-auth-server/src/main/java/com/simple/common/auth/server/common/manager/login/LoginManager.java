@@ -7,7 +7,7 @@ import com.simple.common.auth.server.common.entity.ClientDetails;
  * Created with IntelliJ IDEA
  * 登录实现接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LoginManager {
 

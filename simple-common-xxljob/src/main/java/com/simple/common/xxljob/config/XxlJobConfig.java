@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 /**
  * Created by IntelliJ IDEA on 2023/11/7 15:01
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Configuration

@@ -15,7 +15,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 树形结构测试
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class RecursiveUtilsTest {

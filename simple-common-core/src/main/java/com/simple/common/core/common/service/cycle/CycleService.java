@@ -7,7 +7,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 循环执行某个方法，执行间隔时间=num * time
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface CycleService<T> {
 

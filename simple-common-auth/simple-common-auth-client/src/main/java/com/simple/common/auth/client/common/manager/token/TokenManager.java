@@ -6,7 +6,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * token创建的接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface TokenManager {
 

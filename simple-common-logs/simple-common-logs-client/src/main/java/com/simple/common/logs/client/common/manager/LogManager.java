@@ -7,7 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Created with IntelliJ IDEA
  * Description: 日志生成接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LogManager {
 

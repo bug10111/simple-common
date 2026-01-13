@@ -8,7 +8,7 @@ import lombok.Getter;
  * Created with IntelliJ IDEA
  * Description: xxl-job远程url
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @AllArgsConstructor

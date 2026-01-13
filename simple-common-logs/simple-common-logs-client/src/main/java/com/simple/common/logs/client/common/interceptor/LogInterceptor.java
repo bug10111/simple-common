@@ -14,7 +14,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
  * Created with IntelliJ IDEA
  * Description: 日志拦截器
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

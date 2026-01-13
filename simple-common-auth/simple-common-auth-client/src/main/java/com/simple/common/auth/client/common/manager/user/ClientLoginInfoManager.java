@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component(value = LoginInfoManager.client_manager_name)
 public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserService {

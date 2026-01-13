@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
  * Created with IntelliJ IDEA
  * Description: 日志事件
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Event(targets = "common-test")

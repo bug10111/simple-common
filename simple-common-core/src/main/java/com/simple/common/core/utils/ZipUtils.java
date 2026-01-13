@@ -15,7 +15,7 @@ import java.util.zip.ZipOutputStream;
  * Created with IntelliJ IDEA
  * Description: 压缩文件操作
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class ZipUtils extends ZipUtil {
 

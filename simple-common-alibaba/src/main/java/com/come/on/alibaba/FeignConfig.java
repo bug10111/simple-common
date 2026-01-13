@@ -9,7 +9,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Configuration
 public class FeignConfig implements RequestInterceptor {

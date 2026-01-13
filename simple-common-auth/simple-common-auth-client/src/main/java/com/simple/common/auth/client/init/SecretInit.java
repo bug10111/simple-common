@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 初始化jwt
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

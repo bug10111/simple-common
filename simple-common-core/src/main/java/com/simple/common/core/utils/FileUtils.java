@@ -3,7 +3,6 @@ package com.simple.common.core.utils;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.resource.ResourceUtil;
 import lombok.SneakyThrows;
-import org.springframework.core.io.ClassPathResource;
 
 import java.io.File;
 import java.io.InputStream;
@@ -13,7 +12,7 @@ import java.util.Objects;
  * Created with IntelliJ IDEA
  * Description: 文件相关帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class FileUtils extends FileUtil {
 
@@ -65,6 +64,13 @@ public class FileUtils extends FileUtil {
      */
     public static String getPath() {
         return Objects.requireNonNull(FileUtils.class.getResource("/")).getPath();
+    }
+
+    /**
+     * 获取Resource目录URL
+     */
+    public static String getPath(String path) {
+        return Objects.requireNonNull(FileUtils.class.getResource("/")).getPath() + path;
     }
 
 }

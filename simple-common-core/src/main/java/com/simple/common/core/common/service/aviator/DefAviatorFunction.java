@@ -6,7 +6,7 @@ import com.googlecode.aviator.runtime.function.AbstractFunction;
  * Created with IntelliJ IDEA
  * Description: Aviator自定义规则基类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public abstract class DefAviatorFunction extends AbstractFunction {
 }

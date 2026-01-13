@@ -6,7 +6,7 @@ import io.netty.util.AttributeKey;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class ChannelAttributes {
     // ✅ 用户ID

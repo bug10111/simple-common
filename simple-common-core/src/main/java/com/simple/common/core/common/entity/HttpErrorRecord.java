@@ -12,7 +12,7 @@ import lombok.experimental.Accessors;
  * Created with IntelliJ IDEA
  * Description: http请求工具的异常信息记录
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Accessors(chain = true)

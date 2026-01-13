@@ -6,7 +6,7 @@ import cn.hutool.core.codec.Base64;
  * Created with IntelliJ IDEA
  * Description: Base64工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class Base64Utils {
 

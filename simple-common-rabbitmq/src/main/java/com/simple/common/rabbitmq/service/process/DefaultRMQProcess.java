@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 重复消费
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class DefaultRMQProcess implements RabbitMqProcess {

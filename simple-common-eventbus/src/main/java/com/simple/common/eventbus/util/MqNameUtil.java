@@ -6,7 +6,7 @@ import cn.hutool.extra.spring.SpringUtil;
  * Created with IntelliJ IDEA
  * Description: 异步事件队列名称帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class MqNameUtil {
 

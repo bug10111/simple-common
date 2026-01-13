@@ -11,7 +11,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: http请求帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class HttpRequestUtils {

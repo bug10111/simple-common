@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * Created by IntelliJ IDEA
  * Description: 缓存要用到的配置
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

@@ -8,7 +8,7 @@ import java.lang.reflect.Field;
  * Created with IntelliJ IDEA
  * Description: 签名工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class SignUtils {
 

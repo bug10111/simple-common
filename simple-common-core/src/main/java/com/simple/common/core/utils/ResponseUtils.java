@@ -1,11 +1,11 @@
 package com.simple.common.core.utils;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
  * Created with IntelliJ IDEA
  * Description: 响应工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class ResponseUtils {
@@ -82,6 +82,12 @@ public class ResponseUtils {
 
     }
 
+    /**
+     * 返回流
+     *
+     * @param name                  名称
+     * @param byteArrayOutputStream 输出流
+     */
     @SneakyThrows
     public static void writeResponse(String name, ByteArrayOutputStream byteArrayOutputStream) {
         HttpServletResponse response = HttpServletUtils.getResponse();
@@ -90,10 +96,22 @@ public class ResponseUtils {
         String fileName = URLEncoder.encode(name, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename*=" + fileName);
 
-        //        String originalURL = request.getHeader("Origin");
-        //        if (originalURL != null) {
-        //            response.addHeader("Access-Control-Allow-Origin", originalURL);
-        //        }
         byteArrayOutputStream.writeTo(response.getOutputStream());
+    }
+
+    /**
+     * 返回流
+     *
+     * @param name 名称
+     */
+    @SneakyThrows
+    public static OutputStream getResponseOutputStream(String name) {
+        HttpServletResponse response = HttpServletUtils.getResponse();
+
+        // 这里URLEncoder.encode可以防止中文乱码
+        String fileName = URLEncoder.encode(name, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("Content-disposition", "attachment;filename*=" + fileName);
+
+        return response.getOutputStream();
     }
 }

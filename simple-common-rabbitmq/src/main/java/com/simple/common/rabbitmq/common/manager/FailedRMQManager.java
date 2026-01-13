@@ -4,7 +4,7 @@ package com.simple.common.rabbitmq.common.manager;
  * Created with IntelliJ IDEA
  * Description: 消费失败处理接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface FailedRMQManager {
 

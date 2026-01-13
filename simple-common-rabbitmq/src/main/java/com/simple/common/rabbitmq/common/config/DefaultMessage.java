@@ -13,7 +13,7 @@ import lombok.experimental.Accessors;
  * Created with IntelliJ IDEA
  * Description: 消息队列消息载体
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

@@ -19,7 +19,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 验证码发送次数校验
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 public class IpBeforeSmsProcess implements CheckSmsProcess {

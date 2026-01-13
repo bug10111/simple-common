@@ -7,7 +7,7 @@ import com.simple.common.xxljob.common.dto.UpdateXxlJobTaskRequest;
  * Created with IntelliJ IDEA
  * Description: xxl-job远程请求接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface XxlJobManager {
 

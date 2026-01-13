@@ -9,7 +9,7 @@ import org.springframework.web.multipart.support.StandardServletMultipartResolve
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Configuration
 @ComponentScan(basePackages = "com.simple.common.logs.client")

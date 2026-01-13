@@ -3,7 +3,7 @@ package com.simple.common.auth.client.common.constant;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class TokenConstant {
 

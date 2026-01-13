@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
  * Created with IntelliJ IDEA
  * Description: 异常捕获公共方法
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class ExceptionHandlerUtils {

@@ -6,7 +6,7 @@ import com.simple.common.core.exception.DefaultException;
 /**
  * Created by IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @FunctionalInterface
 public interface HttpRecordFunction extends Function {

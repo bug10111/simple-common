@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
  * Created with IntelliJ IDEA
  * 默认的登录成功操作的实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component(value = LoginInfoManager.server_manager_name)
 public class ServerLoginUserOperationManager extends ClientLoginInfoManager implements LoginUserOperationManager {

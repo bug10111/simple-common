@@ -10,7 +10,7 @@ import java.util.List;
  * <p>
  * json工具转化工具类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 public class JsonUtils {

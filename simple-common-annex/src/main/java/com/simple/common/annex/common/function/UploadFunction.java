@@ -5,7 +5,7 @@ import com.simple.common.annex.common.dto.UploadResponse;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @FunctionalInterface
 public interface UploadFunction {

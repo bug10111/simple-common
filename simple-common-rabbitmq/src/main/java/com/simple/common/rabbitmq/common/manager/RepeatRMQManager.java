@@ -5,7 +5,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface RepeatRMQManager {
 

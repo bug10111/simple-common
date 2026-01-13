@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 服务相关配置
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @Setter

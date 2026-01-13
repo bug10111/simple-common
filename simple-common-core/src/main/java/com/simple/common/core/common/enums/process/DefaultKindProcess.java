@@ -4,7 +4,7 @@ package com.simple.common.core.common.enums.process;
  * Created with IntelliJ IDEA
  * 流程定义接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface DefaultKindProcess {
 

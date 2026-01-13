@@ -8,7 +8,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 客户端工具接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface ClientManager {
 

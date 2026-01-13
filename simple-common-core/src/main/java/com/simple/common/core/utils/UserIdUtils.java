@@ -7,7 +7,7 @@ import com.simple.common.core.common.service.jwt.CoreLoginUserService;
  * Created with IntelliJ IDEA
  * Description: 全局获取userId帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class UserIdUtils {
 

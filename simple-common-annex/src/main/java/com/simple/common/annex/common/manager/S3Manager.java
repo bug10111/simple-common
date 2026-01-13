@@ -8,7 +8,7 @@ import java.io.InputStream;
  * Created with IntelliJ IDEA
  * Description: S3协议操作
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface S3Manager {
 

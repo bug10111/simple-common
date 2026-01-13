@@ -4,7 +4,7 @@ package com.simple.common.websocket.common.manager;
  * Created with IntelliJ IDEA
  * Description: websocket 校验接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface CheckWebSocketManager {
 

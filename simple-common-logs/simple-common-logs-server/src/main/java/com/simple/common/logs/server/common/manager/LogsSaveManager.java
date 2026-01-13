@@ -6,7 +6,7 @@ import com.simple.common.logs.client.common.event.LogDataEvent;
  * Created with IntelliJ IDEA
  * Description: 日志操作
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface LogsSaveManager {
 

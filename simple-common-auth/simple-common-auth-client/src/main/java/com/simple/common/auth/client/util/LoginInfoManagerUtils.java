@@ -7,7 +7,7 @@ import com.simple.common.auth.client.common.manager.user.LoginInfoManager;
  * Created with IntelliJ IDEA
  * Description: 登录信息实现的单例工具
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class LoginInfoManagerUtils {
 

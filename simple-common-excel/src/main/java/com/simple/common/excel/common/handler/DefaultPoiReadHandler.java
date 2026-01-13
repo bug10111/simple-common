@@ -12,7 +12,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: poi 大文件excel导入默认实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public abstract class DefaultPoiReadHandler<T> implements SheetContentsHandler {
 

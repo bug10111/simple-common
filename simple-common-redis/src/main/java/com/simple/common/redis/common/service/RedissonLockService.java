@@ -6,7 +6,7 @@ import com.simple.common.core.common.service.lock.AbsLockService;
  * Created by IntelliJ IDEA
  * Description: redisson锁
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public abstract class RedissonLockService extends AbsLockService {
 

@@ -9,7 +9,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 自动重试任务工厂实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class CycleFactoryUtils {
 
