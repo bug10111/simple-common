@@ -231,7 +231,7 @@ public class QRCodeUtils {
 
     @Data
     @Accessors(chain = true)
-    static class CreateZipEntity {
+    public static class CreateZipEntity {
         String fileName;
 
         CompletableFuture<byte[]> future;

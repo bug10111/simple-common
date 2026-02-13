@@ -44,14 +44,14 @@ public class ThreadUtils {
      * @param <U>      需要返回的对象
      */
     public static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        return CompletableFuture.supplyAsync(supplier, getScheduledThreadPoolExecutor());
+        return CompletableFuture.supplyAsync(supplier, getAsyncExecutor());
     }
 
     /**
      * 异步执行无返回值的任务
      */
     public static CompletableFuture<Void> runAsync(Runnable runnable) {
-        return CompletableFuture.runAsync(runnable, getScheduledThreadPoolExecutor());
+        return CompletableFuture.runAsync(runnable, getAsyncExecutor());
     }
 
     /**
@@ -93,6 +93,13 @@ public class ThreadUtils {
      */
     public static ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
         return getThreadService().getExecutor();
+    }
+
+    /**
+     * 获取线程池对象,可以结合CompletableFuture使用，一般用于少量并发和延迟任务
+     */
+    public static ExecutorService getAsyncExecutor() {
+        return getThreadService().getAsyncExecutor();
     }
 
 

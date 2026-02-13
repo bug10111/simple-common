@@ -19,17 +19,31 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
 
     private ScheduledThreadPoolExecutor executor;
 
+    private ExecutorService asyncExecutor;
+
     @Override
     public ScheduledThreadPoolExecutor getExecutor() {
         return this.executor;
     }
 
-    /**
-     * 停止任务线程池
-     */
+    @Override
+    public ExecutorService getAsyncExecutor() {
+        return this.asyncExecutor;
+    }
+
+
     @Override
     public void shutdown() {
         log.debug("开始关闭线程池！");
+        shutdown(executor);
+        shutdown(asyncExecutor);
+        log.debug("线程池关闭成功！");
+    }
+
+    /**
+     * 停止任务线程池
+     */
+    public void shutdown(ExecutorService asyncExecutor) {
         if (!executor.isShutdown()) {
             executor.shutdown();
             try {
@@ -52,7 +66,6 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
                 Thread.currentThread().interrupt();
             }
         }
-        log.debug("线程池关闭成功！");
     }
 
     @Override
@@ -73,10 +86,21 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
             最大线程数：核心线程数 * 1或者2
          */
         int cores = Runtime.getRuntime().availableProcessors();
-
         int corePoolSize = cores * 2 + 1;
+        int maxPoolSize = corePoolSize * 4;
 
         executor = new ScheduledThreadPoolExecutor(Math.max(2, corePoolSize), new ThreadPoolExecutor.CallerRunsPolicy()) {
+            @Override
+            protected void afterExecute(Runnable r, Throwable t) {
+                super.afterExecute(r, t);
+                printException(r, t);
+            }
+        };
+
+        // 2. 普通异步任务线程池：支持弹性扩容
+        this.asyncExecutor = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(200), new ThreadPoolExecutor.CallerRunsPolicy()
+
+        ) {
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
