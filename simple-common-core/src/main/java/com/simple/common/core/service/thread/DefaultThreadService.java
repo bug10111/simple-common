@@ -83,6 +83,8 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
                 printException(r, t);
             }
         };
+
+        log.info("线程池初始化完成！");
     }
 
     /**
