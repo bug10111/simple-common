@@ -2,7 +2,6 @@ package com.simple.common.core.service.thread;
 
 import com.simple.common.core.common.service.thread.ThreadService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
@@ -35,15 +34,15 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
     @Override
     public void shutdown() {
         log.debug("开始关闭线程池！");
-        shutdown(executor);
-        shutdown(asyncExecutor);
+        shutdownExecutor(executor);
+        shutdownExecutor(asyncExecutor);
         log.debug("线程池关闭成功！");
     }
 
     /**
      * 停止任务线程池
      */
-    public void shutdown(ExecutorService asyncExecutor) {
+    public void shutdownExecutor(ExecutorService asyncExecutor) {
         if (!executor.isShutdown()) {
             executor.shutdown();
             try {
