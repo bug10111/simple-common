@@ -1,6 +1,7 @@
 package com.simple.common.core.service.thread;
 
 import com.simple.common.core.common.service.thread.ThreadService;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
@@ -30,36 +31,38 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
         return this.asyncExecutor;
     }
 
-
-    @Override
+    @PreDestroy
     public void shutdown() {
-        log.debug("开始关闭线程池！");
+        log.info("开始关闭线程池！");
         shutdownExecutor(executor);
         shutdownExecutor(asyncExecutor);
-        log.debug("线程池关闭成功！");
+        log.info("线程池关闭流程执行完毕！");
     }
 
     /**
      * 停止任务线程池
      */
     public void shutdownExecutor(ExecutorService asyncExecutor) {
-        if (!executor.isShutdown()) {
-            executor.shutdown();
+        if (asyncExecutor == null || asyncExecutor.isShutdown()) {
+            return;
+        }
+        if (!asyncExecutor.isShutdown()) {
+            asyncExecutor.shutdown();
             try {
 
                 //中断主线程，等待任务执行完毕，最大等待时间120秒
-                if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
+                if (!asyncExecutor.awaitTermination(120, TimeUnit.SECONDS)) {
 
                     //终止失败，强行终止
-                    executor.shutdownNow();
-                    if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
+                    asyncExecutor.shutdownNow();
+                    if (!asyncExecutor.awaitTermination(120, TimeUnit.SECONDS)) {
                         log.info("线程池强制关闭失败！");
                     }
                 }
             } catch (InterruptedException ie) {
 
                 //有任何异常，强行终止任务
-                executor.shutdownNow();
+                asyncExecutor.shutdownNow();
 
                 //恢复任务，重新执行
                 Thread.currentThread().interrupt();
@@ -86,9 +89,9 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
          */
         int cores = Runtime.getRuntime().availableProcessors();
         int corePoolSize = cores * 2 + 1;
-        int maxPoolSize = corePoolSize * 4;
+        int maxPoolSize = corePoolSize * 2;
 
-        executor = new ScheduledThreadPoolExecutor(Math.max(2, corePoolSize), new ThreadPoolExecutor.CallerRunsPolicy()) {
+        executor = new ScheduledThreadPoolExecutor(Math.max(2, cores), new ThreadPoolExecutor.CallerRunsPolicy()) {
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
@@ -128,7 +131,7 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
             }
         }
         if (t != null) {
-            log.error(t.getMessage(), t);
+            log.error("线程池任务执行异常", t);
         }
     }
 }

@@ -23,10 +23,6 @@ public interface ThreadService {
      */
     ExecutorService getAsyncExecutor();
 
-    /**
-     * 关闭线程池
-     */
-    void shutdown();
 
     /**
      * 延时执行任务
