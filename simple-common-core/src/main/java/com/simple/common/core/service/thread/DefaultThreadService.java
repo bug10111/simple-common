@@ -2,10 +2,10 @@ package com.simple.common.core.service.thread;
 
 import com.simple.common.core.common.service.thread.ThreadService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
-import java.util.TimerTask;
 import java.util.concurrent.*;
 
 /**
@@ -17,33 +17,17 @@ import java.util.concurrent.*;
 @Service
 public class DefaultThreadService implements ThreadService, InitializingBean {
 
-    // 创建一个 ThreadPoolExecutor，设置核心线程数、最大线程数和其他参数
     private ScheduledThreadPoolExecutor executor;
 
-    /**
-     * 打印线程异常信息
-     */
-    private static void printException(Runnable r, Throwable t) {
-        if (t == null && r instanceof Future<?> future) {
-            try {
-                if (future.isDone()) {
-                    future.get();
-                }
-            } catch (CancellationException ce) {
-                t = ce;
-            } catch (ExecutionException ee) {
-                t = ee.getCause();
-            } catch (InterruptedException ie) {
-                Thread.currentThread().interrupt();
-            }
-        }
-        if (t != null) {
-            log.error(t.getMessage(), t);
-        }
-    }
+    private ExecutorService asyncExecutor;
 
     @Override
     public ScheduledThreadPoolExecutor getExecutor() {
+        return this.executor;
+    }
+
+    @Override
+    public ExecutorService getAsyncExecutor() {
         return this.executor;
     }
 
@@ -52,30 +36,32 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
      */
     @Override
     public void shutdown() {
-        log.debug("开始关闭线程池！");
-        if (!executor.isShutdown()) {
+        log.info("开始关闭线程池！");
+        // 先关定时任务池
+        if (executor != null && !executor.isShutdown()) {
             executor.shutdown();
-            try {
-
-                //中断主线程，等待任务执行完毕，最大等待时间120秒
-                if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
-
-                    //终止失败，强行终止
-                    executor.shutdownNow();
-                    if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
-                        log.info("线程池强制关闭失败！");
-                    }
-                }
-            } catch (InterruptedException ie) {
-
-                //有任何异常，强行终止任务
-                executor.shutdownNow();
-
-                //恢复任务，重新执行
-                Thread.currentThread().interrupt();
-            }
         }
-        log.debug("线程池关闭成功！");
+
+        // 再关异步任务池
+        if (asyncExecutor != null && !asyncExecutor.isShutdown()) {
+            asyncExecutor.shutdown();
+        }
+
+        try {
+            // 等待所有任务结束
+            if (executor != null && !executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+            }
+            if (asyncExecutor != null && !asyncExecutor.awaitTermination(90, TimeUnit.SECONDS)) {
+                asyncExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            log.warn("在关机期间中断，强制关机。");
+            executor.shutdownNow();
+            asyncExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
+        log.info("线程池关闭成功！");
     }
 
     @Override
@@ -95,9 +81,10 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
             核心线程数：N或者N + 1
             最大线程数：核心线程数 * 1或者2
          */
-        int corePoolSize = Runtime.getRuntime().availableProcessors() * 2 +1;
+        int cores = Runtime.getRuntime().availableProcessors();
 
-        executor = new ScheduledThreadPoolExecutor(corePoolSize, new ThreadPoolExecutor.CallerRunsPolicy()) {
+        executor = new ScheduledThreadPoolExecutor(Math.max(2, cores), // 至少 2 个线程处理定时任务
+                                                   new BasicThreadFactory.Builder().namingPattern("scheduled-pool-%d").daemon(true).build(), new ThreadPoolExecutor.CallerRunsPolicy()) {
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
@@ -105,10 +92,37 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
             }
         };
 
-        // 设置最大线程数
-        executor.setMaximumPoolSize(corePoolSize * 4);
-
         // 设置空闲线程存活时间
         executor.setKeepAliveTime(60, TimeUnit.SECONDS);
+
+        // 2. 普通异步任务线程池：支持弹性扩容
+        int corePoolSize = cores * 2 + 1;
+        int maxPoolSize = corePoolSize * 4;
+        this.asyncExecutor = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(1000), // 有界队列防内存溢出
+                                                    new BasicThreadFactory.Builder().namingPattern("async-pool-%d").daemon(true).build(), new ThreadPoolExecutor.CallerRunsPolicy()
+                                                    // 或根据业务选择 DiscardPolicy
+        ) {
+            @Override
+            protected void afterExecute(Runnable r, Throwable t) {
+                super.afterExecute(r, t);
+                printException(r, t);
+            }
+        };
+    }
+
+    /**
+     * 打印线程异常信息
+     */
+    private static void printException(Runnable r, Throwable t) {
+        if (t == null && r instanceof Future<?>) {
+            try {
+                ((Future<?>) r).get();
+            } catch (Throwable e) {
+                t = e.getCause() != null ? e.getCause() : e;
+            }
+        }
+        if (t != null) {
+            log.error(t.getMessage(), t);
+        }
     }
 }

@@ -68,6 +68,7 @@
         <jjwt.version>0.12.6</jjwt.version>
         <jbcrypt.version>0.4</jbcrypt.version>
         <mapstruct.version>1.6.3</mapstruct.version>
+        <zxing.version>3.5.3</zxing.version>
     </properties>
 
     <dependencyManagement>
@@ -232,6 +233,18 @@
                 <groupId>com.xuxueli</groupId>
                 <artifactId>xxl-job-core</artifactId>
                 <version>${xxl.job.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.zxing</groupId>
+                <artifactId>core</artifactId>
+                <version>${zxing.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.google.zxing</groupId>
+                <artifactId>javase</artifactId>
+                <version>${zxing.version}</version>
             </dependency>
 
             <dependency>

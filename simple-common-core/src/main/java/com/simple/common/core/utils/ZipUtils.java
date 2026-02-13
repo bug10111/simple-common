@@ -24,7 +24,8 @@ public class ZipUtils extends ZipUtil {
      *
      * @param fileName zip名称
      */
-    public static void downloadZip(String fileName, ZipWriteFunction function) throws IOException {
+    @SneakyThrows
+    public static void downloadZip(String fileName, ZipWriteFunction function)  {
         HttpServletResponse response = HttpServletUtils.getResponse();
 
         // 使用 RFC 5987 编码文件名
@@ -35,6 +36,7 @@ public class ZipUtils extends ZipUtil {
 
         try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
             function.addExcelToZip(zipOut, fileName);
+            zipOut.finish();
         }
     }
 

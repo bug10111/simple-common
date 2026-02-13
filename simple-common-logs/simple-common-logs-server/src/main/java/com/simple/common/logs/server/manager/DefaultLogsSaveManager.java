@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.TimerTask;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
@@ -72,7 +71,7 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
     protected void persistence(List<SysOperationLogs> logsToSave) {
         if (!logsToSave.isEmpty()) {
             sysOperationLogsView.saves(logsToSave);
-            if(log.isDebugEnabled()){
+            if (log.isDebugEnabled()) {
                 log.debug("批量保存日志到PG，成功[{}]条", logsToSave.size());
             }
         }
@@ -80,18 +79,15 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
 
     @Override
     public void afterPropertiesSet() {
-        threadService.scheduleWithFixedDelay(new TimerTask() {
-            @Override
-            public void run() {
-                try{
-                    processLogs();
-                }catch (Exception e){
+        threadService.scheduleWithFixedDelay(() -> {
+            try {
+                processLogs();
+            } catch (Exception e) {
 
-                    // 处理异常，记录日志等
-                    log.error("任务执行失败: {}", e.getMessage());
-                }
-
+                // 处理异常，记录日志等
+                log.error("任务执行失败: {}", e.getMessage());
             }
+
         }, logsServerProperties.getTime(), TimeUnit.SECONDS);
     }
 }

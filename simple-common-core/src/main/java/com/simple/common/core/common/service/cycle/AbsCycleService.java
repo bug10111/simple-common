@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.Map;
-import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -53,26 +52,23 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
             if (log.isDebugEnabled()) {
                 log.debug("开始第{}次调度任务，参数：[{}]", num, JsonUtils.toJsonStr(runBody));
             }
-            threadService.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    try {
+            threadService.schedule(() -> {
+                try {
 
-                        boolean b = handler(runBody, parameters);
+                    boolean b = handler(runBody, parameters);
 
-                        //没成功继续执行
-                        if (!b) {
-                            execution(runBody, sum, finalNum, timeInterval, isAccumulate, parameters);
-                        }
-
-                        //成功
-                        else {
-                            ok(runBody, parameters);
-                        }
-                    } catch (Exception e) {
-                        log.error("调度异常：{}", String.valueOf(e));
-                        error(runBody, parameters);
+                    //没成功继续执行
+                    if (!b) {
+                        execution(runBody, sum, finalNum, timeInterval, isAccumulate, parameters);
                     }
+
+                    //成功
+                    else {
+                        ok(runBody, parameters);
+                    }
+                } catch (Exception e) {
+                    log.error("调度异常：{}", String.valueOf(e));
+                    error(runBody, parameters);
                 }
             }, isAccumulate ? timeInterval * finalNum : timeInterval, TimeUnit.SECONDS);
         } else {
