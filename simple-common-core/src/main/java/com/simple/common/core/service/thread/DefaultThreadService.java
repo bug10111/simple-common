@@ -19,15 +19,8 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
 
     private ScheduledThreadPoolExecutor executor;
 
-    private ExecutorService asyncExecutor;
-
     @Override
     public ScheduledThreadPoolExecutor getExecutor() {
-        return this.executor;
-    }
-
-    @Override
-    public ExecutorService getAsyncExecutor() {
         return this.executor;
     }
 
@@ -36,32 +29,30 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
      */
     @Override
     public void shutdown() {
-        log.info("开始关闭线程池！");
-        // 先关定时任务池
-        if (executor != null && !executor.isShutdown()) {
+        log.debug("开始关闭线程池！");
+        if (!executor.isShutdown()) {
             executor.shutdown();
-        }
+            try {
 
-        // 再关异步任务池
-        if (asyncExecutor != null && !asyncExecutor.isShutdown()) {
-            asyncExecutor.shutdown();
-        }
+                //中断主线程，等待任务执行完毕，最大等待时间120秒
+                if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
 
-        try {
-            // 等待所有任务结束
-            if (executor != null && !executor.awaitTermination(30, TimeUnit.SECONDS)) {
+                    //终止失败，强行终止
+                    executor.shutdownNow();
+                    if (!executor.awaitTermination(120, TimeUnit.SECONDS)) {
+                        log.info("线程池强制关闭失败！");
+                    }
+                }
+            } catch (InterruptedException ie) {
+
+                //有任何异常，强行终止任务
                 executor.shutdownNow();
+
+                //恢复任务，重新执行
+                Thread.currentThread().interrupt();
             }
-            if (asyncExecutor != null && !asyncExecutor.awaitTermination(90, TimeUnit.SECONDS)) {
-                asyncExecutor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            log.warn("在关机期间中断，强制关机。");
-            executor.shutdownNow();
-            asyncExecutor.shutdownNow();
-            Thread.currentThread().interrupt();
         }
-        log.info("线程池关闭成功！");
+        log.debug("线程池关闭成功！");
     }
 
     @Override
@@ -83,25 +74,9 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
          */
         int cores = Runtime.getRuntime().availableProcessors();
 
-        executor = new ScheduledThreadPoolExecutor(Math.max(2, cores), // 至少 2 个线程处理定时任务
-                                                   new BasicThreadFactory.Builder().namingPattern("scheduled-pool-%d").daemon(true).build(), new ThreadPoolExecutor.CallerRunsPolicy()) {
-            @Override
-            protected void afterExecute(Runnable r, Throwable t) {
-                super.afterExecute(r, t);
-                printException(r, t);
-            }
-        };
-
-        // 设置空闲线程存活时间
-        executor.setKeepAliveTime(60, TimeUnit.SECONDS);
-
-        // 2. 普通异步任务线程池：支持弹性扩容
         int corePoolSize = cores * 2 + 1;
-        int maxPoolSize = corePoolSize * 4;
-        this.asyncExecutor = new ThreadPoolExecutor(corePoolSize, maxPoolSize, 60L, TimeUnit.SECONDS, new LinkedBlockingQueue<>(1000), // 有界队列防内存溢出
-                                                    new BasicThreadFactory.Builder().namingPattern("async-pool-%d").daemon(true).build(), new ThreadPoolExecutor.CallerRunsPolicy()
-                                                    // 或根据业务选择 DiscardPolicy
-        ) {
+
+        executor = new ScheduledThreadPoolExecutor(Math.max(2, corePoolSize), new ThreadPoolExecutor.CallerRunsPolicy()) {
             @Override
             protected void afterExecute(Runnable r, Throwable t) {
                 super.afterExecute(r, t);
@@ -114,11 +89,17 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
      * 打印线程异常信息
      */
     private static void printException(Runnable r, Throwable t) {
-        if (t == null && r instanceof Future<?>) {
+        if (t == null && r instanceof Future<?> future) {
             try {
-                ((Future<?>) r).get();
-            } catch (Throwable e) {
-                t = e.getCause() != null ? e.getCause() : e;
+                if (future.isDone()) {
+                    future.get();
+                }
+            } catch (CancellationException ce) {
+                t = ce;
+            } catch (ExecutionException ee) {
+                t = ee.getCause();
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
             }
         }
         if (t != null) {

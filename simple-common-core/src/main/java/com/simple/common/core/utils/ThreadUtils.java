@@ -36,7 +36,6 @@ import java.util.function.Supplier;
 public class ThreadUtils {
 
     private static volatile ThreadService threadService;
-    private static volatile ExecutorService asyncExecutor;
 
     /**
      * 异步执行任务，并使用默认线程池
@@ -45,14 +44,14 @@ public class ThreadUtils {
      * @param <U>      需要返回的对象
      */
     public static <U> CompletableFuture<U> supplyAsync(Supplier<U> supplier) {
-        return CompletableFuture.supplyAsync(supplier, getAsyncExecutor());
+        return CompletableFuture.supplyAsync(supplier, getScheduledThreadPoolExecutor());
     }
 
     /**
      * 异步执行无返回值的任务
      */
     public static CompletableFuture<Void> runAsync(Runnable runnable) {
-        return CompletableFuture.runAsync(runnable, getAsyncExecutor());
+        return CompletableFuture.runAsync(runnable, getScheduledThreadPoolExecutor());
     }
 
     /**
@@ -96,12 +95,6 @@ public class ThreadUtils {
         return getThreadService().getExecutor();
     }
 
-    /**
-     * 获取线程池对象,适用于高并发
-     */
-    public static ExecutorService getAsyncExecutor() {
-        return getThreadService().getAsyncExecutor();
-    }
 
     /**
      * 获取 ThreadService

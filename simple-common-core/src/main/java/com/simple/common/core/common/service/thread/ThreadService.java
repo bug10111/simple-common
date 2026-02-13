@@ -19,11 +19,6 @@ public interface ThreadService {
     ScheduledThreadPoolExecutor getExecutor();
 
     /**
-     * 获取高并发线程池
-     */
-    ExecutorService getAsyncExecutor();
-
-    /**
      * 关闭线程池
      */
     void shutdown();
