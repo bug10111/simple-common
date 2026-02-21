@@ -1,13 +1,12 @@
 package com.simple.common.doc.common.builder;
 
 import com.deepoove.poi.data.*;
-import com.simple.common.core.utils.ClassUtils;
 import com.simple.common.doc.common.function.DocFunction;
-import org.apache.poi.ss.formula.functions.T;
 
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -23,7 +22,7 @@ public final class Docs {
     }
 
     public static class DocBuilder {
-        private static final Map<String, Object> templateData = new ConcurrentHashMap<>();
+        private final Map<String, Object> templateData = new ConcurrentHashMap<>();
 
         /**
          * 添加普通文本
@@ -54,7 +53,7 @@ public final class Docs {
          *
          * @param key   模板key
          * @param value 对应值
-         * @param color 超链接
+         * @param color 字体颜色
          */
         public DocBuilder addStrColor(String key, String value, String color) {
             return addStr(key, Texts.of(value).color(color).create());
@@ -136,11 +135,52 @@ public final class Docs {
             Tables.TableBuilder builder = Tables.ofPercentWidth(percentWidth).center();
             builder.addRow(Rows.of(head).center().create());
 
-            list.forEach(t -> {
-                String[] row = function.createRow(t);
-                builder.addRow(Rows.of(row).center().create());
-            });
+            if (list != null) {
+                list.forEach(t -> {
+                    if (t != null) {
+                        String[] row = function.createRow(t);
+                        builder.addRow(Rows.of(row).center().create());
+                    }
+                });
+            }
             templateData.put(key, builder.create());
+            return this;
+        }
+
+        /**
+         * 添加列表
+         * code格式：{{*code}}
+         *
+         * @param key  模板key
+         * @param list 列表数据
+         */
+        public DocBuilder addList(String key, List<String> list) {
+            if (list == null || list.isEmpty()) {
+                templateData.put(key, Numberings.create());
+                return this;
+            }
+            Numberings.NumberingBuilder numberingBuilder = Numberings.of(NumberingFormat.BULLET);
+            list.stream().filter(Objects::nonNull).forEach(numberingBuilder::addItem);
+            templateData.put(key, numberingBuilder.create());
+            return this;
+        }
+
+        /**
+         * 添加列表
+         * code格式：{{*code}}
+         *
+         * @param key             模板key
+         * @param numberingFormat 列表编号格式
+         * @param list            列表数据
+         */
+        public DocBuilder addList(String key, NumberingFormat numberingFormat, List<String> list) {
+            if (list == null || list.isEmpty()) {
+                templateData.put(key, Numberings.create());
+                return this;
+            }
+            Numberings.NumberingBuilder numberingBuilder = Numberings.of(numberingFormat);
+            list.stream().filter(Objects::nonNull).forEach(numberingBuilder::addItem);
+            templateData.put(key, numberingBuilder.create());
             return this;
         }
 
