@@ -154,7 +154,7 @@ public final class Docs {
                 list.forEach(t -> {
                     if (t != null) {
                         String[] row = function.createRow(t);
-                        builder.addRow(Rows.of(row).center().create());
+                        builder.addRow(Rows.of(row).center().textFontSize(size).create());
                     }
                 });
             }
