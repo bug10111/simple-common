@@ -132,8 +132,23 @@ public final class Docs {
          * @param function     表数据处理函数
          */
         public <T> DocBuilder addTable(String key, String percentWidth, String[] head, List<T> list, DocFunction<T> function) {
+            addTable(key, percentWidth, 15, head, list, function);
+            return this;
+        }
+
+        /**
+         * 添加表格
+         * code格式：{{#code}}
+         *
+         * @param key          模板key
+         * @param percentWidth 表格宽度百分比，例如：90%
+         * @param size         字体大小
+         * @param head         表头
+         * @param function     表数据处理函数
+         */
+        public <T> DocBuilder addTable(String key, String percentWidth, int size, String[] head, List<T> list, DocFunction<T> function) {
             Tables.TableBuilder builder = Tables.ofPercentWidth(percentWidth).center();
-            builder.addRow(Rows.of(head).center().create());
+            builder.addRow(Rows.of(head).center().textFontSize(size).create());
 
             if (list != null) {
                 list.forEach(t -> {

@@ -36,6 +36,7 @@ public class DocController {
     public R<Object> replace() {
         Docs.DocBuilder builder = Docs.builder();
         builder.addStr("code", "普通文字填充");
+        builder.addStr("num", "普通文字填充");
         builder.addStrColor("code1", "有颜色的文字填充", "ff0000");
         builder.addStrLink("code2", "有超链接的文字填充", "https://www.baidu.com");
         builder.addImgInputUrl("code3", "http://minio.dev.joyswon.com/market-web-public/png/cd37c4411cc64f43a7aa4775b0574e4d.png", 50, 50);
@@ -51,6 +52,7 @@ public class DocController {
         DocFunction<DocTestEntity> function = docTestEntity -> new String[] { docTestEntity.getName(), docTestEntity.getSex(), docTestEntity.getAge() + "" };
         builder.addTable("table", "90%", new String[] { "姓名", "性别", "年龄" }, list, function);
         docService.replaceResponse("测试文档", "doc/测试模板.docx", builder.create());
+//        docService.replaceResponse("测试文档", "doc/场地占用合同.docx", builder.create());
         return R.ok();
     }
 }
