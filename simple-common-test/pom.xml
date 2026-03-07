@@ -57,10 +57,10 @@
             <artifactId>simple-common-mp</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.simple.common</groupId>
-            <artifactId>simple-common-logs-server</artifactId>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.simple.common</groupId>-->
+<!--            <artifactId>simple-common-logs-server</artifactId>-->
+<!--        </dependency>-->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>

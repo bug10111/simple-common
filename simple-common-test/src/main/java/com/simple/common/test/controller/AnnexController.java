@@ -28,7 +28,7 @@ public class AnnexController {
     @Operation(summary = "文件上传")
     @PostMapping("upload")
     public R<UploadResponse> upload(MultipartFile filter, ShareType shareType) {
-        UploadResponse simple = annexService.upload(filter, "simple", shareType);
+        UploadResponse simple = annexService.upload(filter, "simple-test", shareType);
         // TODO: 2023/11/23 这里可以保存对象到数据库，md5值不在封装计算
         return R.ok(simple);
     }

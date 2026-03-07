@@ -29,7 +29,7 @@ import java.io.InputStream;
 public class S3AnnexService implements AnnexService {
 
     @Autowired
-    private S3Manager minioManager;
+    private S3Manager s3Manager;
 
     @Autowired
     private AnnexProperties annexProperties;
@@ -77,7 +77,7 @@ public class S3AnnexService implements AnnexService {
         }
 
         //执行上传
-        var fullPath = minioManager.upload(fileName, applicationName, packageName, shareType, in);
+        var fullPath = s3Manager.upload(fileName, applicationName, packageName, shareType, in);
         uploadResponse.setSaveUrl(fullPath);
         uploadResponse.setIsTrue(false);
         return uploadResponse;
@@ -85,16 +85,16 @@ public class S3AnnexService implements AnnexService {
 
     @Override
     public void writeGetObjectResponse(String objectUrl) {
-        minioManager.writeGetObjectResponse(objectUrl);
+        s3Manager.writeGetObjectResponse(objectUrl);
     }
 
     @Override
     public String generateUrl(String objectUrl) {
-        return minioManager.generateUrl(objectUrl, annexProperties.getExpireTime());
+        return s3Manager.generateUrl(objectUrl, annexProperties.getExpireTime());
     }
 
     @Override
     public void delete(String objectUrl) {
-        minioManager.delete(objectUrl);
+        s3Manager.delete(objectUrl);
     }
 }

@@ -37,6 +37,6 @@ public class AnnexProperties {
     //算法，用于判断文件是否重复上传
     private Algorithm algorithm = Algorithm.MD5;
 
-    //区域，默认us-east-1，其余区域参考S3 Region
+    //区域，默认us-east-1，其余区域参考S3 Region，阿里云的默认cn-chengdu
     private String region = "us-east-1";
 }

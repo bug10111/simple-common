@@ -57,6 +57,7 @@
         <redisson.version>3.36.0</redisson.version>
         <amazonaws.version>1.12.594</amazonaws.version>
         <minio.version>8.5.10</minio.version>
+        <aliyun.version>3.10.2</aliyun.version>
         <mp.versinon>3.5.9</mp.versinon>
         <easy.excel.version>4.0.3</easy.excel.version>
         <poi.tl.version>1.12.2</poi.tl.version>
@@ -119,6 +120,12 @@
                 <groupId>io.minio</groupId>
                 <artifactId>minio</artifactId>
                 <version>${minio.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${aliyun.version}</version>
             </dependency>
 
             <dependency>
