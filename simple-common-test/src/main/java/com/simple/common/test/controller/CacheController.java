@@ -38,6 +38,8 @@ public class CacheController {
     @GetMapping("string")
     @SneakyThrows
     public R<Object> string() {
+
+        //这个需要放在类变量
         Cache<String, String> string = cacheFactory.createCache("string", config -> config.initialCapacity(100).expireAfterWrite(5));
         string.put("key", "value");
         log.debug(string.getIfPresent("key"));
