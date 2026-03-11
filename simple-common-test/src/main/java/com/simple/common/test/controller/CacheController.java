@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("cache")
 @Tag(name = "缓存")
 @RestController
-public class CacheController {
+public class CacheController implements InitializingBean {
 
     @Autowired
     private LocalCacheFactory<String, String> cacheFactory;
@@ -34,16 +35,15 @@ public class CacheController {
     @Autowired
     private LocalCacheFactory<String, DocTestEntity> objFactory;
 
+    private Cache<String, String> string;
+
     @Operation(summary = "字符串缓存")
     @GetMapping("string")
     @SneakyThrows
     public R<Object> string() {
-
-        //这个需要放在类变量
-        Cache<String, String> string = cacheFactory.createCache("string", config -> config.initialCapacity(100).expireAfterWrite(5));
         string.put("key", "value");
-        log.debug(string.getIfPresent("key"));
         log.debug(string.get("key", s -> "重新读取value"));
+        log.debug(string.getIfPresent("key"));
 
         Thread.sleep(7000);
         log.debug(string.getIfPresent("key"));
@@ -102,5 +102,11 @@ public class CacheController {
         log.debug(JsonUtils.toJsonStr(docTestEntity1));
 
         return R.ok();
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+         string = cacheFactory.createCache("string", config -> config.initialCapacity(100));
+
     }
 }
