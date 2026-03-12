@@ -3,7 +3,9 @@ package com.simple.common.core.utils;
 import cn.hutool.core.util.RandomUtil;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -23,9 +25,9 @@ public class PageRequestUtils<T> {
      * @param emptyThreshold 连续空页阈值（默认 1，即一页为空就停止）
      * @return 所有数据列表
      */
-    public List<T> fetchAll(Function<PageRequest, List<T>> fetchPage, int pageSize, int maxTotal, int emptyThreshold) {
+    public Set<T> fetchAll(Function<PageRequest, List<T>> fetchPage, int pageSize, int maxTotal, int emptyThreshold) {
 
-        List<T> allData = new ArrayList<>();
+        Set<T> allData = new HashSet<>();
         int page = 0;
         int consecutiveEmptyPages = 0;
 
@@ -67,7 +69,7 @@ public class PageRequestUtils<T> {
     }
 
     // 简化调用
-    public List<T> fetchAll(Function<PageRequest, List<T>> fetchPage, int pageSize) {
+    public Set<T> fetchAll(Function<PageRequest, List<T>> fetchPage, int pageSize) {
         return fetchAll(fetchPage, pageSize, -1, 1);
     }
 
