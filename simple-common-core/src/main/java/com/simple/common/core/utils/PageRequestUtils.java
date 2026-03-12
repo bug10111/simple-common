@@ -1,5 +1,7 @@
 package com.simple.common.core.utils;
 
+import cn.hutool.core.util.RandomUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
@@ -36,6 +38,7 @@ public class PageRequestUtils<T> {
             List<T> pageData;
 
             try {
+                Thread.sleep(1000 + RandomUtil.randomInt(0, 1000));
                 pageData = fetchPage.apply(request);
             } catch (Exception e) {
                 // 可扩展：加入重试逻辑或熔断
