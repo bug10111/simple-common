@@ -41,14 +41,16 @@ public class CacheController implements InitializingBean {
     @GetMapping("string")
     @SneakyThrows
     public R<Object> string() {
-        string.put("key", "value");
         log.debug(string.get("key", s -> "重新读取value"));
         log.debug(string.getIfPresent("key"));
+        return R.ok();
+    }
 
-        Thread.sleep(7000);
+    @Operation(summary = "获取字符串缓存")
+    @GetMapping("getString")
+    @SneakyThrows
+    public R<Object> getString() {
         log.debug(string.getIfPresent("key"));
-        log.debug(string.get("key", s -> "重新读取value"));
-
         return R.ok();
     }
 
