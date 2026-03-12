@@ -108,7 +108,7 @@ public class CacheController implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-         string = cacheFactory.createCache("string", config -> config.initialCapacity(100));
+         string = cacheFactory.createCache("string", config -> config.maximumSize(100));
 
     }
 }
