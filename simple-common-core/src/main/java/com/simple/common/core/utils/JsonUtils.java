@@ -22,7 +22,7 @@ public class JsonUtils {
      * @param obj 对象
      */
     public static String toJsonStr(Object obj) {
-        return JSON.toJSONString(obj);
+        return JSONUtil.toJsonStr(obj);
     }
 
     /**
@@ -41,7 +41,7 @@ public class JsonUtils {
      * @param c    对象class
      */
     public static <T> T toJsonObj(String json, Class<T> c) {
-        return JSON.parseObject(json, c);
+        return JSONUtil.toBean(json, c);
     }
 
     /**
