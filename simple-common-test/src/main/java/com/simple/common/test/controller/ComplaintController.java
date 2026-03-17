@@ -26,6 +26,7 @@ public class ComplaintController {
         AiAliBuilder<Object>.AiResult aiResult = AiAliBuilder.builder().sendMsg(sessionId, message);
         if (aiResult.isStructured()) {
             log.info("接收到结构化数据[{}]", aiResult.getMsg());
+            return R.ok("感谢你的反馈");
         }
         return R.ok(Map.of("sessionId", sessionId, "reply", aiResult.getMsg()));
     }
