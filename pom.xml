@@ -27,6 +27,7 @@
         <module>simple-common-websocket</module>
         <module>simple-common-cache</module>
         <module>simple-common-alibaba</module>
+        <module>simple-common-ai</module>
     </modules>
 
     <distributionManagement>
@@ -71,6 +72,7 @@
         <mapstruct.version>1.6.3</mapstruct.version>
         <zxing.version>3.5.3</zxing.version>
         <fastjson2.version>2.0.61</fastjson2.version>
+        <dashscope.version>2.22.12</dashscope.version>
     </properties>
 
     <dependencyManagement>
@@ -262,6 +264,12 @@
             </dependency>
 
             <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>dashscope-sdk-java</artifactId>
+                <version>${dashscope.version}</version>
+            </dependency>
+
+            <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-core</artifactId>
                 <version>${common.simple.version}</version>
@@ -354,6 +362,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-alibaba</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-ai</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>
