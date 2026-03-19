@@ -73,6 +73,7 @@
         <zxing.version>3.5.3</zxing.version>
         <fastjson2.version>2.0.61</fastjson2.version>
         <dashscope.version>2.22.12</dashscope.version>
+        <bcprov.version>1.78</bcprov.version>
     </properties>
 
     <dependencyManagement>
@@ -267,6 +268,12 @@
                 <groupId>com.alibaba</groupId>
                 <artifactId>dashscope-sdk-java</artifactId>
                 <version>${dashscope.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk15on</artifactId>
+                <version>${bcprov.version}</version>
             </dependency>
 
             <dependency>
