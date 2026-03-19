@@ -46,21 +46,12 @@ public class JJwtUtils {
     }
 
     /**
-     * 验签
-     *
-     * @param token token
-     */
-    public static boolean isSigned(String token) {
-        return Jwts.parser().verifyWith(getKey()).build().isSigned(token);
-    }
-
-    /**
      * 解析Claims，会自动验签
      *
      * @param token token
      */
     public static Map<String, Object> verify(String token) {
-        return Jwts.parser().verifyWith(getKey()).build().parseSignedClaims(token).getPayload();
+        return Jwts.parser().verifyWith(getKey()).clockSkewSeconds(0).build().parseSignedClaims(token).getPayload();
     }
 
     /**

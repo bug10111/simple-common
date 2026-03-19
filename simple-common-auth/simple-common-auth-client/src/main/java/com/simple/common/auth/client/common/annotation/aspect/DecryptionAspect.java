@@ -19,10 +19,12 @@ import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created with IntelliJ IDEA
@@ -36,6 +38,9 @@ public class DecryptionAspect {
 
     @Autowired
     private AuthProperties authProperties;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
 
     @SneakyThrows
     @Around("@annotation(com.simple.common.auth.client.common.annotation.Decryption)")
@@ -86,7 +91,7 @@ public class DecryptionAspect {
 
                 //计算签名
                 String signStr = SignUtils.getSignStr(object);
-                String sign = AlgorithmUtils.md5Hex(signStr);
+                String sign = AlgorithmUtils.sha256Hex(signStr);
 
                 AssertUtils.isTrue(header.equals(sign), "请求失败", "签名验证失败");
             }
@@ -129,6 +134,13 @@ public class DecryptionAspect {
 
         //校验有效时间
         if (authProperties.getDecryptCheckValidityPeriod()) {
+            // 解密后结构: [data]:[timestamp]:[nonce],验证是否使用过
+            String nonce = split[2];
+            boolean used = stringRedisTemplate.hasKey(authProperties.getNonce() + nonce);
+            AssertUtils.isTrue(!used, "请求已被处理");
+            stringRedisTemplate.opsForValue().set(authProperties.getNonce() + nonce, "1", authProperties.getDecryptValidityPeriod(), TimeUnit.MINUTES);
+
+            //验证是否在合法时间内
             DateTime begin = DateTime.of(Long.parseLong(split[1]));
             DateTime end = DateUtils.parse(DateUtils.getNetworkDate());
             long between = DateUtils.between(begin, end, DateUnit.MINUTE);

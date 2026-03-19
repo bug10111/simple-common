@@ -31,7 +31,8 @@ public class JJwtTokenManager extends AbsTokenManager {
         try {
             verify = JJwtUtils.verify(token);
         } catch (Exception e) {
-            log.error("token==>[{}] 验签失败！", token);
+            String tokenDigest = (token == null || token.length() < 10) ? "null" : token.substring(0, Math.min(10, token.length())) + "...[len=" + token.length() + "]";
+            log.warn("Token 验签失败，摘要: {}", tokenDigest);
             AssertUtils.error(LoginException.RE_LOGIN_EXPIRED, "验签失败");
         }
         checkTime(verify, isRefresh);

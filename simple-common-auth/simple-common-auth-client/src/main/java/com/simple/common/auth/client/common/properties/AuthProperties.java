@@ -37,8 +37,11 @@ public class AuthProperties {
     //解密是否校验有效时间
     private Boolean decryptCheckValidityPeriod = false;
 
-    //解密字符串时间分割符
-    private String decryptSplitStr = "&&time=";
+    //解密字符串分割符
+    private String decryptSplitStr = ":";
+
+    //解密字符串随机字符串标志
+    private String nonce = "nonce:";
 
     //解密字符串有效期,单位分钟
     private Integer decryptValidityPeriod = 2;

@@ -27,7 +27,8 @@ public class JwtTokenManager extends AbsTokenManager {
     @Override
     public Map<String, Object> check(String token, boolean isRefresh) {
         if (!JwtUtils.verify(token)) {
-            log.error("token==>[{}] 验签失败！", token);
+            String tokenDigest = (token == null || token.length() < 10) ? "null" : token.substring(0, Math.min(10, token.length())) + "...[len=" + token.length() + "]";
+            log.warn("Token 验签失败，摘要: {}", tokenDigest);
             AssertUtils.error(LoginException.RE_LOGIN_EXPIRED, "验签失败");
         } else {
             Map<String, Object> payload = JwtUtils.getPayload(token);

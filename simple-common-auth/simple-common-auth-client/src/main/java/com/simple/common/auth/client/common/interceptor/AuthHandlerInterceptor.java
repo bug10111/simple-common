@@ -80,7 +80,11 @@ public class AuthHandlerInterceptor implements HandlerInterceptor {
 
             //获取token
             String header = request.getHeader(TokenConstant.Authorization);
-            header = StringUtils.substringAfter(header, TokenConstant.bearer);
+            if (header != null && header.toLowerCase().startsWith(TokenConstant.bearer.toLowerCase())) {
+                header = header.substring(TokenConstant.bearer.length()).trim();
+            } else {
+                header = null;
+            }
 
             //没有携带token
             if (ObjUtil.isEmpty(header)) {
