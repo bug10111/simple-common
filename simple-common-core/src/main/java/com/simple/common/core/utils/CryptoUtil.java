@@ -355,10 +355,13 @@ public class CryptoUtil {
         // 安全：国密标准，安全可靠
         SM2("SM2", 256, null);
 
+        //加密方式
         private final String algorithm;
 
+        //秘钥大小
         private final int keySize;
 
+        //签名方式
         private final SignAlgorithm signAlgorithm;
 
         /**
