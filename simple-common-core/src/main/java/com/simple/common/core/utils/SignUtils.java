@@ -1,5 +1,6 @@
 package com.simple.common.core.utils;
 
+import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.asymmetric.SM2;
 import cn.hutool.crypto.asymmetric.Sign;
 import lombok.SneakyThrows;
@@ -60,7 +61,7 @@ public class SignUtils {
     }
 
     /**
-     * 签名
+     * 签名，适用于服务端之间请求
      *
      * 计算哈希：对数据使用安全哈希算法生成摘要（当前加密方式均内置自动哈希计算）
      * 私钥签名：使用发送者的私钥对哈希值进行加密（签名）
@@ -113,6 +114,30 @@ public class SignUtils {
         } catch (Exception e) {
             throw new RuntimeException("验签失败: " + algorithm, e);
         }
+    }
+
+    /**
+     * 生成HMAC-SHA256签名，适用于web请求
+     *
+     * @param message   内容
+     * @param secretKey 秘钥（可用没有“-”的uuid，建议每次请求更换秘钥，且和用户绑定）
+     * @return 签名
+     */
+    public static String signWeb(String message, String secretKey) {
+        return SecureUtil.hmacSha256(secretKey).digestBase64(message, true);
+    }
+
+    /**
+     * 验证HMAC-SHA256签名
+     *
+     * @param message   内容
+     * @param signature 签名字符串
+     * @param secretKey 秘钥
+     * @return 验签结果
+     */
+    public static boolean verifyWeb(String message, String signature, String secretKey) {
+        String calculatedSignature = signWeb(message, secretKey);
+        return calculatedSignature.equals(signature);
     }
 
 }
