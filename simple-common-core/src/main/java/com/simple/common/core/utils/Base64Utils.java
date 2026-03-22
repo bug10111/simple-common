@@ -20,11 +20,29 @@ public class Base64Utils {
     }
 
     /**
+     * base64编码
+     *
+     * @param text 编码前字节
+     */
+    public static String encode(byte[] text) {
+        return Base64.encode(text);
+    }
+
+    /**
      * base64解码
      *
      * @param text 加密字符串
      */
     public static String decode(String text) {
         return Base64.decodeStr(text);
+    }
+
+    /**
+     * base64解码
+     *
+     * @param text 加密字节
+     */
+    public static byte[] decode(byte[] text) {
+        return Base64.decode(text);
     }
 }

@@ -30,13 +30,13 @@
         <module>simple-common-ai</module>
     </modules>
 
-    <distributionManagement>
-        <repository>
-            <id>maven-releases</id>
-            <name>Releases Repository</name>
-            <url>http://nexus.dev.joyswon.com/repository/maven-releases/</url>
-        </repository>
-    </distributionManagement>
+<!--    <distributionManagement>-->
+<!--        <repository>-->
+<!--            <id>maven-releases</id>-->
+<!--            <name>Releases Repository</name>-->
+<!--            <url>http://nexus.dev.joyswon.com/repository/maven-releases/</url>-->
+<!--        </repository>-->
+<!--    </distributionManagement>-->
 
     <properties>
         <java.version>17</java.version>
@@ -73,7 +73,7 @@
         <zxing.version>3.5.3</zxing.version>
         <fastjson2.version>2.0.61</fastjson2.version>
         <dashscope.version>2.22.12</dashscope.version>
-        <bcprov.version>1.78</bcprov.version>
+        <bcprov.version>1.70</bcprov.version>
     </properties>
 
     <dependencyManagement>
@@ -272,7 +272,7 @@
 
             <dependency>
                 <groupId>org.bouncycastle</groupId>
-                <artifactId>bcprov-jdk15on</artifactId>
+                <artifactId>bcpkix-jdk15on</artifactId>
                 <version>${bcprov.version}</version>
             </dependency>
 

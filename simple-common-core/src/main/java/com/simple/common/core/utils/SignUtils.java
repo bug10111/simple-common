@@ -1,8 +1,12 @@
 package com.simple.common.core.utils;
 
+import cn.hutool.crypto.asymmetric.SM2;
+import cn.hutool.crypto.asymmetric.Sign;
 import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
+import java.security.PrivateKey;
+import java.security.PublicKey;
 
 /**
  * Created with IntelliJ IDEA
@@ -52,6 +56,57 @@ public class SignUtils {
 
         if (aClass.getSuperclass() != null) {
             append(aClass.getSuperclass(), stringBuilder, t);
+        }
+    }
+
+    /**
+     * 签名
+     *
+     * @param algorithm  算法
+     * @param privateKey 私钥
+     * @param data       数据
+     * @return 签名数据
+     */
+    public static byte[] sign(CryptoUtil.AsymmetricAlgorithmType algorithm, PrivateKey privateKey, byte[] data) {
+        try {
+            if (algorithm.isRsa()) {
+                Sign sign = new Sign(algorithm.getSignAlgorithm());
+                sign.setPrivateKey(privateKey);
+                return sign.sign(data);
+            } else if (algorithm == CryptoUtil.AsymmetricAlgorithmType.SM2) {
+                SM2 sm2 = new SM2(privateKey, null);
+                return sm2.sign(data);
+            } else {
+                throw new RuntimeException("不支持的签名算法: " + algorithm);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("签名失败: " + algorithm, e);
+        }
+    }
+
+    /**
+     * 验签
+     *
+     * @param algorithm 方式
+     * @param publicKey 公钥
+     * @param data      数据
+     * @param signData  签名数据
+     * @return 验证结果
+     */
+    public static boolean verify(CryptoUtil.AsymmetricAlgorithmType algorithm, PublicKey publicKey, byte[] data, byte[] signData) {
+        try {
+            if (algorithm.isRsa()) {
+                Sign sign = new Sign(algorithm.getSignAlgorithm());
+                sign.setPublicKey(publicKey);
+                return sign.verify(data, signData);
+            } else if (algorithm == CryptoUtil.AsymmetricAlgorithmType.SM2) {
+                SM2 sm2 = new SM2(null, publicKey);
+                return sm2.verify(data, signData);
+            } else {
+                throw new RuntimeException("不支持的验签算法: " + algorithm);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("验签失败: " + algorithm, e);
         }
     }
 

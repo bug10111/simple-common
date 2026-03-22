@@ -21,6 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author qty
  */
+@Deprecated
 @Slf4j
 public class RsaUtils {
 

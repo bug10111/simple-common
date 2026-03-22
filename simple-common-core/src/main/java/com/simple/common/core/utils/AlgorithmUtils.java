@@ -14,6 +14,7 @@ import java.nio.charset.Charset;
  *
  * @author qty
  */
+@Deprecated
 public class AlgorithmUtils {
 
     /**
