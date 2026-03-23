@@ -193,10 +193,10 @@ public class LocalCacheFactory<K, V> {
         //最大容量
         private long maximumSize = -1;
 
-        //写入后过期时间
+        //写入后过期时间，单位秒
         private long expireAfterWrite = -1;
 
-        //访问后过期时间
+        //访问后过期时间，单位秒
         private long expireAfterAccess = -1;
 
         // 自动刷新配置（需要加载器）

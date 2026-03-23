@@ -3,11 +3,13 @@ package com.simple.common.core.utils;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.asymmetric.SM2;
 import cn.hutool.crypto.asymmetric.Sign;
-import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Created with IntelliJ IDEA
@@ -18,46 +20,55 @@ import java.security.PublicKey;
 public class SignUtils {
 
     /**
-     * 获取当前对象所有属性名和class，并生成字符串拼接
+     * 生成API签名字符串（安全实现）
      *
-     * @param t 目标对象
+     * @param t          目标对象（仅包含业务参数）
+     * @param excludeFields 需要排除的字段名（如secret、password等）
+     * @return 按参数名排序的签名字符串
      */
-    public static <T> String getSignStr(T t) {
-        StringBuilder stringBuilder = new StringBuilder();
-        append(t.getClass(), stringBuilder, t);
-        return stringBuilder.toString();
+    public static <T> String generateSignStr(T t, String... excludeFields) {
+        // 1. 获取需要参与签名的字段（排除指定字段）
+        Map<String, String> params = getSignableFields(t, excludeFields);
+
+        // 2. 按参数名ASCII码升序排序
+        List<Map.Entry<String, String>> sortedParams = new ArrayList<>(params.entrySet());
+        sortedParams.sort(Map.Entry.comparingByKey());
+
+        // 3. 拼接成字符串
+        return sortedParams.stream().map(e -> e.getKey() + "=" + urlEncode(e.getValue())).collect(Collectors.joining("&"));
     }
 
     /**
-     * 拼接字符串
-     *
-     * @param aClass        class
-     * @param stringBuilder 字符串
+     * 获取可用于签名的字段
+     * @param t 对象
+     * @param excludeFields 排除字段
      */
-    @SneakyThrows
-    private static <T> void append(Class<?> aClass, StringBuilder stringBuilder, T t) {
+    private static <T> Map<String, String> getSignableFields(T t, String[] excludeFields) {
+        Set<String> excludeSet = excludeFields == null ? Collections.emptySet() : new HashSet<>(Arrays.asList(excludeFields));
 
-        // 使用反射获取 base 的所有属性
-        Field[] fields = aClass.getDeclaredFields();
+        Map<String, String> params = new TreeMap<>(); // 自动按key排序
 
-        for (Field field : fields) {
-
-            // 允许访问私有属性
-            field.setAccessible(true);
-
-            // 获取属性值
-            Object value = field.get(t);
-            if (value != null) {
-                if (!stringBuilder.isEmpty()) {
-                    stringBuilder.append("&");
+        // 获取当前类的所有字段
+        Class<?> clazz = t.getClass();
+        while (clazz != null) {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (excludeSet.contains(field.getName())) {
+                    continue;
                 }
-                stringBuilder.append(field.getName()).append("=").append(value);
-            }
-        }
 
-        if (aClass.getSuperclass() != null) {
-            append(aClass.getSuperclass(), stringBuilder, t);
+                field.setAccessible(true);
+                try {
+                    Object value = field.get(t);
+                    // 仅处理非空值（空值转为空字符串）
+                    String strValue = value != null ? value.toString() : "";
+                    params.put(field.getName(), strValue);
+                } catch (Exception e) {
+                    // 忽略反射异常，继续处理其他字段
+                }
+            }
+            clazz = clazz.getSuperclass();
         }
+        return params;
     }
 
     /**
@@ -140,4 +151,12 @@ public class SignUtils {
         return calculatedSignature.equals(signature);
     }
 
+    private static String urlEncode(String value) {
+        try {
+            return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20") // 保持与API服务端一致
+                                      .replace("%21", "!").replace("%27", "'").replace("%28", "(").replace("%29", ")").replace("%7E", "~");
+        } catch (Exception e) {
+            throw new RuntimeException("URL编码失败", e);
+        }
+    }
 }

@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RequestMapping("cache")
-@Tag(name = "缓存")
+@Tag(name = "缓存（展示多种构建方式）")
 @RestController
 public class CacheController implements InitializingBean {
 
@@ -58,14 +58,16 @@ public class CacheController implements InitializingBean {
     @GetMapping("obj")
     @SneakyThrows
     public R<Object> obj() {
-        Cache<String, DocTestEntity> string = objFactory.createCache("string", config -> config.initialCapacity(100).expireAfterWrite(5));
-        string.put("key", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
-        log.debug(JsonUtils.toJsonStr(string.getIfPresent("key")));
-        log.debug(JsonUtils.toJsonStr(string.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
+        LocalCacheFactory<String, DocTestEntity> factory = new LocalCacheFactory<>();
+        Cache<String, DocTestEntity> cache = factory.createCache("string", config -> config.expireAfterWrite(10));
+
+        cache.put("key", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
+        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
+        log.debug(JsonUtils.toJsonStr(cache.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
 
         Thread.sleep(7000);
-        log.debug(JsonUtils.toJsonStr(string.getIfPresent("key")));
-        log.debug(JsonUtils.toJsonStr(string.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
+        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
+        log.debug(JsonUtils.toJsonStr(cache.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
 
         return R.ok();
     }
@@ -109,6 +111,5 @@ public class CacheController implements InitializingBean {
     @Override
     public void afterPropertiesSet() throws Exception {
          string = cacheFactory.createCache("string", config -> config.maximumSize(100));
-
     }
 }

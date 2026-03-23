@@ -28,9 +28,6 @@ public class AuthProperties {
     //服务端地址
     private String serverUrl = "http://localhost:8000";
 
-    //签名token类型
-    private String decryptSign = "X-SIGN-TOKEN";
-
     //客户端获取服务端用户信息的超时时间
     private Long timeOut = 1000 * 10L;
 

@@ -38,6 +38,11 @@
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-logs-client</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-cache</artifactId>
+        </dependency>
     </dependencies>
 
 </project>
