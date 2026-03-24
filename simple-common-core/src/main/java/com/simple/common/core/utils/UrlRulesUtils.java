@@ -6,6 +6,7 @@ import org.springframework.util.AntPathMatcher;
 import org.springframework.util.CollectionUtils;
 
 import java.util.Collection;
+import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA
@@ -84,6 +85,23 @@ public class UrlRulesUtils {
      */
     public static boolean isMatch(String url, String urlPath) {
         return antPathMatcher.match(url, urlPath);
+    }
+
+    public static boolean hasIntersection(Set<?> set1, Set<?> set2) {
+        if (set1 == null || set2 == null) return false;
+        for (Object item : set1) {
+            if (set2.contains(item)) return true;
+        }
+        return false;
+    }
+
+    public static String findMatch(String path, Set<String> patterns) {
+        for (String pattern : patterns) {
+            if (isMatch(pattern, path)) {
+                return pattern;
+            }
+        }
+        return null;
     }
 
     /**
