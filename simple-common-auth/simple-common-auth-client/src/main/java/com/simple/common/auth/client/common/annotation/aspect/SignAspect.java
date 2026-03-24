@@ -64,9 +64,9 @@ public class SignAspect {
         String timestampHeader = request.getHeader(signProperties.getTimestamp());
         String nonceHeader = request.getHeader(signProperties.getNonce());
 
-        AssertUtils.notEmpty(signHeader, "签名头不能为空");
-        AssertUtils.notEmpty(timestampHeader, "时间戳头不能为空");
-        AssertUtils.notEmpty(nonceHeader, "随机数头不能为空");
+        AssertUtils.notEmpty(signHeader, "签名不能为空");
+        AssertUtils.notEmpty(timestampHeader, "时间戳不能为空");
+        AssertUtils.notEmpty(nonceHeader, "随机数不能为空");
 
         // 5. 时效性校验
         if (signAnnotation.checkTimestamp()) {

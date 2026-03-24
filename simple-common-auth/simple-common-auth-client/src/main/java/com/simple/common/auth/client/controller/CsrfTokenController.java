@@ -16,6 +16,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 /**
  * Created with IntelliJ IDEA
  * Description: 用于获取CSRF Token的Controller
@@ -38,7 +41,10 @@ public class CsrfTokenController {
                     @Parameter(name = "path", description = "目标接口path") })
     @GetMapping("/generate")
     public R<Object> generateCsrfToken(String path) {
-        String csrfToken = IdUtil.fastUUID();
+        SecureRandom random = new SecureRandom();
+        byte[] token = new byte[32];
+        random.nextBytes(token);
+        String csrfToken = Base64.getUrlEncoder().withoutPadding().encodeToString(token);
         String userId = LoginUserUtils.getUserTemporary().getUserId();
 
         csrfService.saveToken(userId, path, csrfToken);
