@@ -19,3 +19,6 @@ https://developers.weixin.qq.com/doc/
 
 # oracle官网
 https://www.oracle.com/cn/java/
+
+# jdk地址（启动快，内存占用4低，性能启动即巅峰，多语言支持）
+https://github.com/graalvm/graalvm-ce-builds/tags
