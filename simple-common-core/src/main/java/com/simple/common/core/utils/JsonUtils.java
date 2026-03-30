@@ -1,6 +1,7 @@
 package com.simple.common.core.utils;
 
 import cn.hutool.json.JSONUtil;
+import com.alibaba.fastjson2.JSON;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class JsonUtils {
      * @param c    对象class
      */
     public static <T> List<T> toList(String json, Class<T> c) {
-        return JSONUtil.toList(json, c);
+        return JSON.parseArray(json, c);
     }
 
 }

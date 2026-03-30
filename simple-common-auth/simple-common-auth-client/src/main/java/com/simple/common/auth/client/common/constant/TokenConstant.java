@@ -7,6 +7,10 @@ package com.simple.common.auth.client.common.constant;
  */
 public class TokenConstant {
 
+    //内部传递头
+    public static final String userHead = "X-User-Context";
+    public static final String userSignHead = "X-User-Signature";
+
     public static final String Authorization = "Authorization";
 
     //token前缀key

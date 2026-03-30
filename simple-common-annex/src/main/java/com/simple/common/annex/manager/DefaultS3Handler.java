@@ -7,6 +7,8 @@ import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.net.url.UrlBuilder;
 import cn.hutool.core.util.CharsetUtil;
 import cn.hutool.core.util.StrUtil;
+import com.aliyun.oss.OSS;
+import com.aliyun.oss.OSSClientBuilder;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
@@ -53,13 +55,15 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
 
     private MinioClient minioClient;
 
+    private OSS ossClient;
+
     @Override
     public String upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream) {
         var bucketName = buildBucketName(applicationName, shareType);
         if (annexProperties.getType() == AnnexType.MINIO) {
             createMinioBucket(bucketName, shareType);
         } else {
-            createS3Bucket(bucketName, shareType);
+            createOssBucket(bucketName, shareType);
         }
         var key = StrUtil.isEmpty(packageName) ? buildKey(fileName) : packageName;
         CannedAccessControlList acl = ShareType.PRIVATE.equals(shareType) ? CannedAccessControlList.Private : CannedAccessControlList.PublicRead;
@@ -162,23 +166,21 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
      * @param bucketName 桶名称
      * @param shareType  附件类型
      */
-    protected void createS3Bucket(String bucketName, ShareType shareType) {
-        var exists = amazonS3.doesBucketExistV2(bucketName);
-        synchronized (this) {
-            if (!exists) {
-                var request = new CreateBucketRequest(bucketName, annexProperties.getRegion());
-                request.setCannedAcl(ShareType.PUBLIC == shareType ? CannedAccessControlList.PublicRead : CannedAccessControlList.Private);
-                amazonS3.createBucket(request);
+    public void createOssBucket(String bucketName, ShareType shareType) {
 
-                // 检查桶是否创建成功，如果我们要建立的是公共桶，则再次设置桶为公共的
-                exists = amazonS3.doesBucketExistV2(bucketName);
-                if (exists && ShareType.PUBLIC == shareType) {
-                    // 再次设置 ACL，确保 PublicRead 成功应用
-                    var aclRequest = new SetBucketAclRequest(bucketName, CannedAccessControlList.PublicRead);
-                    amazonS3.setBucketAcl(aclRequest);
-                }
-            }
-        }
+        // 1. 检查桶是否存在（阿里云要求全局唯一）
+//        if (ossClient.doesBucketExist(bucketName)) {
+//            return;
+//        }
+
+        // 2. 创建桶（默认私有）
+        com.aliyun.oss.model.CreateBucketRequest createBucketRequest = new com.aliyun.oss.model.CreateBucketRequest(bucketName);
+
+        // 3.设置存储类型
+        createBucketRequest.setStorageClass(com.aliyun.oss.model.StorageClass.Standard);
+
+        // 6. 创建 Bucket
+        ossClient.createBucket(createBucketRequest);
     }
 
     /**
@@ -196,8 +198,7 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
                 String sb;
                 if (ShareType.PUBLIC == shareType) {
                     sb = "{\"Version\":\"2012-10-17\"," + "\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":"
-                         + "{\"AWS\":[\"*\"]},\"Action\":[\"s3:ListBucket\",\"s3:ListBucketMultipartUploads\","
-                         + "\"s3:GetBucketLocation\"],\"Resource\":[\"arn:aws:s3:::" + bucketName
+                         + "{\"AWS\":[\"*\"]},\"Action\":[\"s3:ListBucket\",\"s3:ListBucketMultipartUploads\"," + "\"s3:GetBucketLocation\"],\"Resource\":[\"arn:aws:s3:::" + bucketName
                          + "\"]},{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":[\"*\"]},\"Action\":[\"s3:PutObject\",\"s3:AbortMultipartUpload\",\"s3:DeleteObject\",\"s3:GetObject\",\"s3:ListMultipartUploadParts\"],\"Resource\":[\"arn:aws:s3:::"
                          + bucketName + "/*\"]}]}";
                 } else {
@@ -225,16 +226,12 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
         var endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(annexProperties.getServerUrl(), annexProperties.getRegion());
 
         //初始化s3
-        amazonS3 = AmazonS3ClientBuilder.standard()
-                                        .withCredentials(credential)
-                                        .withEndpointConfiguration(endpointConfiguration)
-                                        .enablePathStyleAccess()
-                                        .build();
+        amazonS3 = AmazonS3ClientBuilder.standard().withCredentials(credential).withEndpointConfiguration(endpointConfiguration).enablePathStyleAccess().withPathStyleAccessEnabled(annexProperties.getType() == AnnexType.MINIO) .build();
 
         //初始化minio原生，支持公共读桶的创建
-        minioClient = MinioClient.builder()
-                                 .endpoint(annexProperties.getServerUrl())
-                                 .credentials(annexProperties.getAccessKey(), annexProperties.getAccessSecret())
-                                 .build();
+        minioClient = MinioClient.builder().endpoint(annexProperties.getServerUrl()).credentials(annexProperties.getAccessKey(), annexProperties.getAccessSecret()).build();
+
+        //初始化oss原生
+        ossClient = new OSSClientBuilder().build(annexProperties.getServerUrl(), annexProperties.getAccessKey(), annexProperties.getAccessSecret());
     }
 }

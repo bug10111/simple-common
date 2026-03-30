@@ -188,15 +188,15 @@ public class LocalCacheFactory<K, V> {
     public static class CacheSpec<K, V> {
 
         // 初始容量
-        private int initialCapacity = 100;
+        private int initialCapacity = -1;
 
         //最大容量
-        private long maximumSize = 500;
+        private long maximumSize = -1;
 
-        //写入后过期时间
-        private long expireAfterWrite = 60 * 5;
+        //写入后过期时间，单位秒
+        private long expireAfterWrite = -1;
 
-        //访问后过期时间
+        //访问后过期时间，单位秒
         private long expireAfterAccess = -1;
 
         // 自动刷新配置（需要加载器）

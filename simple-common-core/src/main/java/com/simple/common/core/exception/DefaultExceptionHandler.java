@@ -1,6 +1,5 @@
 package com.simple.common.core.exception;
 
-import com.simple.common.core.common.constant.CoreConstant;
 import com.simple.common.core.response.R;
 import com.simple.common.core.utils.ExceptionHandlerUtils;
 import com.simple.common.core.utils.HttpServletUtils;
@@ -68,7 +67,12 @@ public class DefaultExceptionHandler {
         } else {
             result.setCode(String.valueOf(HttpStatus.INTERNAL_SERVER_ERROR.value()));
         }
-        result.setMessage(exception.getMessage());
+        if (exception instanceof DefaultException defaultEx) {
+            result.setMessage(defaultEx.getMessage());
+        } else {
+            log.error("系统内部异常，请求: {}", HttpServletUtils.getRequest().getRequestURI(), exception);
+            result.setMessage("系统繁忙，请稍后再试");
+        }
         result.setData(null);
         return result;
     }

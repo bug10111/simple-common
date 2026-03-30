@@ -16,7 +16,7 @@ public enum AuthInterceptorKindProcess implements DefaultKindProcess {
 
     CHECK_TOKEN("检查token合法性", true, 1),
     CHECK_SCOPE_AUTH("检查授权范围", true, 2),
-
+    CHECK_ROLE("检查角色权限", true, 3),
     ;
 
     //说明

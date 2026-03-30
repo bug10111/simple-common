@@ -14,6 +14,7 @@ import java.nio.charset.Charset;
  *
  * @author qty
  */
+@Deprecated
 public class AlgorithmUtils {
 
     /**
@@ -90,6 +91,57 @@ public class AlgorithmUtils {
      */
     public static String sha512Hex(final File file) {
         return DigestUtil.sha512Hex(file);
+    }
+
+    /**
+     * 计算SHA-512摘要值，并转为16进制字符串
+     *
+     * @param data 被摘要数据
+     * @return SHA-512摘要的16进制表示
+     */
+    public static String sha256Hex(final String data) {
+        return DigestUtil.sha256Hex(data);
+    }
+
+    /**
+     * 计算SHA-512摘要值，并转为16进制字符串
+     *
+     * @param data 被摘要数据
+     * @return SHA-512摘要的16进制表示
+     */
+    public static String sha256Hex(final InputStream data) {
+        return DigestUtil.sha256Hex(data);
+    }
+
+    /**
+     * 计算SHA-1摘要值，并转为16进制字符串
+     *
+     * @param data 被摘要数据
+     * @return SHA-512摘要的16进制表示
+     */
+    public static String sha256Hex(final byte[] data) {
+        return DigestUtil.sha256Hex(data);
+    }
+
+    /**
+     * 计算SHA-512摘要值，并转为16进制字符串
+     *
+     * @param data    被摘要数据
+     * @param charset 编码
+     * @return SHA-512摘要的16进制表示
+     */
+    public static String sha256Hex(final String data, final String charset) {
+        return DigestUtil.sha256Hex(data, charset);
+    }
+
+    /**
+     * 计算SHA-512摘要值，并转为16进制字符串
+     *
+     * @param file 被摘要文件
+     * @return SHA-512摘要的16进制表示
+     */
+    public static String sha256Hex(final File file) {
+        return DigestUtil.sha256Hex(file);
     }
 
     /**

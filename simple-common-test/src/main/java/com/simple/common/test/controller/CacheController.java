@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,9 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
  */
 @Slf4j
 @RequestMapping("cache")
-@Tag(name = "缓存")
+@Tag(name = "缓存（展示多种构建方式）")
 @RestController
-public class CacheController {
+public class CacheController implements InitializingBean {
 
     @Autowired
     private LocalCacheFactory<String, String> cacheFactory;
@@ -34,19 +35,22 @@ public class CacheController {
     @Autowired
     private LocalCacheFactory<String, DocTestEntity> objFactory;
 
+    private Cache<String, String> string;
+
     @Operation(summary = "字符串缓存")
     @GetMapping("string")
     @SneakyThrows
     public R<Object> string() {
-        Cache<String, String> string = cacheFactory.createCache("string", config -> config.initialCapacity(100).expireAfterWrite(5));
-        string.put("key", "value");
-        log.debug(string.getIfPresent("key"));
         log.debug(string.get("key", s -> "重新读取value"));
-
-        Thread.sleep(7000);
         log.debug(string.getIfPresent("key"));
-        log.debug(string.get("key", s -> "重新读取value"));
+        return R.ok();
+    }
 
+    @Operation(summary = "获取字符串缓存")
+    @GetMapping("getString")
+    @SneakyThrows
+    public R<Object> getString() {
+        log.debug(string.getIfPresent("key"));
         return R.ok();
     }
 
@@ -54,14 +58,16 @@ public class CacheController {
     @GetMapping("obj")
     @SneakyThrows
     public R<Object> obj() {
-        Cache<String, DocTestEntity> string = objFactory.createCache("string", config -> config.initialCapacity(100).expireAfterWrite(5));
-        string.put("key", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
-        log.debug(JsonUtils.toJsonStr(string.getIfPresent("key")));
-        log.debug(JsonUtils.toJsonStr(string.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
+        LocalCacheFactory<String, DocTestEntity> factory = new LocalCacheFactory<>();
+        Cache<String, DocTestEntity> cache = factory.createCache("string", config -> config.expireAfterWrite(10));
+
+        cache.put("key", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
+        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
+        log.debug(JsonUtils.toJsonStr(cache.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
 
         Thread.sleep(7000);
-        log.debug(JsonUtils.toJsonStr(string.getIfPresent("key")));
-        log.debug(JsonUtils.toJsonStr(string.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
+        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
+        log.debug(JsonUtils.toJsonStr(cache.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
 
         return R.ok();
     }
@@ -100,5 +106,10 @@ public class CacheController {
         log.debug(JsonUtils.toJsonStr(docTestEntity1));
 
         return R.ok();
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+         string = cacheFactory.createCache("string", config -> config.maximumSize(100));
     }
 }

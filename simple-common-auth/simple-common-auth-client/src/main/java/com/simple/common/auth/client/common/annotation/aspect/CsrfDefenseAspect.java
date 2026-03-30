@@ -25,16 +25,10 @@ import org.springframework.stereotype.Component;
 public class CsrfDefenseAspect {
 
     @Autowired
-    private ClientAuthInfo clientAuthInfo;
-
-    @Autowired
     private CsrfProperties csrfProperties;
 
     @Autowired
     private CsrfService csrfService;
-
-    @Autowired
-    private LockService lockService;
 
     @Before("@annotation(com.simple.common.auth.client.common.annotation.CsrfDefense)")
     public void before() {

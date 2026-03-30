@@ -28,17 +28,17 @@ public class AuthProperties {
     //服务端地址
     private String serverUrl = "http://localhost:8000";
 
-    //签名token类型
-    private String decryptSign = "X-SIGN-TOKEN";
-
     //客户端获取服务端用户信息的超时时间
     private Long timeOut = 1000 * 10L;
 
     //解密是否校验有效时间
     private Boolean decryptCheckValidityPeriod = false;
 
-    //解密字符串时间分割符
-    private String decryptSplitStr = "&&time=";
+    //解密字符串分割符
+    private String decryptSplitStr = ":";
+
+    //解密字符串随机字符串标志
+    private String nonce = "nonce:";
 
     //解密字符串有效期,单位分钟
     private Integer decryptValidityPeriod = 2;

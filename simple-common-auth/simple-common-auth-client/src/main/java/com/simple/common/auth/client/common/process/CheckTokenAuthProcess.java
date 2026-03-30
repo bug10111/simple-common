@@ -1,10 +1,12 @@
 package com.simple.common.auth.client.common.process;
 
+import cn.hutool.core.util.ObjUtil;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.enums.process.AuthInterceptorKindProcess;
+import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
 import com.simple.common.auth.client.common.manager.user.LoginInfoManager;
 import com.simple.common.auth.client.util.LoginInfoManagerUtils;
@@ -12,11 +14,14 @@ import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.common.enums.process.DefaultKindProcess;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.JsonUtils;
+import com.simple.common.core.utils.SignUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Map;
 
 /**
@@ -33,6 +38,9 @@ public class CheckTokenAuthProcess implements AuthProcess {
     @Autowired
     private ClientAuthInfo clientAuthInfo;
 
+    @Autowired
+    private SignManager signManager;
+
     @Override
     public DefaultKindProcess getProcess() {
         return AuthInterceptorKindProcess.CHECK_TOKEN;
@@ -40,6 +48,24 @@ public class CheckTokenAuthProcess implements AuthProcess {
 
     @Override
     public void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr) {
+
+        //受限从头里面看能不能获取到已处理好的数据
+        String encoded = request.getHeader(TokenConstant.userHead);
+        String sign = request.getHeader(TokenConstant.userSignHead);
+        String key = signManager.getKey();
+
+        if (ObjUtil.isNotEmpty(encoded) && ObjUtil.isNotEmpty(sign)) {
+            String signNew = SignUtils.signWeb(encoded, key);
+            if (sign.equals(signNew)) {
+                byte[] decoded = Base64.getDecoder().decode(encoded);
+                String userJson = new String(decoded, StandardCharsets.UTF_8);
+                UserTemporary user = JsonUtils.toJsonObj(userJson, UserTemporary.class);
+                LoginUserUtils.add(user);
+                return;
+            }
+        }
+
+        //获取不到，走正常校验流程，然后追加到头信息
         Map<String, Object> payload = tokenManager.check(token, false);
         LoginInfoManager loginInfoManager;
         if (clientAuthInfo.getClient()) {
