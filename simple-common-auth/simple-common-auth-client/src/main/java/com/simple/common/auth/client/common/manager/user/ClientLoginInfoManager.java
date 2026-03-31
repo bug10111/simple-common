@@ -3,7 +3,6 @@ package com.simple.common.auth.client.common.manager.user;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
-import com.simple.common.auth.client.common.constant.LoginInfoConstant;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.properties.AuthProperties;
@@ -63,7 +62,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 Map<Object, Object> response = JsonUtils.toJsonObj(jsonObj2.getData().toString(), Map.class);
 
                 //获取用户信息
-                userInfo = JsonUtils.toJsonObj(response.get(LoginInfoConstant.user_info_name).toString(), Map.class);
+                userInfo = JsonUtils.toJsonObj(response.get(TokenConstant.userInfoName).toString(), Map.class);
                 String userId = (String) userInfo.get(TokenConstant.userIdKey);
 
                 //缓存数据
@@ -71,7 +70,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 String userTokenKey = TokenConstant.getUserTokenKey(userId);
 
                 redisTemplate.opsForHash().putAll(userInfoKey, userInfo);
-                List<String> jsonObj = JsonUtils.toList(response.get(LoginInfoConstant.user_token_name).toString(), String.class);
+                List<String> jsonObj = JsonUtils.toList(response.get(TokenConstant.userTokenName).toString(), String.class);
                 redisTemplate.opsForSet().add(userTokenKey, jsonObj.toArray(new String[0]));
 
                 //设置缓存时间，这里过期时间不和服务端强一致
@@ -80,7 +79,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 redisTemplate.expire(userTokenKey, times, TimeUnit.SECONDS);
 
                 //收集权限信息
-                Map<?,?> authMap = JsonUtils.toJsonObj(response.get(LoginInfoConstant.user_auth_name).toString(), Map.class);
+                Map<?,?> authMap = JsonUtils.toJsonObj(response.get(TokenConstant.userAuthName).toString(), Map.class);
                 for (Object obj : authMap.keySet()) {
                     String roleKey = obj.toString();
                     Map<?,?> auth = JsonUtils.toJsonObj(authMap.get(roleKey).toString(), Map.class);

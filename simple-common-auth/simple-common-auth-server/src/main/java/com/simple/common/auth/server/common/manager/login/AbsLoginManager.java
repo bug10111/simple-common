@@ -1,12 +1,20 @@
 package com.simple.common.auth.server.common.manager.login;
 
-import cn.hutool.core.util.ObjUtil;
+import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.server.common.entity.ClientDetails;
+import com.simple.common.auth.server.common.process.LoginErrorProcess;
 import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.core.utils.IPUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -17,39 +25,73 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public abstract class AbsLoginManager implements LoginManager {
 
-    @Autowired
-    private StringRedisTemplate stringRedisTemplate;
-
-    @Autowired
-    private AuthProperties authProperties;
+    @Autowired(required = false)
+    protected List<LoginErrorProcess> loginErrorProcesses;
 
     /**
-     * 校验登录失败次数
+     * 校验登录失败次数（责任链模式）
      *
-     * @param key 登录标志，如账号 openid
+     * @param clientDetails 客户端信息
+     * @param adapter       登录参数
      */
-    protected void checkErrorNum(String key) {
-        String num = stringRedisTemplate.opsForValue().get(authProperties.getKey(key));
-        if (ObjUtil.isNotEmpty(num)) {
-            assert num != null;
-            if (Integer.parseInt(num) > authProperties.getLoginErrorNumber()) {
-                log.error("登录失败！用户 [{}] 密码错误次数为 [{}] ", key, num);
-                AssertUtils.error("已达到最大失败次数，请明日再试");
-            }
-        }
+    protected void checkErrorNum(ClientDetails clientDetails, Object adapter) {
+        String ip = getIp();
+        
+        // 按顺序执行所有处理器
+        loginErrorProcesses.stream()
+                .filter(p -> p.getProcess().isExecute())
+                .forEach(process -> {
+                    if (!process.checkErrorNum(clientDetails, adapter, ip)) {
+                        AssertUtils.error(LoginException.LOGIN_ERROR_NUM);
+                    }
+                });
     }
 
     /**
-     * 登录失败处理
+     * 登录失败处理（责任链模式）
      *
-     * @param key 登录标志，如账号 openid
+     * @param clientDetails 客户端信息
+     * @param adapter       登录参数
      */
-    protected void loginError(String key) {
-        Long increment = stringRedisTemplate.opsForValue().increment(authProperties.getKey(key), 1);
-        if (increment != null && increment == 1) {
-            stringRedisTemplate.expire(authProperties.getKey(key), authProperties.getLoginErrorTime(), TimeUnit.SECONDS);
-        }
+    protected void loginError(ClientDetails clientDetails, Object adapter) {
+        String ip = getIp();
+        
+        // 按顺序执行所有处理器
+        loginErrorProcesses.stream()
+                .filter(p -> p.getProcess().isExecute())
+                .forEach(process -> process.recordError(clientDetails, adapter, ip));
+        
         AssertUtils.error("账号或者密码错误");
     }
+
+    /**
+     * 登录成功，清除失败记录
+     *
+     * @param clientDetails 客户端信息
+     * @param adapter       登录参数
+     */
+    protected void loginSuccess(ClientDetails clientDetails, Object adapter) {
+        String ip = getIp();
+        
+        // 清除所有失败记录
+        loginErrorProcesses.stream()
+                .filter(p -> p.getProcess().isExecute())
+                .forEach(process -> process.clearError(clientDetails, adapter, ip));
+    }
+
+    /**
+     * 获取当前请求IP
+     *
+     * @return IP地址
+     */
+    protected String getIp() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            return IPUtils.getIpAddr(request);
+        }
+        return IPUtils.UNKNOWN;
+    }
+
 
 }

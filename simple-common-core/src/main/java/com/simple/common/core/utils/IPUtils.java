@@ -22,6 +22,11 @@ import java.util.Enumeration;
 public class IPUtils {
 
     /**
+     * 未知IP标识
+     */
+    public static final String UNKNOWN = "unknown";
+
+    /**
      * 获取客户端IP
      *
      * @return IP地址
@@ -38,20 +43,20 @@ public class IPUtils {
      */
     public static String getIpAddr(HttpServletRequest request) {
         String ip = request.getHeader("x-forwarded-for");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("Proxy-Client-IP");
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Forwarded-For");
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("WL-Proxy-Client-IP");
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getHeader("X-Real-IP");
         }
 
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+        if (ip == null || ip.isEmpty() || UNKNOWN.equalsIgnoreCase(ip)) {
             ip = request.getRemoteAddr();
         }
 
@@ -117,7 +122,7 @@ public class IPUtils {
      * @return 是否未知
      */
     private static boolean isUnknown(String checkString) {
-        return StrUtil.isBlank(checkString) || "unknown".equalsIgnoreCase(checkString);
+        return StrUtil.isBlank(checkString) || UNKNOWN.equalsIgnoreCase(checkString);
     }
 
 }

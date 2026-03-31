@@ -85,6 +85,15 @@ public class TokenConstant {
     //RefreshToken唯一标志
     public static final String atiKey = "ati";
 
+    //用户详情（远程同步用）
+    public static final String userInfoName = "userInfo";
+
+    //用户权限（远程同步用）
+    public static final String userAuthName = "userAuth";
+
+    //用户权限关联（远程同步用）
+    public static final String userTokenName = "userToken";
+
     /**
      * 获取内省登录的用户信息key
      *

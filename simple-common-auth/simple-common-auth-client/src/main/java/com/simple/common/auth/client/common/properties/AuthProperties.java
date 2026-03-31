@@ -1,13 +1,9 @@
 package com.simple.common.auth.client.common.properties;
 
-import com.simple.common.auth.client.common.entity.decry.ClientDecry;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
-
-import java.security.Policy;
-import java.util.List;
 
 /**
  * Created with IntelliJ IDEA
@@ -21,9 +17,6 @@ import java.util.List;
 @Component
 @ConfigurationProperties(prefix = "simple.auth")
 public class AuthProperties {
-
-    //jwt密钥
-    private String JWTSigner = "V4O2UvwbrPKoH3fdyMpdczDTgnd0O5zgYAYrrTBXsPmgUrxhMpUj2a0Cz8OQMGub";
 
     //服务端地址
     private String serverUrl = "http://localhost:8000";
@@ -52,10 +45,20 @@ public class AuthProperties {
     //登陆失败计次的单位时间
     private int loginErrorTime = 60 * 60 * 24;
 
+    //IP登录失败key前缀
+    private String loginIpErrorKey = "login:ip:error:";
+
     /**
      * 获取登录失败保存的key
      */
     public String getKey(String key) {
         return loginErrorKey + key;
+    }
+
+    /**
+     * 获取IP登录失败保存的key
+     */
+    public String getIpErrorKey(String ip) {
+        return loginIpErrorKey + ip;
     }
 }
