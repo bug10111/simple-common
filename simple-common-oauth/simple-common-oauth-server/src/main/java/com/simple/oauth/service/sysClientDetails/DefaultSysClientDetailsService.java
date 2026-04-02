@@ -4,7 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.simple.common.auth.server.common.event.SecretEvent;
-import com.simple.common.auth.server.common.manager.secret.SecretManager;
+import com.simple.common.auth.server.common.manager.secret.JwtSecretManager;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.Base64Utils;
 import com.simple.common.core.utils.CryptoUtil;
@@ -40,7 +40,7 @@ public class DefaultSysClientDetailsService implements SysClientDetailsService {
     private EventBusService eventBusService;
 
     @Autowired(required = false)
-    private SecretManager secretManager;
+    private JwtSecretManager jwtSecretManager;
 
     @Override
     public IPage<SysClientDetailsPageResponse> findAll(FindAllSysClientDetailsRequest request) {

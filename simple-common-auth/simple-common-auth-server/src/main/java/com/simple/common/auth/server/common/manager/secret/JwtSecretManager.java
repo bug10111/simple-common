@@ -6,7 +6,7 @@ package com.simple.common.auth.server.common.manager.secret;
  *
  * @author qty
  */
-public interface SecretManager {
+public interface JwtSecretManager {
 
     /**
      * 添加秘钥
@@ -14,14 +14,6 @@ public interface SecretManager {
      * @param secret 新秘钥
      */
     void addSecret(String secret);
-
-    /**
-     * 为指定客户端添加秘钥
-     *
-     * @param clientId 客户端ID
-     * @param secret   新秘钥
-     */
-    void addSecret(String clientId, String secret);
 
     /**
      * 修改秘钥

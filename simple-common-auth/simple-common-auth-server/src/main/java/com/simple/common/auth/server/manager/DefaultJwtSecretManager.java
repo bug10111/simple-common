@@ -1,10 +1,9 @@
 package com.simple.common.auth.server.manager;
 
 import com.simple.common.auth.server.common.event.SecretEvent;
-import com.simple.common.auth.server.common.manager.secret.SecretManager;
+import com.simple.common.auth.server.common.manager.secret.JwtSecretManager;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.eventbus.common.service.EventBusService;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,14 +19,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Component
-public class DefaultSecretManager implements SecretManager {
-
-    /**
-     * 客户端秘钥映射表
-     * key: clientId
-     * value: secret
-     */
-    private final Map<String, String> clientSecretMap = new ConcurrentHashMap<>();
+public class DefaultJwtSecretManager implements JwtSecretManager {
 
     @Autowired
     private EventBusService eventBusService;
@@ -64,17 +56,6 @@ public class DefaultSecretManager implements SecretManager {
         publishSecretEvent(event);
         currentSecret = secret;
         log.debug("JWT秘钥添加成功，当前秘钥已更新。");
-    }
-
-    @Override
-    public void addSecret(String clientId, String secret) {
-        SecretEvent event = new SecretEvent();
-        event.setClientId(clientId);
-        event.setSecret(secret);
-        event.setOperation(SecretEvent.Operation.ADD);
-        publishSecretEvent(event);
-        clientSecretMap.put(clientId, secret);
-        log.debug("客户端[{}]秘钥添加成功。", clientId);
     }
 
     @Override
