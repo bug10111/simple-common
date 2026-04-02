@@ -1,5 +1,7 @@
 package com.simple.common.auth.server.common.event;
 
+import com.simple.common.eventbus.common.annotation.Event;
+import com.simple.common.eventbus.common.constants.EventConstant;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -11,6 +13,7 @@ import lombok.Setter;
  */
 @Getter
 @Setter
+@Event(targets = EventConstant.TARGET_ALL_X)
 public class SecretEvent {
 
     //客户端ID（可选，用于客户端级别的秘钥管理）

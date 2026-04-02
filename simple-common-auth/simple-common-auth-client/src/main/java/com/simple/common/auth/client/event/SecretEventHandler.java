@@ -1,11 +1,9 @@
-package com.simple.common.auth.client.common.event;
+package com.simple.common.auth.client.event;
 
+import com.simple.common.auth.client.common.event.SecretEvent;
 import com.simple.common.auth.client.util.JJwtUtils;
 import com.simple.common.auth.client.util.JwtUtils;
-import com.simple.common.core.utils.RsaUtils;
-import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
