@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simple.oauth.view.sysAnnex.SysAnnexRepository">
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into sys_annex(id, name, total_size, algorithm_value, algorithm_type, suffix, save_url, share_type, application_name, create_time, update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.id}, #{entity.name}, #{entity.totalSize}, #{entity.algorithmValue}, #{entity.algorithmType}, #{entity.suffix}, #{entity.saveUrl}, #{entity.shareType}, #{entity.applicationName},
+            #{entity.createTime}, #{entity.updateTime})
+        </foreach>
+    </insert>
+</mapper>
+

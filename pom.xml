@@ -28,6 +28,7 @@
         <module>simple-common-cache</module>
         <module>simple-common-alibaba</module>
         <module>simple-common-ai</module>
+        <module>simple-common-oauth</module>
     </modules>
 
 <!--    <distributionManagement>-->

@@ -31,6 +31,16 @@ public class AssertUtils {
     }
 
     /**
+     * 判断指定对象是否不为null
+     *
+     * @param object   对象
+     * @param errorMsg 需要抛出的异常数据
+     */
+    public static void notNull(Object object, String errorMsg) {
+        isTrue(object != null, errorMsg);
+    }
+
+    /**
      * 判断指定对象是否为空，支持：
      * 1. CharSequence
      * 2. Map

@@ -16,6 +16,14 @@ public interface SecretManager {
     void addSecret(String secret);
 
     /**
+     * 为指定客户端添加秘钥
+     *
+     * @param clientId 客户端ID
+     * @param secret   新秘钥
+     */
+    void addSecret(String clientId, String secret);
+
+    /**
      * 修改秘钥
      *
      * @param oldSecret 旧秘钥

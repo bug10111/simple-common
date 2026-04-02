@@ -1,10 +1,14 @@
 package com.simple.common.core.utils;
 
 import cn.hutool.crypto.digest.DigestUtil;
+import cn.hutool.crypto.asymmetric.RSA;
+import cn.hutool.crypto.asymmetric.KeyType;
 
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Created with IntelliJ IDEA
@@ -205,6 +209,30 @@ public class AlgorithmUtils {
      */
     public static String md5Hex(File file) {
         return DigestUtil.md5Hex(file);
+    }
+
+    /**
+     * 计算SHA-512摘要值，并转为16进制字符串
+     *
+     * @param data    被摘要数据
+     * @param charset 编码
+     * @return SHA-512摘要的16进制表示
+     */
+    public static String sha512Hex(final String data, final Charset charset) {
+        return DigestUtil.sha512Hex(data.getBytes(charset));
+    }
+
+    /**
+     * 获取新的RSA秘钥对
+     *
+     * @return RSA秘钥对，包含公钥和私钥
+     */
+    public static Map<String, String> createRsaStr() {
+        RSA rsa = new RSA();
+        Map<String, String> keyPair = new HashMap<>();
+        keyPair.put("privateKey", rsa.getPrivateKeyBase64());
+        keyPair.put("publicKey", rsa.getPublicKeyBase64());
+        return keyPair;
     }
 
 }

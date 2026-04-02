@@ -1,0 +1,17 @@
+spring:
+  application:
+    name: simple
+  profiles:
+    active: @spring.active@
+
+  # entity时间类型数据格式化
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss # 数据库返回时间格式化
+    time-zone: GMT+8 # 时区设置
+
+  # 文件上传配置
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB
+      max-request-size: 100MB

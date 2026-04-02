@@ -1,6 +1,5 @@
 package com.simple.common.core.utils;
 
-import cn.hutool.core.codec.Base64;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.SecureUtil;
@@ -49,6 +48,16 @@ public class CryptoUtil {
             return SecureUtil.generateKey("SM4").getEncoded();
         }
         throw new RuntimeException("不支持的算法: " + algorithm);
+    }
+
+    /**
+     * 生成对称加密秘钥（返回Base64字符串）
+     *
+     * @param algorithm 加密方式
+     * @return Base64编码的秘钥字符串
+     */
+    public static String generateSymmetricKeyStr(SymmetricAlgorithmType algorithm) {
+        return Base64Utils.encode(generateSymmetricKey(algorithm));
     }
 
     /**
@@ -109,6 +118,21 @@ public class CryptoUtil {
     }
 
     /**
+     * 对称加密（字符串版本）
+     *
+     * @param algorithm 加密方式
+     * @param key       Base64编码的秘钥字符串
+     * @param data      需要加密的字符串
+     * @return Base64编码的加密后字符串
+     */
+    public static String encryptStr(SymmetricAlgorithmType algorithm, String key, String data) {
+        byte[] keyBytes = Base64Utils.decode(key);
+        byte[] dataBytes = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] encrypted = encrypt(algorithm, keyBytes, dataBytes);
+        return Base64Utils.encode(encrypted);
+    }
+
+    /**
      * 对称解密
      *
      * @param algorithm     解密方式
@@ -145,6 +169,21 @@ public class CryptoUtil {
     }
 
     /**
+     * 对称解密（字符串版本）
+     *
+     * @param algorithm         解密方式
+     * @param key               Base64编码的秘钥字符串
+     * @param encryptedDataStr  Base64编码的加密字符串
+     * @return 解密后的字符串
+     */
+    public static String decryptStr(SymmetricAlgorithmType algorithm, String key, String encryptedDataStr) {
+        byte[] keyBytes = Base64Utils.decode(key);
+        byte[] encryptedData = Base64Utils.decode(encryptedDataStr);
+        byte[] decrypted = decrypt(algorithm, keyBytes, encryptedData);
+        return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /**
      * 非对称加密（公钥加密）
      *
      * @param algorithm 算法枚举
@@ -174,6 +213,21 @@ public class CryptoUtil {
     }
 
     /**
+     * 非对称加密（字符串版本，公钥加密）
+     *
+     * @param algorithm     算法枚举
+     * @param publicKeyPem  公钥PEM字符串
+     * @param data          待加密字符串
+     * @return Base64编码的密文字符串
+     */
+    public static String encryptStr(AsymmetricAlgorithmType algorithm, String publicKeyPem, String data) {
+        PublicKey publicKey = getPublicKeyFromPem(publicKeyPem);
+        byte[] dataBytes = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] encrypted = encrypt(algorithm, publicKey, dataBytes);
+        return Base64Utils.encode(encrypted);
+    }
+
+    /**
      * 非对称解密（私钥解密）
      *
      * @param algorithm     算法枚举
@@ -198,6 +252,21 @@ public class CryptoUtil {
     }
 
     /**
+     * 非对称解密（字符串版本，私钥解密）
+     *
+     * @param algorithm         算法枚举
+     * @param privateKeyPem     私钥PEM字符串
+     * @param encryptedDataStr  Base64编码的密文字符串
+     * @return 解密后的字符串
+     */
+    public static String decryptStr(AsymmetricAlgorithmType algorithm, String privateKeyPem, String encryptedDataStr) {
+        PrivateKey privateKey = getPrivateKeyFromPem(privateKeyPem);
+        byte[] encryptedData = Base64Utils.decode(encryptedDataStr);
+        byte[] decrypted = decrypt(algorithm, privateKey, encryptedData);
+        return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /**
      * 哈希算法
      *
      * @param algorithm 方式
@@ -216,6 +285,19 @@ public class CryptoUtil {
         } catch (Exception e) {
             throw new RuntimeException("哈希计算失败: " + algorithm, e);
         }
+    }
+
+    /**
+     * 哈希算法（字符串版本）
+     *
+     * @param algorithm 方式
+     * @param data      需要计算的字符串
+     * @return Base64编码的哈希结果字符串
+     */
+    public static String hashStr(HashAlgorithmType algorithm, String data) {
+        byte[] dataBytes = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] hashResult = hash(algorithm, dataBytes);
+        return Base64Utils.encode(hashResult);
     }
 
     /**
@@ -268,7 +350,7 @@ public class CryptoUtil {
             String base64 = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
 
             // Base64解码
-            byte[] keyBytes = Base64.decode(base64);
+            byte[] keyBytes = Base64Utils.decode(base64);
 
             // 创建公钥
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
@@ -288,7 +370,7 @@ public class CryptoUtil {
             String base64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
 
             // Base64解码
-            byte[] keyBytes = Base64.decode(base64);
+            byte[] keyBytes = Base64Utils.decode(base64);
 
             // 创建私钥
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
@@ -394,6 +476,30 @@ public class CryptoUtil {
         SM3("SM3");
 
         private final String algorithm;
+    }
+
+    // ==================== 密码哈希方法（推荐使用BCrypt） ====================
+
+    /**
+     * 使用BCrypt算法对密码进行哈希
+     * BCrypt是专门为密码存储设计的算法，自带盐值，抗彩虹表攻击
+     *
+     * @param password 明文密码
+     * @return BCrypt哈希后的密码
+     */
+    public static String hashPassword(String password) {
+        return DigestUtil.bcrypt(password);
+    }
+
+    /**
+     * 验证密码是否与BCrypt哈希值匹配
+     *
+     * @param password     明文密码
+     * @param hashedPassword BCrypt哈希后的密码
+     * @return 是否匹配
+     */
+    public static boolean checkPassword(String password, String hashedPassword) {
+        return DigestUtil.bcryptCheck(password, hashedPassword);
     }
 
     public static void main(String[] args) {

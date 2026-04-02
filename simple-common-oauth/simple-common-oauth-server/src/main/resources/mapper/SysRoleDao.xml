@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simple.oauth.view.sysRole.SysRoleRepository">
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into sys_role(id, role_name, role_key, serial, remark, create_time, update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.id}, #{entity.roleName}, #{entity.roleKey}, #{entity.serial}, #{entity.remark}, #{entity.createTime}, #{entity.updateTime})
+        </foreach>
+    </insert>
+
+    <select id="getRole" resultType="com.simple.oauth.common.dto.sysRole.SysRoleInfoResponse">
+        select sr.*
+        from sys_user_role sur
+        left join sys_role sr on sr."id" = sur.role_id
+        <where>
+            <if test="userId != null">
+                sur.user_id = #{userId}
+            </if>
+
+            <if test="server != null">
+                sr.server = #{server}
+            </if>
+        </where>
+    </select>
+</mapper>
+

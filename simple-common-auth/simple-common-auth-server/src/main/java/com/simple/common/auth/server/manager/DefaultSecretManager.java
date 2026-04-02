@@ -4,9 +4,13 @@ import com.simple.common.auth.server.common.event.SecretEvent;
 import com.simple.common.auth.server.common.manager.secret.SecretManager;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.eventbus.common.service.EventBusService;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created with IntelliJ IDEA
@@ -17,6 +21,13 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class DefaultSecretManager implements SecretManager {
+
+    /**
+     * 客户端秘钥映射表
+     * key: clientId
+     * value: secret
+     */
+    private final Map<String, String> clientSecretMap = new ConcurrentHashMap<>();
 
     @Autowired
     private EventBusService eventBusService;
@@ -37,9 +48,8 @@ public class DefaultSecretManager implements SecretManager {
         
         // 发布秘钥初始化事件
         SecretEvent event = new SecretEvent();
-        event.setEventType("INIT");
-        event.setNewSecret(secret);
-        event.setOldSecret(null);
+        event.setSecret(secret);
+        event.setOperation(SecretEvent.Operation.ADD);
         
         publishSecretEvent(event);
         
@@ -48,20 +58,23 @@ public class DefaultSecretManager implements SecretManager {
 
     @Override
     public void addSecret(String secret) {
-        AssertUtils.notEmpty(secret, "秘钥不能为空");
-        
-        String oldSecret = this.currentSecret;
-        this.currentSecret = secret;
-        
-        // 发布秘钥添加事件
         SecretEvent event = new SecretEvent();
-        event.setEventType("ADD");
-        event.setNewSecret(secret);
-        event.setOldSecret(oldSecret);
-        
+        event.setSecret(secret);
+        event.setOperation(SecretEvent.Operation.ADD);
         publishSecretEvent(event);
-        
-        log.info("JWT秘钥添加成功");
+        currentSecret = secret;
+        log.debug("JWT秘钥添加成功，当前秘钥已更新。");
+    }
+
+    @Override
+    public void addSecret(String clientId, String secret) {
+        SecretEvent event = new SecretEvent();
+        event.setClientId(clientId);
+        event.setSecret(secret);
+        event.setOperation(SecretEvent.Operation.ADD);
+        publishSecretEvent(event);
+        clientSecretMap.put(clientId, secret);
+        log.debug("客户端[{}]秘钥添加成功。", clientId);
     }
 
     @Override
@@ -76,9 +89,8 @@ public class DefaultSecretManager implements SecretManager {
         
         // 发布秘钥更新事件
         SecretEvent event = new SecretEvent();
-        event.setEventType("UPDATE");
-        event.setNewSecret(newSecret);
-        event.setOldSecret(oldSecret);
+        event.setSecret(newSecret);
+        event.setOperation(SecretEvent.Operation.UPDATE);
         
         publishSecretEvent(event);
         
@@ -103,10 +115,11 @@ public class DefaultSecretManager implements SecretManager {
     private void publishSecretEvent(SecretEvent event) {
         try {
             eventBusService.push(event);
-            log.debug("秘钥变更事件发布成功，类型: {}", event.getEventType());
+            log.debug("秘钥变更事件发布成功，操作: {}", event.getOperation());
         } catch (Exception e) {
             log.error("秘钥变更事件发布失败", e);
             throw new RuntimeException("秘钥变更事件发布失败", e);
         }
     }
+
 }

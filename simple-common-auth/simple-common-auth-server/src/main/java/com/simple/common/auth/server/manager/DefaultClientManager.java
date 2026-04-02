@@ -1,10 +1,10 @@
 package com.simple.common.auth.server.manager;
 
-import cn.hutool.core.codec.Base64;
 import cn.hutool.core.util.StrUtil;
 import com.simple.common.auth.server.common.enums.ClientAttribute;
 import com.simple.common.auth.server.common.manager.client.ClientManager;
 import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.core.utils.Base64Utils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -22,7 +22,7 @@ public class DefaultClientManager implements ClientManager {
 
     @Override
     public String encrypt(String clientId, String clientSecret) {
-        return Base64.encode(clientId + ":" + clientSecret);
+        return Base64Utils.encode(clientId + ":" + clientSecret);
     }
 
     @Override
@@ -31,7 +31,7 @@ public class DefaultClientManager implements ClientManager {
         String base64Token = header.trim().substring(6);
 
         //还原token
-        String token = Base64.decodeStr(base64Token);
+        String token = Base64Utils.decodeStr(base64Token);
 
         //分割，获取数据组
         boolean contains = StrUtil.contains(token, ":");

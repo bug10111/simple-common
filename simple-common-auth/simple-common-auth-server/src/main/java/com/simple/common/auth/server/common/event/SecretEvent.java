@@ -1,34 +1,43 @@
 package com.simple.common.auth.server.common.event;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.simple.common.eventbus.common.annotation.Event;
-import lombok.Data;
-import lombok.experimental.Accessors;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Created with IntelliJ IDEA
- * Description: 秘钥变更事件
+ * 秘钥事件
  *
  * @author qty
  */
-@Data
-@Event
-@JsonIgnoreProperties(ignoreUnknown = true)
-@Accessors(chain = true)
+@Getter
+@Setter
 public class SecretEvent {
 
-    /**
-     * 秘钥操作类型
-     */
+    //客户端ID（可选，用于客户端级别的秘钥管理）
+    private String clientId;
+
+    //秘钥
+    private String secret;
+
+    //旧秘钥（用于更新操作）
+    private String oldSecret;
+
+    //新秘钥
+    private String newSecret;
+
+    //操作类型
+    private Operation operation;
+
+    //事件类型（兼容旧代码）
     private String eventType;
 
     /**
-     * 新秘钥
+     * 操作类型枚举
      */
-    private String newSecret;
+    public enum Operation {
+        ADD, //添加
+        UPDATE, //更新
+        DELETE //删除
+    }
 
-    /**
-     * 旧秘钥（仅修改操作时有值）
-     */
-    private String oldSecret;
 }

@@ -1,6 +1,8 @@
 package com.simple.common.core.utils;
 
-import cn.hutool.core.codec.Base64;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 
 /**
  * Created with IntelliJ IDEA
@@ -10,39 +12,41 @@ import cn.hutool.core.codec.Base64;
  */
 public class Base64Utils {
 
+    private static final Charset DEFAULT_CHARSET = StandardCharsets.UTF_8;
+
     /**
-     * base64编码
+     * 将字符串进行base64编码
      *
      * @param text 编码前字符串
      */
     public static String encode(String text) {
-        return Base64.encode(text);
+        return encode(text.getBytes(DEFAULT_CHARSET));
     }
 
     /**
-     * base64编码
+     * 将字节进行base64编码
      *
      * @param text 编码前字节
      */
     public static String encode(byte[] text) {
-        return Base64.encode(text);
+        return Base64.getEncoder().encodeToString(text);
     }
 
     /**
-     * base64解码
+     * base64解码为字符串
      *
      * @param text 加密字符串
      */
-    public static String decode(String text) {
-        return Base64.decodeStr(text);
+    public static String decodeStr(String text) {
+        return new String(decode(text), DEFAULT_CHARSET);
     }
 
     /**
-     * base64解码
+     * base64解码为字节数组
      *
-     * @param text 加密字节
+     * @param text 加密字符串
      */
-    public static byte[] decode(byte[] text) {
-        return Base64.decode(text);
+    public static byte[] decode(String text) {
+        return Base64.getDecoder().decode(text);
     }
 }

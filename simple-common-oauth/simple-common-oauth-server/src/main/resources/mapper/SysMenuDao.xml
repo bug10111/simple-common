@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simple.oauth.view.sysMenu.SysMenuRepository">
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into sys_menu(id, menu_name, code, parent_id, serial, path, component, query, is_frame, redirect_url, menu_type, perms, icon, reserve, remark, create_time, update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.id}, #{entity.menuName}, #{entity.code}, #{entity.parentId}, #{entity.serial}, #{entity.path}, #{entity.component}, #{entity.query}, #{entity.isFrame}, #{entity.redirectUrl},
+            #{entity.menuType}, #{entity.perms}, #{entity.icon}, #{entity.reserve}, #{entity.remark}, #{entity.createTime}, #{entity.updateTime})
+        </foreach>
+    </insert>
+
+    <select id="findAllByRoleId" resultType="com.simple.oauth.common.entity.sysMenu.SysMenu">
+        select sm.*
+        from sys_role_menu srm
+        join sys_menu sm on sm."id" = srm.menu_id
+
+        <where>
+            <if test="clientId != null">
+                sm.client_id = #{clientId}
+            </if>
+
+            <if test="roleId != null">
+                srm.role_id = #{roleId}
+            </if>
+        </where>
+
+    </select>
+
+    <select id="findAllByUserId" resultType="com.simple.oauth.common.entity.sysMenu.SysMenu">
+        select sm.*
+        from sys_user_role sur
+                 left join sys_role_menu srm on srm.role_id = sur.role_id
+                 left join sys_menu sm on sm."id" = srm.menu_id
+        where sur.user_id = #{userId}
+
+          <if test="clientId != null">
+              and sm.client_id = #{clientId}
+          </if>
+    </select>
+
+    <select id="findAllByRoleKey" resultType="com.simple.oauth.common.entity.sysMenu.SysMenu">
+        select
+        sm.*
+        from sys_menu sm
+        LEFT JOIN sys_role_menu srm on srm.menu_id = sm."id"
+        LEFT JOIN sys_role sr on srm.role_id = sr."id"
+        <where>
+            <if test="roleKey != null and roleKey != 'admin'">
+                sr.role_key = #{roleKey}
+            </if>
+        </where>
+    </select>
+</mapper>
+

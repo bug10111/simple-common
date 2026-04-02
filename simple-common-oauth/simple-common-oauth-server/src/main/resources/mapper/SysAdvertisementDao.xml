@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.simple.oauth.view.sysAdvertisement.SysAdvertisementRepository">
+
+    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+        insert into sys_advertisement(id, name, client_id, type, image, is_link, link, sort, begin_time, end_time, status, create_time, update_time)
+        values
+        <foreach collection="entities" item="entity" separator=",">
+            (#{entity.id}, #{entity.name}, #{entity.clientId}, #{entity.type}, #{entity.image}, #{entity.isLink}, #{entity.link}, #{entity.sort}, #{entity.beginTime}, #{entity.endTime},
+            #{entity.status}, #{entity.createTime}, #{entity.updateTime})
+        </foreach>
+    </insert>
+</mapper>
+
