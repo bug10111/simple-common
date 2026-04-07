@@ -38,7 +38,7 @@ public class ThreadUtils {
     private static volatile ThreadService threadService;
 
     /**
-     * 异步执行任务，并使用默认线程池
+     * 异步执行任务，并使用高性能线程池
      *
      * @param supplier 待执行任务
      * @param <U>      需要返回的对象
@@ -48,7 +48,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 异步执行无返回值的任务
+     * 异步执行无返回值的任务，并使用高性能线程池
      */
     public static CompletableFuture<Void> runAsync(Runnable runnable) {
         return CompletableFuture.runAsync(runnable, getAsyncExecutor());
@@ -96,7 +96,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 获取线程池对象,可以结合CompletableFuture使用，一般用于少量并发和延迟任务
+     * 获取线程池对象,可以结合CompletableFuture使用，一般用于高并发 高性能场景
      */
     public static ExecutorService getAsyncExecutor() {
         return getThreadService().getAsyncExecutor();

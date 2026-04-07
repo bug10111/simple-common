@@ -49,7 +49,7 @@ public class CheckTokenAuthProcess implements AuthProcess {
     @Override
     public void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr) {
 
-        //受限从头里面看能不能获取到已处理好的数据
+        //首先从头里面看能不能获取到已处理好的数据
         String encoded = request.getHeader(TokenConstant.userHead);
         String sign = request.getHeader(TokenConstant.userSignHead);
         String key = signManager.getKey();

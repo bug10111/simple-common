@@ -1,0 +1,23 @@
+package com.simple.common.websocket.common.entity;
+
+import lombok.Data;
+
+/**
+ * WebSocket请求实体
+ *
+ * @author qty
+ */
+@Data
+public class WebSocketRequest {
+
+    /**
+     * 方法标识（格式：type:method）
+     */
+    private String method;
+
+    /**
+     * 请求数据
+     */
+    private String data;
+
+}
