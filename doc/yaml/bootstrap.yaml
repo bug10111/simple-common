@@ -1,0 +1,46 @@
+# ==================== 应用基本信息 ====================
+spring:
+  application:
+    name: demo
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+
+  # ==================== Nacos 配置中心 ====================
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.200.110:8848}
+        username: ${NACOS_USERNAME:nacos}
+        password: ${NACOS_PASSWORD:nacos}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_CONFIG_GROUP:gateway}
+        file-extension: yaml
+
+
+      # ==================== Nacos 服务发现 ====================
+      discovery:
+        server-addr: ${NACOS_SERVER_ADDR:192.168.200.110:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        group: ${NACOS_CONFIG_GROUP:gateway}
+        service: ${spring.application.name}
+        enabled: ${NACOS_DISCOVERY_ENABLED:true}
+
+      # ==================== Sentinel 数据源配置 ====================
+    sentinel:
+      datasource:
+        # 网关流控规则数据源
+        gateway-flow:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:192.168.200.110:8848}
+            namespace: ${NACOS_NAMESPACE:}
+            group-id: ${NACOS_CONFIG_GROUP:gateway}
+            data-id: ${spring.application.name}-flow-rules
+            rule-type: gw_flow
+        # 网关 API 分组数据源
+        gateway-api-group:
+          nacos:
+            server-addr: ${NACOS_SERVER_ADDR:192.168.200.110:8848}
+            namespace: ${NACOS_NAMESPACE:}
+            group-id: ${NACOS_CONFIG_GROUP:gateway}
+            data-id: ${spring.application.name}-api-groups
+            rule-type: gw_api_group
