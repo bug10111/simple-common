@@ -19,8 +19,8 @@
         </dependency>
 
         <dependency>
-            <groupId>com.simple.common</groupId>
-            <artifactId>simple-common-eventbus</artifactId>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
         </dependency>
     </dependencies>
 </project>

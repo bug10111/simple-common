@@ -1,5 +1,6 @@
 package com.simple.common.websocket.initializer;
 
+import com.simple.common.websocket.common.manager.CheckWebSocketManager;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.handler.WebSocketAuthHandler;
@@ -21,11 +22,15 @@ import io.netty.handler.timeout.IdleStateHandler;
 public class WebSocketChannelInitializer extends ChannelInitializer<SocketChannel> {
 
     private final WebSocketProperties properties;
+
     private final WebSocketListeningManager webSocketListeningManager;
 
-    public WebSocketChannelInitializer(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager) {
+    private final CheckWebSocketManager checkManager;
+
+    public WebSocketChannelInitializer(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager,CheckWebSocketManager checkManager) {
         this.properties = properties;
         this.webSocketListeningManager = webSocketListeningManager;
+        this.checkManager = checkManager;
     }
 
     @Override
@@ -42,23 +47,15 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
         pipeline.addLast("http-chunked", new ChunkedWriteHandler());
 
         // 空闲状态检测
-        pipeline.addLast("idle-handler", new IdleStateHandler(
-                properties.getReaderIdleTime(),
-                properties.getWriterIdleTime(),
-                properties.getAllIdleTime()
-        ));
+        pipeline.addLast("idle-handler", new IdleStateHandler(properties.getReaderIdleTime(), properties.getWriterIdleTime(), properties.getAllIdleTime()));
 
         // 认证处理器
-        pipeline.addLast("auth-handler", new WebSocketAuthHandler(properties));
+        pipeline.addLast("auth-handler", new WebSocketAuthHandler(properties,checkManager));
 
         // WebSocket消息处理器
         pipeline.addLast("websocketHandler", new WebSocketServerHandler(properties, webSocketListeningManager));
 
         // WebSocket协议处理器
-        pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(
-                properties.getPath(),
-                true,
-                properties.getMaxWebSocketFrameSize()
-        ));
+        pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(properties.getPath(), true, properties.getMaxWebSocketFrameSize()));
     }
 }

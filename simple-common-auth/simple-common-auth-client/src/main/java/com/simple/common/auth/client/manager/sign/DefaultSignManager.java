@@ -1,20 +1,25 @@
 package com.simple.common.auth.client.manager.sign;
 
+import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjUtil;
-import com.github.benmanes.caffeine.cache.Cache;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
 import com.simple.common.core.utils.AssertUtils;
-import com.simple.common.core.utils.IdUtils;
-import com.simple.common.core.utils.SignUtils;
+import com.simple.common.core.utils.sign.SignUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
+
+import java.util.concurrent.TimeUnit;
 
 /**
  * Created with IntelliJ IDEA
+ * <p>
+ * 默认签名管理器实现
  *
  * @author qty
  */
@@ -23,17 +28,28 @@ import org.springframework.stereotype.Component;
 public class DefaultSignManager implements SignManager, InitializingBean {
 
     @Autowired
+    private CacheManager cacheManager;
+
+    @Autowired
     private SignProperties signProperties;
 
-    private Cache<String, String> string;
+    @Autowired(required = false)
+    private StringRedisTemplate stringRedisTemplate;
 
-    //存储当前有效的签名密钥（全局）
-    private volatile String currentKey;
+    /**
+     * 当前签名密钥
+     */
+    private String currentKey;
+
+    /**
+     * nonce本地缓存
+     */
+    private LocalCacheFactory<String, String> string;
 
     @Override
     public void generated() {
         //todo 可重写为从授权中心获取
-        String newKey = IdUtils.getFastSimpleUUID();
+        String newKey = IdUtil.fastSimpleUUID();
         putKey(newKey);
         log.debug("HMAC-SHA256签名秘钥生成成功。");
     }
@@ -102,5 +118,21 @@ public class DefaultSignManager implements SignManager, InitializingBean {
         //初始化nonce缓存
         LocalCacheFactory<String, String> factory = new LocalCacheFactory<>();
         string = factory.createCache("sign", config -> config.maximumSize(10000).expireAfterWrite(signProperties.getCacheTime()));
+    }
+
+    @Override
+    public void set(String key, String value) {
+        cacheManager.set(key, value, signProperties.getCacheTime());
+    }
+
+    @Override
+    public boolean hasKey(String key) {
+        return cacheManager.hasKey(key);
+    }
+}
+
+    @Override
+    public boolean hasKey(String key) {
+        return cacheManager.hasKey(key);
     }
 }

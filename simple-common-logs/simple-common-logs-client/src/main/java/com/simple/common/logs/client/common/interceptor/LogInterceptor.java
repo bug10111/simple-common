@@ -1,8 +1,7 @@
 package com.simple.common.logs.client.common.interceptor;
 
-import com.simple.common.core.common.service.thread.ThreadService;
-import com.simple.common.logs.client.common.constant.LogConstant;
 import com.simple.common.logs.client.common.manager.LogManager;
+import com.simple.common.logs.client.common.constant.LogConstant;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;

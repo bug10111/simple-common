@@ -1,13 +1,14 @@
 package com.simple.common.logs.server.common.service;
 
-import java.util.List;
-
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.simple.common.logs.server.common.dto.SysOperationLogsPageResponse;
-import com.simple.common.logs.server.common.dto.SysOperationLogsInfoResponse;
 import com.simple.common.logs.server.common.dto.CreateSysOperationLogsRequest;
-import com.simple.common.logs.server.common.dto.UpdateSysOperationLogsRequest;
 import com.simple.common.logs.server.common.dto.FindAllSysOperationLogsRequest;
+import com.simple.common.logs.server.common.dto.SysOperationLogsInfoResponse;
+import com.simple.common.logs.server.common.dto.SysOperationLogsPageResponse;
+import com.simple.common.logs.server.common.dto.UpdateSysOperationLogsRequest;
+import com.simple.common.logs.server.common.entity.SysOperationLogs;
+
+import java.util.List;
 
 /**
  * 操作日志(sys_operation_logs)接口
@@ -17,10 +18,17 @@ import com.simple.common.logs.server.common.dto.FindAllSysOperationLogsRequest;
 public interface SysOperationLogsService {
 
     /**
-     * 分页列表
+     * 批量保存日志
      *
-     * @param findAllRequest 请求参数
-     * @return 分页数据
+     * @param logsList 日志列表
+     */
+    void batchSave(List<SysOperationLogs> logsList);
+
+    /**
+     * 分页查询
+     *
+     * @param findAllRequest 查询参数
+     * @return IPage<SysOperationLogsPageResponse> 分页数据
      */
     IPage<SysOperationLogsPageResponse> findAll(FindAllSysOperationLogsRequest findAllRequest);
 
@@ -28,7 +36,7 @@ public interface SysOperationLogsService {
      * 获取单条数据
      *
      * @param id 主键
-     * @return SysOperationLogsFullInfoResponse  操作日志 详细数据
+     * @return SysOperationLogsInfoResponse  操作日志 详细数据
      */
     SysOperationLogsInfoResponse findById(String id);
 
@@ -53,4 +61,3 @@ public interface SysOperationLogsService {
      */
     void deleteByIds(List<String> ids);
 }
-

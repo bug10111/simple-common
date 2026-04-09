@@ -1,130 +1,219 @@
 package com.simple.common.logs.server.common.entity;
 
-import java.util.Date;
-
-import com.baomidou.mybatisplus.annotation.*;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.simple.common.mp.common.enums.DeleteState;
-import com.simple.common.mp.common.enums.Status;
-import io.swagger.v3.oas.annotations.media.Schema;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
+import com.simple.common.logs.client.common.event.LogDataEvent;
 import lombok.Data;
-import lombok.experimental.Accessors;
 
-import java.util.Map;
-import java.math.BigDecimal;
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
- * 操作日志(sys_operation_logs)实体类
- * 注解@JSONField(serialize = false)，表示不返回这个字段
- * 注解@TableField，用于标志属性
- * value = "数据库字段"，用于标志数据库对应字段
- * exist = false，表示数据库没有这个字段
- * typeHandler = JacksonTypeHandler.class，表示对象JSON转化为实例，需要类上开启@TableName(autoResultMap = true)
- * fill = FieldFill.INSERT，表示添加操作时要做的事情
- * 注解@TableLogic添加在属性上，结合配置文件，可设置逻辑删除
- * 注解@EqualsAndHashCode是为类生成Equals和HashCode方法
- * callSuper = false 代表方法不调用父类继承的属性，只匹配子类本身是否相同
- * callSuper = true 代表方法需要调用父类继承的属性，同时匹配本身和父类的属性
+ * 操作日志实体
  *
  * @author qty
  */
-@Data //提供读写属性, 此外还提供了 equals()、hashCode()、toString() 方法
-@JsonIgnoreProperties(ignoreUnknown = true) //json转换时，字段少了也可以转换
-@Accessors(chain = true) //开启链式调用
-@TableName(value = "sys_operation_logs", autoResultMap = true)
-@Schema(title = "操作日志(sys_operation_logs)实体类")
-public class SysOperationLogs {
+@Data
+@TableName("sys_operation_logs")
+public class SysOperationLogs implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     /**
-     * 主键
+     * 主键ID
      */
-    @TableId(value = "id", type = IdType.ASSIGN_UUID)
+    @TableId(type = IdType.ASSIGN_ID)
     private String id;
 
     /**
-     * 方法名称
+     * 操作模块
      */
-    @TableField(value = "title")
-    private String title;
+    @TableField("module")
+    private String module;
 
     /**
-     * 请求方式
+     * 操作类型
      */
-    @TableField(value = "method")
-    private String method;
+    @TableField("oper_type")
+    private String operType;
 
     /**
-     * 请求URL
+     * 操作IP
      */
-    @TableField(value = "oper_url")
-    private String operUrl;
-
-    /**
-     * 主机地址
-     */
-    @TableField(value = "oper_ip")
+    @TableField("oper_ip")
     private String operIp;
 
     /**
-     * 操作地点
+     * 操作方法
      */
-    @TableField(value = "oper_location")
-    private String operLocation;
+    @TableField("method")
+    private String method;
 
     /**
-     * 操作人员id
+     * 操作URL
      */
-    @TableField(value = "user_id")
-    private String userId;
+    @TableField("oper_url")
+    private String operUrl;
 
     /**
-     * 操作人员
+     * 操作名称
      */
-    @TableField(value = "nickname")
-    private String nickname;
+    @TableField("oper_name")
+    private String operName;
 
     /**
-     * 请求参数
+     * 操作参数
      */
-    @TableField(value = "oper_param")
+    @TableField("oper_param")
     private String operParam;
 
     /**
-     * 操作状态
+     * 操作结果
      */
-    @TableField(value = "status")
+    @TableField("oper_result")
+    private String operResult;
+
+    /**
+     * 错误信息
+     */
+    @TableField("error_message")
+    private String errorMessage;
+
+    /**
+     * 操作时间
+     */
+    @TableField("oper_time")
+    private LocalDateTime operTime;
+
+    /**
+     * 操作用户ID
+     */
+    @TableField("user_id")
+    private Long userId;
+
+    /**
+     * 操作用户名
+     */
+    @TableField("user_name")
+    private String userName;
+
+    /**
+     * 部门ID
+     */
+    @TableField("dept_id")
+    private Long deptId;
+
+    /**
+     * 部门名称
+     */
+    @TableField("dept_name")
+    private String deptName;
+
+    /**
+     * 请求方法
+     */
+    @TableField("request_method")
+    private String requestMethod;
+
+    /**
+     * 请求耗时（毫秒）
+     */
+    @TableField("cost_time")
+    private Long costTime;
+
+    /**
+     * 客户端标识
+     */
+    @TableField("client_id")
+    private String clientId;
+
+    /**
+     * 业务类型
+     */
+    @TableField("business_type")
+    private String businessType;
+
+    /**
+     * 创建时间
+     */
+    @TableField("create_time")
+    private LocalDateTime createTime;
+
+    /**
+     * 追踪ID
+     */
+    @TableField("trace_id")
+    private String traceId;
+
+    /**
+     * 操作标题
+     */
+    @TableField("title")
+    private String title;
+
+    /**
+     * 操作状态（0成功 1失败）
+     */
+    @TableField("status")
     private Integer status;
 
     /**
      * 错误消息
      */
-    @TableField(value = "error_msg")
+    @TableField("error_msg")
     private String errorMsg;
 
     /**
-     * 错误消息详情
+     * 用户昵称
      */
-    @TableField(value = "error_data")
-    private String errorData;
+    @TableField("nickname")
+    private String nickname;
 
     /**
-     * 接口耗时
+     * 请求时间
      */
-    @TableField(value = "request_time")
-    private Integer requestTime;
+    @TableField("request_time")
+    private LocalDateTime requestTime;
 
     /**
-     * 创建时间
+     * 操作地点
      */
-    @TableField(value = "create_time", fill = FieldFill.INSERT)
-    private Date createTime;
+    @TableField("oper_location")
+    private String operLocation;
 
     /**
-     * 修改时间
+     * 从LogDataEvent转换
      */
-    @TableField(value = "update_time", fill = FieldFill.INSERT_UPDATE)
-    private Date updateTime;
-
+    public static SysOperationLogs fromLogDataEvent(LogDataEvent event) {
+        SysOperationLogs logs = new SysOperationLogs();
+        logs.setId(event.getId());
+        logs.setModule(event.getModule());
+        logs.setOperType(event.getOperType());
+        logs.setOperIp(event.getOperIp());
+        logs.setMethod(event.getMethod());
+        logs.setOperUrl(event.getOperUrl());
+        logs.setOperName(event.getOperName());
+        logs.setOperParam(event.getOperParam());
+        logs.setOperResult(event.getOperResult());
+        logs.setErrorMessage(event.getErrorMessage());
+        logs.setOperTime(event.getOperTime());
+        logs.setUserId(event.getUserId());
+        logs.setUserName(event.getUserName());
+        logs.setDeptId(event.getDeptId());
+        logs.setDeptName(event.getDeptName());
+        logs.setRequestMethod(event.getRequestMethod());
+        logs.setCostTime(event.getCostTime());
+        logs.setClientId(event.getClientId());
+        logs.setBusinessType(event.getBusinessType());
+        logs.setCreateTime(event.getCreateTime() != null ? event.getCreateTime() : LocalDateTime.now());
+        logs.setTraceId(event.getTraceId());
+        logs.setTitle(event.getTitle());
+        logs.setStatus(event.getStatus());
+        logs.setErrorMsg(event.getErrorMsg());
+        logs.setNickname(event.getNickname());
+        logs.setRequestTime(event.getRequestTime());
+        logs.setOperLocation(event.getOperLocation());
+        return logs;
+    }
 }
-

@@ -1,67 +1,134 @@
 package com.simple.common.logs.client.common.event;
 
-import cn.hutool.core.date.DateTime;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.simple.common.eventbus.common.annotation.Event;
 import lombok.Data;
-import lombok.experimental.Accessors;
+
+import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 日志事件
+ * 日志数据事件
+ * 用于传输日志数据
  *
  * @author qty
  */
 @Data
-@Event(targets = "common-test")
-@JsonIgnoreProperties(ignoreUnknown = true)
-@Accessors(chain = true)
-public class LogDataEvent {
+public class LogDataEvent implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     /**
-     * 方法名称
+     * 日志ID
      */
-    private String title;
+    private String id;
 
     /**
-     * 请求方式
+     * 操作模块
      */
-    private String method;
+    private String module;
 
     /**
-     * 请求URL
+     * 操作类型
      */
-    private String operUrl;
+    private String operType;
 
     /**
-     * 主机地址
+     * 操作IP
      */
     private String operIp;
 
     /**
-     * 操作地点
+     * 操作方法
      */
-    private String operLocation;
+    private String method;
 
     /**
-     * 操作人员id
+     * 操作URL
      */
-    private String userId;
+    private String operUrl;
 
     /**
-     * 用户名
+     * 操作名称
      */
-    private String nickname;
+    private String operName;
 
     /**
-     * 请求参数
+     * 操作参数
      */
     private String operParam;
 
     /**
-     * 操作状态
+     * 操作结果
      */
-    private int status;
+    private String operResult;
+
+    /**
+     * 错误信息
+     */
+    private String errorMessage;
+
+    /**
+     * 操作时间
+     */
+    private LocalDateTime operTime;
+
+    /**
+     * 操作用户ID
+     */
+    private Long userId;
+
+    /**
+     * 操作用户名
+     */
+    private String userName;
+
+    /**
+     * 部门ID
+     */
+    private Long deptId;
+
+    /**
+     * 部门名称
+     */
+    private String deptName;
+
+    /**
+     * 请求方法
+     */
+    private String requestMethod;
+
+    /**
+     * 请求耗时（毫秒）
+     */
+    private Long costTime;
+
+    /**
+     * 客户端标识
+     */
+    private String clientId;
+
+    /**
+     * 业务类型
+     */
+    private String businessType;
+
+    /**
+     * 创建时间
+     */
+    private LocalDateTime createTime;
+
+    /**
+     * 追踪ID
+     */
+    private String traceId;
+
+    /**
+     * 操作标题
+     */
+    private String title;
+
+    /**
+     * 操作状态（0成功 1失败）
+     */
+    private Integer status;
 
     /**
      * 错误消息
@@ -69,18 +136,32 @@ public class LogDataEvent {
     private String errorMsg;
 
     /**
-     * 异常信息
+     * 错误数据
      */
     private String errorData;
 
     /**
-     * 接口耗时
+     * 用户昵称
      */
-    private Long requestTime;
+    private String nickname;
 
     /**
-     * 创建时间
+     * 请求时间
      */
-    private DateTime createTime;
+    private LocalDateTime requestTime;
 
+    /**
+     * 操作地点
+     */
+    private String operLocation;
+
+    /**
+     * 创建默认的日志事件
+     */
+    public static LogDataEvent createDefault() {
+        LogDataEvent event = new LogDataEvent();
+        event.setCreateTime(LocalDateTime.now());
+        event.setOperTime(LocalDateTime.now());
+        return event;
+    }
 }

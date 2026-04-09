@@ -1,26 +1,12 @@
 package com.simple.common.logs.server.event;
 
-import com.simple.common.eventbus.common.annotation.EventHandler;
-import com.simple.common.logs.client.common.event.LogDataEvent;
-import com.simple.common.logs.server.common.manager.LogsSaveManager;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-
 /**
- * Created with IntelliJ IDEA
- * Description: 日志事件实现
+ * 此类已废弃，日志处理已迁移到TCP服务端处理器
  *
+ * @deprecated 使用 {@link com.simple.common.logs.server.common.tcp.LogTcpServerHandler} 替代
  * @author qty
  */
-@Component
+@Deprecated
 public class LogsEventHandler {
-
-    @Autowired
-    private LogsSaveManager logsSaveManager;
-
-    @EventHandler
-    public void create(LogDataEvent event) {
-        logsSaveManager.save(event);
-    }
-
+    // 此类已废弃，日志处理已迁移到TCP服务端处理器
 }

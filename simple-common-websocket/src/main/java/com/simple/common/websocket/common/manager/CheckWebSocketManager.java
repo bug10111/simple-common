@@ -19,16 +19,5 @@ public interface CheckWebSocketManager {
      */
     boolean checkToken(String token, String type, String cliKey);
 
-    /**
- * websocket 握手校验
- *
- * @param token token
- * @return 客户端标志
-     * @deprecated 请使用 {@link #checkToken(String, String, String)} 方法
-     */
-    @Deprecated
-    default String check(String token) {
-        return null;
-    }
 
 }

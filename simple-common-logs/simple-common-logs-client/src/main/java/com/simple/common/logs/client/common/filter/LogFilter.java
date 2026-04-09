@@ -1,6 +1,5 @@
 package com.simple.common.logs.client.common.filter;
 
-import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.logs.client.common.httpservletrequest.CachedBodyHttpServletRequest;
 import jakarta.servlet.*;
 import jakarta.servlet.annotation.WebFilter;

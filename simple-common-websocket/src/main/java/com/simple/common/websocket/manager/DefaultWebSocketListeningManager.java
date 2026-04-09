@@ -3,6 +3,7 @@ package com.simple.common.websocket.manager;
 import cn.hutool.core.util.ObjUtil;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.websocket.common.entity.InvocationTarget;
+import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -32,12 +33,12 @@ public class DefaultWebSocketListeningManager implements WebSocketListeningManag
 
     @Override
     @SneakyThrows
-    public Optional<Object> invoke(String type, String cliKey, String msg) {
+    public Optional<Object> invoke(String type, String cliKey, WebSocketRequest request) {
         Map<String, InvocationTarget> cliKeyMap = listenerMap.get(type);
         if(ObjUtil.isNotEmpty(cliKeyMap)){
             InvocationTarget target = cliKeyMap.get(cliKey);
             if(ObjUtil.isNotEmpty(target)){
-                Object invoke = target.method().invoke(target.bean(), msg);
+                Object invoke = target.method().invoke(target.bean(), request);
                 return Optional.of(invoke);
             }
         }

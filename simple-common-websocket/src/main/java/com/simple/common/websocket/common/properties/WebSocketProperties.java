@@ -92,11 +92,6 @@ public class WebSocketProperties {
     private int maxTextMessageLength = 1024 * 1024;
 
     /**
-     * 是否启用详细日志
-     */
-    private boolean verboseLogging = false;
-
-    /**
      * 通道清理配置
      */
     private CleanConfig clean = new CleanConfig();

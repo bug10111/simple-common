@@ -2,17 +2,13 @@ package com.simple.common.websocket.handler;
 
 import com.alibaba.fastjson2.JSON;
 import com.simple.common.websocket.common.constant.WebSocketConstant;
+import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
 import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.CloseWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PingWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.PongWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
-import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
@@ -29,6 +25,7 @@ import java.util.Optional;
 public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 
     private final WebSocketListeningManager webSocketListeningManager;
+
     private final WebSocketProperties properties;
 
     public WebSocketServerHandler(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager) {
@@ -65,7 +62,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             ctx.close();
         } else {
             log.warn("不支持的消息帧类型: {}", frame.getClass().getSimpleName());
-            sendError(ctx, WebSocketConstant.CODE_UNSUPPORTED_FRAME, "不支持的消息类型");
+            sendError(ctx, WebsocketExceptionEnum.UNSUPPORTED_FRAME);
         }
     }
 
@@ -78,7 +75,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         // 空消息校验
         if (text == null || text.isEmpty()) {
             log.warn("收到空消息");
-            sendError(ctx, WebSocketConstant.CODE_INVALID_MESSAGE, "消息不能为空");
+            sendError(ctx, WebsocketExceptionEnum.EMPTY_MESSAGE);
             return;
         }
 
@@ -86,12 +83,12 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         int maxLength = properties.getMaxTextMessageLength();
         if (text.length() > maxLength) {
             log.warn("消息过长，拒绝处理 [length={}, max={}]", text.length(), maxLength);
-            sendError(ctx, WebSocketConstant.CODE_MESSAGE_TOO_LARGE, "消息过长，最大允许" + maxLength + "字节");
+            sendError(ctx, WebsocketExceptionEnum.MESSAGE_TOO_LARGE, "最大允许" + maxLength + "字节");
             return;
         }
 
         // 详细日志（可配置）
-        if (properties.isVerboseLogging()) {
+        if (log.isDebugEnabled()) {
             String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
             String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
             log.debug("收到消息 [type={}, cliKey={}, length={}]", type, maskKey(cliKey), text.length());
@@ -101,33 +98,25 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             // 解析请求
             WebSocketRequest request = JSON.parseObject(text, WebSocketRequest.class);
             if (request == null) {
-                sendError(ctx, WebSocketConstant.CODE_INVALID_MESSAGE, "消息格式错误");
+                sendError(ctx, WebsocketExceptionEnum.INVALID_MESSAGE);
                 return;
             }
 
-            if (request.getMethod() == null || request.getMethod().isEmpty()) {
-                sendError(ctx, WebSocketConstant.CODE_INVALID_MESSAGE, "缺少method参数");
+            // 获取当前连接的身份信息（握手时确定）
+            String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
+            String channelCliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
+
+            if (channelType == null || channelCliKey == null) {
+                sendError(ctx, WebsocketExceptionEnum.UNAUTHORIZED);
                 return;
             }
 
-            // 解析method为type和cliKey (格式: type:cliKey)
-            String method = request.getMethod();
-            String[] parts = method.split(":", 2);
-            if (parts.length != 2) {
-                sendError(ctx, WebSocketConstant.CODE_INVALID_MESSAGE, "method格式错误，应为type:cliKey");
-                return;
-            }
-            String type = parts[0];
-            String cliKey = parts[1];
-
-            // 调用监听器处理消息
-            Optional<Object> result = webSocketListeningManager.invoke(type, cliKey, request.getData());
-            if (result.isPresent()) {
-                ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(result.get())));
-            }
+            // 调用监听器处理消息（只能处理当前连接身份的消息）
+            Optional<Object> result = webSocketListeningManager.invoke(channelType, channelCliKey, request);
+            result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o))));
         } catch (Exception e) {
             log.error("消息处理异常", e);
-            sendError(ctx, WebSocketConstant.CODE_PROCESS_ERROR, "处理异常: " + e.getMessage());
+            sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());
         }
     }
 
@@ -136,7 +125,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
      */
     private void handleBinaryFrame(ChannelHandlerContext ctx, BinaryWebSocketFrame frame) {
         log.debug("收到二进制消息，暂不支持");
-        sendError(ctx, WebSocketConstant.CODE_UNSUPPORTED_FRAME, "暂不支持二进制消息");
+        sendError(ctx, WebsocketExceptionEnum.UNSUPPORTED_FRAME, "暂不支持二进制消息");
     }
 
     @Override
@@ -153,7 +142,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
         if (type != null && cliKey != null) {
             // 注意：这里不调用WebSocketUtils.del，因为WebSocketAuthHandler已经处理了
-            if (properties.isVerboseLogging()) {
+            if (log.isDebugEnabled()) {
                 log.debug("连接断开 [type={}, cliKey={}]", type, maskKey(cliKey));
             }
         }
@@ -162,8 +151,17 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
     /**
      * 发送错误消息
      */
-    private void sendError(ChannelHandlerContext ctx, int code, String message) {
-        String json = String.format("{\"code\":%d,\"message\":\"%s\"}", code, message);
+    private void sendError(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum) {
+        String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), exceptionEnum.getMessage());
+        ctx.writeAndFlush(new TextWebSocketFrame(json));
+    }
+
+    /**
+     * 发送错误消息（带附加信息）
+     */
+    private void sendError(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum, String extraMessage) {
+        String message = exceptionEnum.getMessage() + (extraMessage != null ? ": " + extraMessage : "");
+        String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), message);
         ctx.writeAndFlush(new TextWebSocketFrame(json));
     }
 

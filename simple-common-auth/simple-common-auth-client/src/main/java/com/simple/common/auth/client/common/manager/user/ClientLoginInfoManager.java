@@ -5,6 +5,7 @@ import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.login.LoginException;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.common.service.jwt.CoreLoginUserService;
@@ -16,11 +17,9 @@ import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.HttpServletUtils;
 import com.simple.common.core.utils.JsonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created with IntelliJ IDEA
@@ -31,7 +30,7 @@ import java.util.concurrent.TimeUnit;
 public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserService {
 
     @Autowired
-    private StringRedisTemplate redisTemplate;
+    private CacheManager cacheManager;
 
     @Autowired
     private AuthProperties authProperties;
@@ -41,13 +40,13 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
 
     @Override
     public Map<Object, Object> getUserInfo(String key) {
-        Map<Object, Object> entries = redisTemplate.opsForHash().entries(TokenConstant.getUserInfoKey(key));
+        Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getUserInfoKey(key));
         if (!entries.isEmpty()) {
             return entries;
         }
 
         ReturnValueFunction lockFunction = () -> {
-            Map<Object, Object> userInfo = redisTemplate.opsForHash().entries(TokenConstant.getUserInfoKey(key));
+            Map<Object, Object> userInfo = cacheManager.hashGetAll(TokenConstant.getUserInfoKey(key));
             if (userInfo.isEmpty()) {
 
                 HttpResponse execute = getRemoteHttpResponse();
@@ -69,22 +68,22 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 String userInfoKey = TokenConstant.getUserInfoKey(key);
                 String userTokenKey = TokenConstant.getUserTokenKey(userId);
 
-                redisTemplate.opsForHash().putAll(userInfoKey, userInfo);
+                cacheManager.hashPutAll(userInfoKey, userInfo);
                 List<String> jsonObj = JsonUtils.toList(response.get(TokenConstant.userTokenName).toString(), String.class);
-                redisTemplate.opsForSet().add(userTokenKey, jsonObj.toArray(new String[0]));
+                cacheManager.setAdd(userTokenKey, jsonObj.toArray(new String[0]));
 
                 //设置缓存时间，这里过期时间不和服务端强一致
                 long times = Long.parseLong(userInfo.get(TokenConstant.rEtKey).toString());
-                redisTemplate.expire(userInfoKey, times, TimeUnit.SECONDS);
-                redisTemplate.expire(userTokenKey, times, TimeUnit.SECONDS);
+                cacheManager.expire(userInfoKey, times);
+                cacheManager.expire(userTokenKey, times);
 
                 //收集权限信息
                 Map<?,?> authMap = JsonUtils.toJsonObj(response.get(TokenConstant.userAuthName).toString(), Map.class);
                 for (Object obj : authMap.keySet()) {
                     String roleKey = obj.toString();
                     Map<?,?> auth = JsonUtils.toJsonObj(authMap.get(roleKey).toString(), Map.class);
-                    redisTemplate.opsForHash().putAll(roleKey, auth);
-                    redisTemplate.expire(roleKey, times, TimeUnit.SECONDS);
+                    cacheManager.hashPutAll(roleKey, auth);
+                    cacheManager.expire(roleKey, times);
                 }
             }
             return userInfo;
@@ -106,7 +105,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     public Map<Object, Map<Object, Object>> getAuthorities(HashSet<String> loginRole) {
         Map<Object, Map<Object, Object>> map = new HashMap<>();
         loginRole.forEach(s -> {
-            Map<Object, Object> entries = redisTemplate.opsForHash().entries(TokenConstant.getAuthKey(s));
+            Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getAuthKey(s));
             if (ObjUtil.isNotEmpty(entries)) {
                 map.put(s, entries);
             }
@@ -116,7 +115,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
 
     @Override
     public Set<String> getUserToken(String userId) {
-        return redisTemplate.opsForSet().members(TokenConstant.getUserTokenKey(userId));
+        return cacheManager.setMembers(TokenConstant.getUserTokenKey(userId));
     }
 
     @Override
@@ -129,7 +128,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         for (String ignored : authority) {
             if(ObjUtil.isNotEmpty(loginRole)) {
                 for (String s : loginRole) {
-                    Boolean b = redisTemplate.opsForHash().hasKey(TokenConstant.getAuthKey(s), ignored);
+                    Boolean b = cacheManager.hashHasKey(TokenConstant.getAuthKey(s), ignored);
                     if (b) {
                         return true;
                     }

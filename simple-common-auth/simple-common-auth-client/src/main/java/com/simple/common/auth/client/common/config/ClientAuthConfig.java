@@ -1,50 +1,64 @@
 package com.simple.common.auth.client.common.config;
 
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
-import com.simple.common.core.common.properties.ApplicationProperties;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Configurable;
-import org.springframework.beans.factory.annotation.Value;
+import com.simple.common.auth.client.common.enums.CacheTypeEnum;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.manager.cache.CacheManagerFactory;
+import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.client.common.properties.CsrfProperties;
+import com.simple.common.auth.client.common.properties.SignProperties;
+import com.simple.common.cache.common.factory.LocalCacheFactory;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
  * Created with IntelliJ IDEA
+ * <p>
+ * auth配置类
  *
  * @author qty
  */
-@Configurable
-@ComponentScan(basePackages = "com.simple.common.auth.client")
 public class ClientAuthConfig {
 
-    @Value("${spring.profiles.active}")
-    private String produce;
-
-    @Autowired
-    private ApplicationProperties applicationProperties;
-
-    @Autowired
-    private AbsClientAuthConfig absClientAuthConfig;
-
+    /**
+     * 创建认证缓存管理器
+     */
     @Bean
-    public ClientAuthInfo configure() {
-        ClientAuthInfo clientAuthInfo = new ClientAuthInfo();
-        absClientAuthConfig.configure(clientAuthInfo);
-        clientAuthInfo.setDocument(produce);
-        clientAuthInfo.addScope("all",applicationProperties.getName());
-
-        if (!produce.equals("produce")) {
-            clientAuthInfo
-                            //放开接口文档
-                            .antMatchers("/webjars/**").permitAll()
-                            .antMatchers("/v3/**").permitAll()
-                            .antMatchers("/favicon.ico") .permitAll()
-                            .antMatchers("/doc.html").permitAll()
-
-                            //放开admin监控
-                            .antMatchers("/actuator/**").permitAll();
-        }
-        return clientAuthInfo;
+    public CacheManager authCacheManager(AuthProperties authProperties,
+                                         StringRedisTemplate redisTemplate,
+                                         LocalCacheFactory localCacheFactory) {
+        return CacheManagerFactory.createCacheManager(
+                authProperties.getCacheType(),
+                redisTemplate,
+                localCacheFactory
+        );
     }
 
+    /**
+     * 创建签名缓存管理器
+     */
+    @Bean
+    public CacheManager signCacheManager(SignProperties signProperties,
+                                         StringRedisTemplate redisTemplate,
+                                         LocalCacheFactory localCacheFactory) {
+        return CacheManagerFactory.createCacheManager(
+                signProperties.getCacheType(),
+                redisTemplate,
+                localCacheFactory
+        );
+    }
+
+    /**
+     * 创建CSRF缓存管理器
+     */
+    @Bean
+    public CacheManager csrfCacheManager(CsrfProperties csrfProperties,
+                                         StringRedisTemplate redisTemplate,
+                                         LocalCacheFactory localCacheFactory) {
+        return CacheManagerFactory.createCacheManager(
+                csrfProperties.getCacheType(),
+                redisTemplate,
+                localCacheFactory
+        );
+    }
+}
 }

@@ -1,5 +1,6 @@
 package com.simple.common.auth.client.common.properties;
 
+import com.simple.common.auth.client.common.enums.CacheTypeEnum;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -38,6 +39,9 @@ public class SignProperties {
 
     //默认时间窗口（毫秒），超出此范围的时间戳视为无效
     private long defaultTimeWindowMs = 5 * 60 * 1000;
+
+    //缓存类型，默认使用Redis缓存
+    private CacheTypeEnum cacheType = CacheTypeEnum.REDIS;
 
     /**
      * 获取短sign key

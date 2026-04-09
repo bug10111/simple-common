@@ -1,41 +1,46 @@
 package com.simple.common.auth.client.service;
 
 import com.simple.common.auth.client.common.properties.CsrfProperties;
-import com.simple.common.core.utils.AssertUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.StringRedisTemplate;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.service.CsrfService;
 import org.springframework.stereotype.Service;
 
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
 /**
  * Created with IntelliJ IDEA
+ * <p>
+ * 默认CSRF服务实现
  *
  * @author qty
  */
 @Service
-public class DefaultCsrfService extends AbsCsrfService {
+public class DefaultCsrfService implements CsrfService {
 
-    @Autowired
-    private StringRedisTemplate redisTemplate;
+    private final CacheManager cacheManager;
+    private final CsrfProperties csrfProperties;
 
-    @Autowired
-    private CsrfProperties csrfProperties;
-
-    @Override
-    public void saveToken(String userId, String path, String token) {
-        redisTemplate.opsForValue().set(csrfProperties.getKey(path, userId), token, csrfProperties.getCacheTime(), TimeUnit.SECONDS);
+    public DefaultCsrfService(CacheManager csrfCacheManager, CsrfProperties csrfProperties) {
+        this.cacheManager = csrfCacheManager;
+        this.csrfProperties = csrfProperties;
     }
 
     @Override
-    public String getToken(String userId, String path) {
-        String token = redisTemplate.opsForValue().get(csrfProperties.getKey(path, userId));
-        AssertUtils.notEmpty(token, "已提交", "用户[{}]==>[{}]没有保存的CSRF Token", userId, path);
+    public String createToken(String userId, String path) {
+        String token = UUID.randomUUID().toString().replace("-", "");
+        String key = csrfProperties.getCsrfKey() + userId + ":" + path;
+        cacheManager.set(key, token, csrfProperties.getCacheTime());
         return token;
     }
 
     @Override
-    public void removeToken(String userId, String path) {
-        redisTemplate.delete(csrfProperties.getKey(path, userId));
+    public void checkToken(String userId, String path, String token) {
+        String key = csrfProperties.getCsrfKey() + userId + ":" + path;
+        String cachedToken = cacheManager.get(key);
+        if (cachedToken == null || !cachedToken.equals(token)) {
+            throw new RuntimeException("CSRF token验证失败");
+        }
+        // 验证通过后删除token
+        cacheManager.delete(key);
     }
 }

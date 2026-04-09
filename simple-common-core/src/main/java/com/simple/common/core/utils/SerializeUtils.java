@@ -1,6 +1,7 @@
 package com.simple.common.core.utils;
 
-import java.nio.charset.StandardCharsets;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 
 /**
  * Created with IntelliJ IDEA
@@ -10,13 +11,16 @@ import java.nio.charset.StandardCharsets;
  */
 public class SerializeUtils {
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
     /**
      * 序列化
      *
      * @param obj 对象
      */
+    @SneakyThrows
     public static byte[] serialize(Object obj) {
-        return JsonUtils.toJsonStr(obj).getBytes(StandardCharsets.UTF_8);
+        return objectMapper.writeValueAsBytes(obj);
     }
 
     /**
@@ -25,7 +29,8 @@ public class SerializeUtils {
      * @param bytes 字节
      * @param <T>   对象
      */
+    @SneakyThrows
     public static <T> T deserialize(byte[] bytes, Class<T> aclass) {
-        return JsonUtils.toJsonObj(new String(bytes, StandardCharsets.UTF_8), aclass);
+        return objectMapper.readValue(bytes, aclass);
     }
 }

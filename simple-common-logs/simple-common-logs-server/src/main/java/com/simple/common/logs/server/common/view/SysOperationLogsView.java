@@ -1,24 +1,31 @@
 package com.simple.common.logs.server.common.view;
 
-import java.util.List;
-
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.dto.FindAllSysOperationLogsRequest;
 import com.simple.common.logs.server.common.dto.FindSysOperationLogsRequest;
+import com.simple.common.logs.server.common.entity.SysOperationLogs;
+
+import java.util.List;
 
 /**
- * 操作日志(sys_operation_logs)数据库视图接口
+ * 操作日志(sys_operation_logs)视图接口
  *
  * @author qty
  */
 public interface SysOperationLogsView {
 
     /**
-     * 分页列表
+     * 批量保存日志
      *
-     * @param findAllRequest 分页参数
-     * @return 分页数据
+     * @param logsList 日志列表
+     */
+    void batchSave(List<SysOperationLogs> logsList);
+
+    /**
+     * 分页查询
+     *
+     * @param findAllRequest 查询条件
+     * @return 分页结果
      */
     IPage<SysOperationLogs> findAll(FindAllSysOperationLogsRequest findAllRequest);
 
@@ -31,103 +38,65 @@ public interface SysOperationLogsView {
     SysOperationLogs findById(String id);
 
     /**
-     * 获取单条数据
+     * 根据条件查询单条数据
      *
      * @param findRequest 查询条件
-     * @param neRequest   排除条件
+     * @param neRequest 排除条件
      * @return SysOperationLogs 原始表数据
      */
     SysOperationLogs findOne(FindSysOperationLogsRequest findRequest, FindSysOperationLogsRequest neRequest);
 
     /**
-     * 获取列表
+     * 根据条件查询列表
      *
      * @param findRequest 查询条件
-     * @param neRequest   排除条件
-     * @return SysOperationLogs 原始表数据
+     * @param neRequest 排除条件
+     * @return 列表数据
      */
     List<SysOperationLogs> findList(FindSysOperationLogsRequest findRequest, FindSysOperationLogsRequest neRequest);
 
     /**
-     * 新增
+     * 保存单条数据
      *
-     * @param sysOperationLogs 操作日志对象
+     * @param logs 日志数据
      */
-    void save(SysOperationLogs sysOperationLogs);
+    void save(SysOperationLogs logs);
 
     /**
-     * 根据id修改
+     * 批量保存数据
      *
-     * @param sysOperationLogs 操作日志对象
+     * @param logsList 日志列表
      */
-    void updateById(SysOperationLogs sysOperationLogs);
+    void saves(List<SysOperationLogs> logsList);
+
+    /**
+     * 根据主键修改
+     *
+     * @param logs 日志数据
+     */
+    void updateById(SysOperationLogs logs);
 
     /**
      * 根据条件修改
      *
-     * @param sysOperationLogs 操作日志对象
-     * @param findRequest      查询条件
-     * @param neRequest        排除条件
+     * @param logs 日志数据
+     * @param findRequest 查询条件
+     * @param neRequest 排除条件
      */
-    void update(SysOperationLogs sysOperationLogs, FindSysOperationLogsRequest findRequest, FindSysOperationLogsRequest neRequest);
+    void update(SysOperationLogs logs, FindSysOperationLogsRequest findRequest, FindSysOperationLogsRequest neRequest);
 
     /**
-     * 批量新增
-     *
-     * @param list 对象
-     */
-    void saves(List<SysOperationLogs> list);
-
-    /**
-     * 删除
-     *
-     * @param ids 主键
-     */
-    void deleteByIds(List<String> ids);
-
-    /**
-     * 删除
+     * 根据条件删除
      *
      * @param findRequest 查询条件
-     * @param neRequest   排除条件
+     * @param neRequest 排除条件
      */
     void delete(FindSysOperationLogsRequest findRequest, FindSysOperationLogsRequest neRequest);
 
     /**
-     * 获取单条数据
+     * 根据主键批量删除
      *
-     * @return SysOperationLogs 原始表数据
+     * @param ids 主键列表
      */
-    default SysOperationLogs findOne(FindSysOperationLogsRequest findRequest) {
-        return findOne(findRequest, null);
-    }
-
-    /**
-     * 获取列表
-     *
-     * @param findRequest 查询条件
-     * @return SysOperationLogs 原始表数据
-     */
-    default List<SysOperationLogs> findList(FindSysOperationLogsRequest findRequest) {
-        return findList(findRequest, null);
-    }
-
-    /**
-     * 根据条件修改
-     *
-     * @param findRequest 查询条件
-     */
-    default void update(SysOperationLogs sysOperationLogs, FindSysOperationLogsRequest findRequest) {
-        update(sysOperationLogs, findRequest, null);
-    }
-
-    /**
-     * 删除
-     *
-     * @param findRequest 查询条件
-     */
-    default void delete(FindSysOperationLogsRequest findRequest) {
-        delete(findRequest, null);
-    }
+    void deleteByIds(List<String> ids);
 }
-

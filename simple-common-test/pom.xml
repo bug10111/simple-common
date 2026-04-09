@@ -62,6 +62,11 @@
             <artifactId>simple-common-ai</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-websocket</artifactId>
+        </dependency>
+
 <!--        <dependency>-->
 <!--            <groupId>com.simple.common</groupId>-->
 <!--            <artifactId>simple-common-logs-server</artifactId>-->

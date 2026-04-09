@@ -1,18 +1,14 @@
 package com.simple.common.logs.client.manager;
 
-import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.ContentType;
-import com.simple.common.core.common.constant.CoreConstant;
-import com.simple.common.core.utils.IPUtils;
-import com.simple.common.core.utils.JsonUtils;
-import com.simple.common.eventbus.common.service.EventBusService;
+import cn.hutool.json.JSONUtil;
 import com.simple.common.logs.client.common.constant.LogConstant;
 import com.simple.common.logs.client.common.event.LogDataEvent;
 import com.simple.common.logs.client.common.httpservletrequest.CachedBodyHttpServletRequest;
 import com.simple.common.logs.client.common.manager.LogManager;
 import com.simple.common.logs.client.common.manager.LogUserManager;
-import io.swagger.v3.oas.annotations.Operation;
+import com.simple.common.logs.client.common.manager.LogSenderManager;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
@@ -23,7 +19,7 @@ import org.springframework.web.method.HandlerMethod;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -35,11 +31,11 @@ import java.util.Map;
 @Component
 public class DefaultLogManager implements LogManager {
 
-    @Autowired
-    private EventBusService eventBusService;
-
-    @Autowired
+    @Autowired(required = false)
     private LogUserManager logUserManager;
+
+    @Autowired(required = false)
+    private LogSenderManager logSenderManager;
 
     @Override
     @SneakyThrows
@@ -55,18 +51,22 @@ public class DefaultLogManager implements LogManager {
 
         logDataEvent.setMethod(request.getMethod());
         logDataEvent.setOperUrl(request.getRequestURI());
-        logDataEvent.setOperIp(IPUtils.getIpAddr(request));
+        logDataEvent.setOperIp(request.getRemoteAddr());
 
         String userId = logUserManager.loginUserId();
         if (ObjUtil.isEmpty(userId)) {
-            logDataEvent.setUserId("-");
+            logDataEvent.setUserId(null);
         } else {
-            logDataEvent.setUserId(userId);
+            try {
+                logDataEvent.setUserId(Long.parseLong(userId));
+            } catch (NumberFormatException e) {
+                logDataEvent.setUserId(null);
+            }
         }
 
         String nickName = logUserManager.loginNickName();
         if (ObjUtil.isEmpty(nickName)) {
-            logDataEvent.setNickname("-");
+            logDataEvent.setNickname(null);
         } else {
             logDataEvent.setNickname(nickName);
         }
@@ -74,23 +74,18 @@ public class DefaultLogManager implements LogManager {
         //获取接口
         if (handler instanceof HandlerMethod handlerMethod) {
 
-            // 获取接口上的注解
-            Operation operation = handlerMethod.getMethod().getAnnotation(Operation.class);
-
-            if (operation != null) {
-                logDataEvent.setTitle(operation.summary());
-            } else {
-                logDataEvent.setTitle("-");
-            }
+            // 获取操作名称
+            String operName = handler.getClass().getSimpleName();
+            logDataEvent.setOperName(operName);
         }
 
         //请求成功
         if (response.getStatus() == HttpServletResponse.SC_OK) {
-            logDataEvent.setStatus(HttpServletResponse.SC_OK);
+            logDataEvent.setStatus(0);
             logDataEvent.setErrorMsg("请求成功");
         } else {
-            logDataEvent.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            Object attribute = request.getAttribute(CoreConstant.EXCEPTION);
+            logDataEvent.setStatus(1);
+            Object attribute = request.getAttribute("exception");
             if (attribute instanceof Exception exception) {
                 logDataEvent.setErrorMsg(exception.getMessage());
 
@@ -99,12 +94,18 @@ public class DefaultLogManager implements LogManager {
             } else {
                 logDataEvent.setErrorMsg("未收集到有效异常信息");
             }
-            request.removeAttribute(CoreConstant.EXCEPTION);
+            request.removeAttribute("exception");
         }
 
-        logDataEvent.setRequestTime(duration);
-        logDataEvent.setCreateTime(DateTime.now());
-        eventBusService.push(logDataEvent);
+        logDataEvent.setRequestTime(LocalDateTime.now());
+        logDataEvent.setCreateTime(LocalDateTime.now());
+
+        // 发送日志数据
+        if (logSenderManager != null) {
+            logSenderManager.send(logDataEvent);
+        } else {
+            log.warn("LogSender未初始化，日志数据将不会发送");
+        }
     }
 
     /**
@@ -118,22 +119,68 @@ public class DefaultLogManager implements LogManager {
 
     /**
      * 获取请求参数
+     * <p>
+     * 支持多种Content-Type的参数采集：
+     * - application/json: 从请求体读取
+     * - application/xml: 从请求体读取
+     * - text/xml: 从请求体读取
+     * - text/plain: 从请求体读取
+     * - application/x-www-form-urlencoded: 从请求体读取或从ParameterMap读取
+     * - multipart/form-data: 从ParameterMap读取（不包含文件内容）
+     * - 其他类型: 从ParameterMap读取
+     * </p>
      */
     @SneakyThrows
     protected String getAllParameters(HttpServletRequest request) {
-
-        String json = "";
         String contentType = request.getContentType();
 
-        if (contentType != null && contentType.contains(ContentType.JSON.getValue())) {
-            if (request instanceof CachedBodyHttpServletRequest request1) {
-                json = new String(request1.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+        // 处理CachedBodyHttpServletRequest包装的请求
+        if (request instanceof CachedBodyHttpServletRequest cachedRequest) {
+            // 如果请求体已被缓存，直接获取缓存内容
+            if (cachedRequest.isBodyCached()) {
+                String cachedBody = cachedRequest.getCachedBody();
+                if (ObjUtil.isNotEmpty(cachedBody)) {
+                    return cachedBody;
+                }
             }
-        } else {
+
+            // 对于multipart/form-data或未缓存的情况，尝试从ParameterMap获取
+            if (ObjUtil.isNotEmpty(contentType) && contentType.toLowerCase().contains("multipart/form-data")) {
+                return getParametersFromMap(request);
+            }
+
+            // 如果请求体未缓存且ParameterMap有数据，返回ParameterMap
             Map<String, String[]> parameterMap = request.getParameterMap();
-            json = JsonUtils.toJsonStr(parameterMap);
+            if (ObjUtil.isNotEmpty(parameterMap)) {
+                return getParametersFromMap(request);
+            }
+
+            return "";
         }
-        return json;
+
+        // 处理普通HttpServletRequest请求
+        // JSON类型请求
+        if (ObjUtil.isNotEmpty(contentType) && contentType.toLowerCase().contains(ContentType.JSON.getValue())) {
+            log.warn("请求未经过CachedBodyHttpServletRequest包装，无法读取JSON请求体，请检查LogFilter配置");
+            return "";
+        }
+
+        // 其他类型从ParameterMap获取
+        return getParametersFromMap(request);
+    }
+
+    /**
+     * 从ParameterMap获取参数并转换为JSON字符串
+     *
+     * @param request HttpServletRequest请求对象
+     * @return JSON格式的参数字符串
+     */
+    private String getParametersFromMap(HttpServletRequest request) {
+        Map<String, String[]> parameterMap = request.getParameterMap();
+        if (ObjUtil.isEmpty(parameterMap)) {
+            return "";
+        }
+        return JSONUtil.toJsonStr(parameterMap);
     }
 
 }

@@ -11,11 +11,6 @@ import lombok.Data;
 public class WebSocketRequest {
 
     /**
-     * 方法标识（格式：type:method）
-     */
-    private String method;
-
-    /**
      * 请求数据
      */
     private String data;

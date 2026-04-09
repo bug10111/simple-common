@@ -24,6 +24,6 @@ public @interface WebSocketListening {
     /**
      * 用于区分相同类型时候，不同端的数据
      */
-    String cliKey();
+    String cliKey() default "default";
 
 }
