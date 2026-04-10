@@ -12,7 +12,12 @@
     <artifactId>simple-common-logs</artifactId>
     <packaging>pom</packaging>
 
+    <properties>
+        <protobuf.version>3.24.0</protobuf.version>
+    </properties>
+
     <modules>
+        <module>simple-common-logs-proto</module>
         <module>simple-common-logs-client</module>
         <module>simple-common-logs-server</module>
     </modules>

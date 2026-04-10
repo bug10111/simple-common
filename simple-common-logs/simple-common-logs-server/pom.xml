@@ -13,9 +13,16 @@
     <packaging>jar</packaging>
 
     <dependencies>
+
         <dependency>
             <groupId>com.simple.common</groupId>
-            <artifactId>simple-common-logs-client</artifactId>
+            <artifactId>simple-common-logs-proto</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-core</artifactId>
         </dependency>
 
         <dependency>

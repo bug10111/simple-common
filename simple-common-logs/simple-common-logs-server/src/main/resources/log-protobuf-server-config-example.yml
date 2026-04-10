@@ -1,0 +1,22 @@
+# Protobuf 日志服务端配置示例
+# 使用 Protobuf 协议接收日志数据
+
+log:
+  tcp:
+    server:
+      # 是否启用 TCP 日志服务端
+      enabled: true
+      # 监听端口
+      port: 8888
+      # Boss 线程数
+      boss-threads: 1
+      # Worker 线程数
+      worker-threads: 4
+      # 连接超时时间（毫秒）
+      connect-timeout: 5000
+      # 读空闲超时（毫秒）
+      reader-idle-time: 120000
+      # 写空闲超时（毫秒）
+      writer-idle-time: 0
+      # 全空闲超时（毫秒）
+      all-idle-time: 0

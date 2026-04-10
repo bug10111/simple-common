@@ -1,1 +1,1 @@
-com.simple.common.logs.client.common.config.LogClientConfig
+com.simple.common.logs.client.common.config.ProtobufLogClientConfig

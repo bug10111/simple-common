@@ -51,4 +51,9 @@ public class LogTcpServerProperties {
      * 日志批量处理大小
      */
     private int batchSize = 100;
+
+    /**
+     * 读空闲超时时间（秒）
+     */
+    private int readerIdleTime = 120;
 }

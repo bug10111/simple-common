@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package com.simple.common.logs.proto;
+
+option java_multiple_files = true;
+option java_package = "com.simple.common.logs.proto";
+option java_outer_classname = "LogsProto";
+
+// 日志数据消息
+message LogData {
+    string traceId = 1;          // 追踪ID
+    string operIp = 2;           // 操作IP
+    string method = 3;           // 操作方法
+    string operUrl = 4;          // 操作URL
+    string operName = 5;         // 操作名称
+    string operParam = 6;        // 操作参数
+    string operResult = 7;       // 操作结果
+    string errorMessage = 8;     // 错误信息
+    int64 operTime = 9;          // 操作时间
+    string userId = 10;          // 用户ID
+    string userName = 11;        // 用户名
+    string deptId = 12;          // 部门ID
+    string deptName = 13;        // 部门名称
+    string requestMethod = 14;   // 请求方法
+    string operType = 15;        // 操作类型
+    int32 status = 16;           // 操作状态
+    int64 costTime = 17;         // 耗时
+}
+
+// 日志响应消息
+message LogResponse {
+    bool success = 1;            // 是否成功
+    int32 code = 2;              // 响应码
+    string message = 3;          // 响应消息
+}

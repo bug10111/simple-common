@@ -1,6 +1,6 @@
 package com.simple.common.logs.server.manager;
 
-import com.simple.common.logs.client.common.event.LogDataEvent;
+import com.simple.common.logs.proto.LogDataEvent;
 import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import com.simple.common.logs.server.common.properties.LogTcpServerProperties;
