@@ -15,13 +15,6 @@ import java.util.List;
 public interface SysOperationLogsView {
 
     /**
-     * 批量保存日志
-     *
-     * @param logsList 日志列表
-     */
-    void batchSave(List<SysOperationLogs> logsList);
-
-    /**
      * 分页查询
      *
      * @param findAllRequest 查询条件

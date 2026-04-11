@@ -16,7 +16,6 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "simple.logs.server")
 public class LogTcpServerProperties {
 
-
     /**
      * 服务端监听端口
      */

@@ -2,6 +2,7 @@ package com.simple.common.auth.client.manager.sign;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjUtil;
+import com.github.benmanes.caffeine.cache.Cache;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
@@ -13,8 +14,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
-
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created with IntelliJ IDEA
@@ -32,9 +31,6 @@ public class DefaultSignManager implements SignManager, InitializingBean {
 
     @Autowired
     private SignProperties signProperties;
-
-    @Autowired(required = false)
-    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 当前签名密钥
@@ -116,23 +112,7 @@ public class DefaultSignManager implements SignManager, InitializingBean {
         generated();
 
         //初始化nonce缓存
-        LocalCacheFactory<String, String> factory = new LocalCacheFactory<>();
-        string = factory.createCache("sign", config -> config.maximumSize(10000).expireAfterWrite(signProperties.getCacheTime()));
+        Cache<String, String> sign = string.createCache("sign", config -> config.maximumSize(10000).expireAfterWrite(signProperties.getCacheTime()));
     }
 
-    @Override
-    public void set(String key, String value) {
-        cacheManager.set(key, value, signProperties.getCacheTime());
-    }
-
-    @Override
-    public boolean hasKey(String key) {
-        return cacheManager.hasKey(key);
-    }
-}
-
-    @Override
-    public boolean hasKey(String key) {
-        return cacheManager.hasKey(key);
-    }
 }

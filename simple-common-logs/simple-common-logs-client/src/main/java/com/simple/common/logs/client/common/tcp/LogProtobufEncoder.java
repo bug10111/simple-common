@@ -18,13 +18,8 @@ public class LogProtobufEncoder extends MessageToByteEncoder<LogData> {
         if (msg == null) {
             return;
         }
-        
-        // 将 Protobuf 消息序列化为字节数组
         byte[] bytes = msg.toByteArray();
-        
-        // 写入消息长度（4字节）
         out.writeInt(bytes.length);
-        // 写入消息体
         out.writeBytes(bytes);
     }
 }

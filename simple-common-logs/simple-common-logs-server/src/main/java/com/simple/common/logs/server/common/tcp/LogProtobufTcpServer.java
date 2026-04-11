@@ -43,8 +43,8 @@ public class LogProtobufTcpServer {
      */
     @PostConstruct
     public void start() {
-        bossGroup = new NioEventLoopGroup(1);
-        workerGroup = new NioEventLoopGroup();
+        bossGroup = new NioEventLoopGroup(properties.getBossThreads());
+        workerGroup = new NioEventLoopGroup(properties.getWorkerThreads());
 
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
@@ -60,7 +60,7 @@ public class LogProtobufTcpServer {
                              ChannelPipeline pipeline = ch.pipeline();
 
                              // 心跳检测
-                             pipeline.addLast("idleStateHandler", new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.MILLISECONDS));
+                             pipeline.addLast("idleStateHandler", new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.SECONDS));
 
                              // Protobuf 编解码器
                              pipeline.addLast("decoder", new LogProtobufDecoder());

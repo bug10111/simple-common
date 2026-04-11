@@ -1,7 +1,7 @@
 package com.simple.common.logs.server.manager;
 
 import com.simple.common.core.common.service.thread.ThreadService;
-import com.simple.common.logs.proto.LogDataEvent;
+import com.simple.common.logs.client.common.event.LogDataEvent;
 import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import com.simple.common.logs.server.common.properties.LogTcpServerProperties;
@@ -54,7 +54,7 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
     private final LinkedBlockingQueue<LogDataEvent> logQueue = new LinkedBlockingQueue<>(50000);
 
     @Override
-    public void addLogData(LogDataEvent logDataEvent) {
+    public void saveLog(LogDataEvent logDataEvent) {
         try {
             boolean success = logQueue.offer(logDataEvent);
             if (!success) {
@@ -71,7 +71,9 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
     public void processLogs() {
         List<LogDataEvent> logsToSave = new ArrayList<>();
         logQueue.drainTo(logsToSave, logTcpServerProperties.getBatchSize());
-        persistence(logsToSave);
+        if (!logsToSave.isEmpty()) {
+            persistence(logsToSave);
+        }
     }
 
     @Override

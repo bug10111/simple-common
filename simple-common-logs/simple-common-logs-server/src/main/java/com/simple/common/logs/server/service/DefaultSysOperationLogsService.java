@@ -37,7 +37,7 @@ class DefaultSysOperationLogsService implements SysOperationLogsService {
         if (logsList == null || logsList.isEmpty()) {
             return;
         }
-        sysOperationLogsView.batchSave(logsList);
+        sysOperationLogsView.saves(logsList);
         log.info("批量保存日志成功，数量: {}", logsList.size());
     }
 
@@ -89,10 +89,7 @@ class DefaultSysOperationLogsService implements SysOperationLogsService {
         response.setOperIp(logs.getOperIp());
         response.setOperLocation(logs.getOperLocation());
         response.setUserId(String.valueOf(logs.getUserId()));
-        response.setNickname(logs.getUserName());
         response.setStatus(String.valueOf(logs.getStatus()));
-        response.setErrorMsg(logs.getErrorMessage());
-        response.setRequestTime(logs.getCostTime() != null ? logs.getCostTime().intValue() : 0);
         response.setCreateTime(logs.getCreateTime() != null ? Date.from(logs.getCreateTime().atZone(java.time.ZoneId.systemDefault()).toInstant()) : null);
         return response;
     }
@@ -100,25 +97,13 @@ class DefaultSysOperationLogsService implements SysOperationLogsService {
     private SysOperationLogsInfoResponse convertToInfoResponse(SysOperationLogs logs) {
         SysOperationLogsInfoResponse response = new SysOperationLogsInfoResponse();
         response.setId(logs.getId());
-        response.setModule(logs.getModule());
-        response.setOperType(logs.getOperType());
         response.setMethod(logs.getMethod());
         response.setOperUrl(logs.getOperUrl());
         response.setOperIp(logs.getOperIp());
         response.setOperLocation(logs.getOperLocation());
         response.setOperName(logs.getOperName());
         response.setOperParam(logs.getOperParam());
-        response.setOperResult(logs.getOperResult());
-        response.setErrorMessage(logs.getErrorMessage());
-        response.setOperTime(logs.getOperTime());
         response.setUserId(logs.getUserId());
-        response.setUserName(logs.getUserName());
-        response.setDeptId(logs.getDeptId());
-        response.setDeptName(logs.getDeptName());
-        response.setRequestMethod(logs.getRequestMethod());
-        response.setCostTime(logs.getCostTime());
-        response.setClientId(logs.getClientId());
-        response.setBusinessType(logs.getBusinessType());
         response.setCreateTime(logs.getCreateTime());
         return response;
     }
@@ -132,8 +117,6 @@ class DefaultSysOperationLogsService implements SysOperationLogsService {
         logs.setOperLocation(request.getOperLocation());
         logs.setUserId(request.getUserId() != null ? request.getUserId().longValue() : null);
         logs.setOperParam(request.getOperParam());
-        logs.setErrorMessage(request.getErrorMsg());
-        logs.setCostTime(request.getRequestTime() != null ? request.getRequestTime().longValue() : null);
         logs.setCreateTime(java.time.LocalDateTime.now());
         return logs;
     }
@@ -148,8 +131,6 @@ class DefaultSysOperationLogsService implements SysOperationLogsService {
         logs.setOperLocation(request.getOperLocation());
         logs.setUserId(request.getUserId() != null ? request.getUserId().longValue() : null);
         logs.setOperParam(request.getOperParam());
-        logs.setErrorMessage(request.getErrorMsg());
-        logs.setCostTime(request.getRequestTime() != null ? request.getRequestTime().longValue() : null);
         return logs;
     }
 }

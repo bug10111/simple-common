@@ -2,13 +2,6 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.simple.common.logs.server.view.SysOperationLogsRepository">
 
-    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
-        insert into sys_operation_logs(id, title, method, oper_url, oper_ip, oper_location, user_id,nickname, oper_param, status, error_msg,error_data,request_time, create_time, update_time)
-        values
-        <foreach collection="entities" item="entity" separator=",">
-            (#{entity.id}, #{entity.title}, #{entity.method}, #{entity.operUrl}, #{entity.operIp}, #{entity.operLocation}, #{entity.userId},#{entity.nickname}, #{entity.operParam}, #{entity.status},
-            #{entity.errorMsg},#{entity.errorData},#{entity.requestTime}, #{entity.createTime}, #{entity.updateTime})
-        </foreach>
-    </insert>
+
 </mapper>
 

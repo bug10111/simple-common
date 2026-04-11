@@ -1,14 +1,18 @@
 package com.simple.common.logs.client.service;
 
+import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.ContentType;
 import cn.hutool.json.JSONUtil;
+import com.simple.common.core.common.constant.CoreConstant;
+import com.simple.common.core.utils.IPUtils;
 import com.simple.common.logs.client.common.constant.LogConstant;
 import com.simple.common.logs.client.common.event.LogDataEvent;
 import com.simple.common.logs.client.common.httpservletrequest.CachedBodyHttpServletRequest;
 import com.simple.common.logs.client.common.manager.LogManager;
 import com.simple.common.logs.client.common.manager.LogUserManager;
 import com.simple.common.logs.client.common.service.LogService;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
@@ -19,7 +23,6 @@ import org.springframework.web.method.HandlerMethod;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.LocalDateTime;
 import java.util.Map;
 
 /**
@@ -31,10 +34,10 @@ import java.util.Map;
 @Component
 public class DefaultLogService implements LogService {
 
-    @Autowired(required = false)
+    @Autowired
     private LogUserManager logUserManager;
 
-    @Autowired(required = false)
+    @Autowired
     private LogManager logManager;
 
     @Override
@@ -46,27 +49,29 @@ public class DefaultLogService implements LogService {
         Long startTime = (Long) request.getAttribute(LogConstant.START_TIME);
         long duration = System.currentTimeMillis() - startTime;
 
+        // 设置 TraceId（从请求属性中获取，由拦截器/过滤器设置）
+        Object traceId = request.getAttribute(LogConstant.TRACE_ID_HEADER);
+        if (traceId != null) {
+            logDataEvent.setTraceId(traceId.toString());
+        }
+
         //获取请求参数
         logDataEvent.setOperParam(getAllParameters(request));
 
         logDataEvent.setMethod(request.getMethod());
         logDataEvent.setOperUrl(request.getRequestURI());
-        logDataEvent.setOperIp(request.getRemoteAddr());
+        logDataEvent.setOperIp(IPUtils.getIpAddr(request));
 
         String userId = logUserManager.loginUserId();
         if (ObjUtil.isEmpty(userId)) {
             logDataEvent.setUserId(null);
         } else {
-            try {
-                logDataEvent.setUserId(Long.parseLong(userId));
-            } catch (NumberFormatException e) {
-                logDataEvent.setUserId(null);
-            }
+            logDataEvent.setUserId(userId);
         }
 
         String nickName = logUserManager.loginNickName();
         if (ObjUtil.isEmpty(nickName)) {
-            logDataEvent.setNickname(null);
+            logDataEvent.setNickname("-");
         } else {
             logDataEvent.setNickname(nickName);
         }
@@ -74,18 +79,23 @@ public class DefaultLogService implements LogService {
         //获取接口
         if (handler instanceof HandlerMethod handlerMethod) {
 
-            // 获取操作名称
-            String operName = handler.getClass().getSimpleName();
-            logDataEvent.setOperName(operName);
+            // 获取接口上的注解
+            Operation operation = handlerMethod.getMethod().getAnnotation(Operation.class);
+
+            if (operation != null) {
+                logDataEvent.setTitle(operation.summary());
+            } else {
+                logDataEvent.setTitle("-");
+            }
         }
 
         //请求成功
         if (response.getStatus() == HttpServletResponse.SC_OK) {
-            logDataEvent.setStatus(0);
+            logDataEvent.setStatus(HttpServletResponse.SC_OK);
             logDataEvent.setErrorMsg("请求成功");
         } else {
-            logDataEvent.setStatus(1);
-            Object attribute = request.getAttribute("exception");
+            logDataEvent.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            Object attribute = request.getAttribute(CoreConstant.EXCEPTION);
             if (attribute instanceof Exception exception) {
                 logDataEvent.setErrorMsg(exception.getMessage());
 
@@ -94,18 +104,12 @@ public class DefaultLogService implements LogService {
             } else {
                 logDataEvent.setErrorMsg("未收集到有效异常信息");
             }
-            request.removeAttribute("exception");
+            request.removeAttribute(CoreConstant.EXCEPTION);
         }
 
-        logDataEvent.setRequestTime(LocalDateTime.now());
-        logDataEvent.setCreateTime(LocalDateTime.now());
-
-        // 发送日志数据
-        if (logManager != null) {
-            logManager.send(logDataEvent);
-        } else {
-            log.warn("LogSender未初始化，日志数据将不会发送");
-        }
+        logDataEvent.setRequestTime(duration);
+        logDataEvent.setCreateTime(DateTime.now());
+        logManager.send(logDataEvent);
     }
 
     @Override

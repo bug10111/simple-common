@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.simple.common.logs.proto.LogDataEvent;
+import com.simple.common.logs.client.common.event.LogDataEvent;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -27,34 +27,52 @@ public class SysOperationLogs implements Serializable {
     private String id;
 
     /**
-     * 操作模块
+     * 追踪ID
      */
-    @TableField("module")
-    private String module;
+    @TableField("trace_id")
+    private String traceId;
 
     /**
-     * 操作类型
+     * 方法名称/操作标题
      */
-    @TableField("oper_type")
-    private String operType;
+    @TableField("title")
+    private String title;
 
     /**
-     * 操作IP
-     */
-    @TableField("oper_ip")
-    private String operIp;
-
-    /**
-     * 操作方法
+     * 请求方式
      */
     @TableField("method")
     private String method;
 
     /**
-     * 操作URL
+     * 请求URL
      */
     @TableField("oper_url")
     private String operUrl;
+
+    /**
+     * 主机地址
+     */
+    @TableField("oper_ip")
+    private String operIp;
+
+    /**
+     * 操作地点
+     */
+    @TableField("oper_location")
+    private String operLocation;
+
+    /**
+     * 操作人员id
+     */
+    @TableField("user_id")
+    private Long userId;
+
+    /**
+     * 用户名
+     */
+    @TableField("nickname")
+    private String nickname;
 
     /**
      * 操作名称
@@ -63,94 +81,10 @@ public class SysOperationLogs implements Serializable {
     private String operName;
 
     /**
-     * 操作参数
+     * 请求参数
      */
     @TableField("oper_param")
     private String operParam;
-
-    /**
-     * 操作结果
-     */
-    @TableField("oper_result")
-    private String operResult;
-
-    /**
-     * 错误信息
-     */
-    @TableField("error_message")
-    private String errorMessage;
-
-    /**
-     * 操作时间
-     */
-    @TableField("oper_time")
-    private LocalDateTime operTime;
-
-    /**
-     * 操作用户ID
-     */
-    @TableField("user_id")
-    private Long userId;
-
-    /**
-     * 操作用户名
-     */
-    @TableField("user_name")
-    private String userName;
-
-    /**
-     * 部门ID
-     */
-    @TableField("dept_id")
-    private Long deptId;
-
-    /**
-     * 部门名称
-     */
-    @TableField("dept_name")
-    private String deptName;
-
-    /**
-     * 请求方法
-     */
-    @TableField("request_method")
-    private String requestMethod;
-
-    /**
-     * 请求耗时（毫秒）
-     */
-    @TableField("cost_time")
-    private Long costTime;
-
-    /**
-     * 客户端标识
-     */
-    @TableField("client_id")
-    private String clientId;
-
-    /**
-     * 业务类型
-     */
-    @TableField("business_type")
-    private String businessType;
-
-    /**
-     * 创建时间
-     */
-    @TableField("create_time")
-    private LocalDateTime createTime;
-
-    /**
-     * 追踪ID
-     */
-    @TableField("trace_id")
-    private String traceId;
-
-    /**
-     * 操作标题
-     */
-    @TableField("title")
-    private String title;
 
     /**
      * 操作状态（0成功 1失败）
@@ -165,55 +99,66 @@ public class SysOperationLogs implements Serializable {
     private String errorMsg;
 
     /**
-     * 用户昵称
+     * 异常信息（堆栈）
      */
-    @TableField("nickname")
-    private String nickname;
+    @TableField("error_data")
+    private String errorData;
 
     /**
-     * 请求时间
+     * 接口耗时（毫秒），存储为本地时间
      */
     @TableField("request_time")
     private LocalDateTime requestTime;
 
     /**
-     * 操作地点
+     * 创建时间
      */
-    @TableField("oper_location")
-    private String operLocation;
+    @TableField("create_time")
+    private LocalDateTime createTime;
 
     /**
      * 从LogDataEvent转换
      */
     public static SysOperationLogs fromLogDataEvent(LogDataEvent event) {
         SysOperationLogs logs = new SysOperationLogs();
-        logs.setId(event.getId());
-        logs.setModule(event.getModule());
-        logs.setOperType(event.getOperType());
-        logs.setOperIp(event.getOperIp());
-        logs.setMethod(event.getMethod());
-        logs.setOperUrl(event.getOperUrl());
-        logs.setOperName(event.getOperName());
-        logs.setOperParam(event.getOperParam());
-        logs.setOperResult(event.getOperResult());
-        logs.setErrorMessage(event.getErrorMessage());
-        logs.setOperTime(event.getOperTime());
-        logs.setUserId(event.getUserId());
-        logs.setUserName(event.getUserName());
-        logs.setDeptId(event.getDeptId());
-        logs.setDeptName(event.getDeptName());
-        logs.setRequestMethod(event.getRequestMethod());
-        logs.setCostTime(event.getCostTime());
-        logs.setClientId(event.getClientId());
-        logs.setBusinessType(event.getBusinessType());
-        logs.setCreateTime(event.getCreateTime() != null ? event.getCreateTime() : LocalDateTime.now());
+        // 设置 TraceId
         logs.setTraceId(event.getTraceId());
+        // 设置标题
         logs.setTitle(event.getTitle());
-        logs.setStatus(event.getStatus());
-        logs.setErrorMsg(event.getErrorMsg());
-        logs.setNickname(event.getNickname());
-        logs.setRequestTime(event.getRequestTime());
+        // 设置操作方法
+        logs.setMethod(event.getMethod());
+        // 设置操作URL
+        logs.setOperUrl(event.getOperUrl());
+        // 设置操作IP
+        logs.setOperIp(event.getOperIp());
+        // 设置操作地点
         logs.setOperLocation(event.getOperLocation());
+        // 设置操作名称
+        logs.setOperName(event.getOperName());
+        // 设置用户ID（LogDataEvent中userId为String类型）
+        if (event.getUserId() != null && !event.getUserId().isEmpty()) {
+            try {
+                logs.setUserId(Long.parseLong(event.getUserId()));
+            } catch (NumberFormatException e) {
+                logs.setUserId(null);
+            }
+        }
+        // 设置用户昵称
+        logs.setNickname(event.getNickname());
+        // 设置操作参数
+        logs.setOperParam(event.getOperParam());
+        // 设置操作状态
+        logs.setStatus(event.getStatus());
+        // 设置错误消息
+        logs.setErrorMsg(event.getErrorMsg());
+        // 设置错误详情
+        logs.setErrorData(event.getErrorData());
+        // 设置请求时间（LogDataEvent中requestTime为Long类型，表示时间戳）
+        if (event.getRequestTime() != null) {
+            logs.setRequestTime(LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(event.getRequestTime()), java.time.ZoneId.systemDefault()));
+        }
+        // 设置创建时间
+        logs.setCreateTime(event.getCreateTime() != null ? event.getCreateTime().toLocalDateTime() : LocalDateTime.now());
         return logs;
     }
 }

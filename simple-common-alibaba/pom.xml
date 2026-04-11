@@ -64,11 +64,6 @@
 
         <dependency>
             <groupId>com.simple.common</groupId>
-            <artifactId>simple-common-core</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.simple.common</groupId>
             <artifactId>simple-common-auth-client</artifactId>
         </dependency>
     </dependencies>

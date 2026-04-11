@@ -38,7 +38,7 @@ public class CsrfDefenseAspect {
             String path = LoginUserUtils.getUserTemporary().getPath();
             HttpServletRequest request = HttpServletUtils.getRequest();
 
-            String token = request.getHeader(csrfProperties.getCsrfTokenHeader());
+            String token = request.getHeader(csrfProperties.getCsrfHeader());
             AssertUtils.notEmpty(token, "请求失败", "用户[{}]==>[{}] CSRF token不存在", userId, path);
             csrfService.checkToken(userId, path, token);
         }

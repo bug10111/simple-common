@@ -7,6 +7,7 @@ import com.simple.common.logs.server.common.dto.FindAllSysOperationLogsRequest;
 import com.simple.common.logs.server.common.dto.FindSysOperationLogsRequest;
 import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.view.SysOperationLogsView;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -19,16 +20,8 @@ import java.util.List;
 @Repository
 public class MPSysOperationLogsView implements SysOperationLogsView {
 
-    private final SysOperationLogsRepository repository;
-
-    public MPSysOperationLogsView(SysOperationLogsRepository repository) {
-        this.repository = repository;
-    }
-
-    @Override
-    public void batchSave(List<SysOperationLogs> logsList) {
-        repository.insertBatch(logsList);
-    }
+    @Autowired
+    private SysOperationLogsRepository repository;
 
     @Override
     public IPage<SysOperationLogs> findAll(FindAllSysOperationLogsRequest findAllRequest) {
@@ -72,7 +65,7 @@ public class MPSysOperationLogsView implements SysOperationLogsView {
 
     @Override
     public void saves(List<SysOperationLogs> logsList) {
-        repository.insertBatch(logsList);
+        repository.insert(logsList);
     }
 
     @Override

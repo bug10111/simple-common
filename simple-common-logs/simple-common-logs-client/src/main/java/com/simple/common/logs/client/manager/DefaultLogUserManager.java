@@ -15,13 +15,13 @@ public class DefaultLogUserManager implements LogUserManager {
 
     @Override
     public String loginNickName() {
-        log.error("请实现LogUserManager提供用户名和ID");
+        log.warn("请实现LogUserManager提供用户名和ID");
         return "测试用户名";
     }
 
     @Override
     public String loginUserId() {
-        log.error("请实现LogUserManager提供用户名和ID");
+        log.warn("请实现LogUserManager提供用户名和ID");
         return "测试用户ID";
     }
 }

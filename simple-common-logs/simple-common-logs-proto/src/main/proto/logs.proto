@@ -6,25 +6,23 @@ option java_multiple_files = true;
 option java_package = "com.simple.common.logs.proto";
 option java_outer_classname = "LogsProto";
 
-// 日志数据消息
+// 日志数据消息 - 与 Client 端 LogDataEvent 保持一致
 message LogData {
     string traceId = 1;          // 追踪ID
-    string operIp = 2;           // 操作IP
-    string method = 3;           // 操作方法
-    string operUrl = 4;          // 操作URL
-    string operName = 5;         // 操作名称
-    string operParam = 6;        // 操作参数
-    string operResult = 7;       // 操作结果
-    string errorMessage = 8;     // 错误信息
-    int64 operTime = 9;          // 操作时间
-    string userId = 10;          // 用户ID
-    string userName = 11;        // 用户名
-    string deptId = 12;          // 部门ID
-    string deptName = 13;        // 部门名称
-    string requestMethod = 14;   // 请求方法
-    string operType = 15;        // 操作类型
-    int32 status = 16;           // 操作状态
-    int64 costTime = 17;         // 耗时
+    string title = 2;            // 方法名称/操作标题
+    string method = 3;           // 请求方式
+    string operUrl = 4;          // 请求URL
+    string operIp = 5;           // 主机地址
+    string operLocation = 6;     // 操作地点
+    string userId = 7;           // 操作人员id
+    string nickname = 8;         // 用户名
+    string operName = 9;         // 操作名称
+    string operParam = 10;       // 请求参数
+    int32 status = 11;           // 操作状态
+    string errorMsg = 12;       // 错误消息
+    string errorData = 13;       // 异常信息
+    int64 requestTime = 14;      // 接口耗时（毫秒）
+    int64 createTime = 15;      // 创建时间（时间戳）
 }
 
 // 日志响应消息

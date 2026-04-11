@@ -1,6 +1,5 @@
 package com.simple.common.logs.client.manager;
 
-import com.simple.common.logs.client.common.converter.LogDataConverter;
 import com.simple.common.logs.client.common.event.LogDataEvent;
 import com.simple.common.logs.client.common.manager.LogManager;
 import com.simple.common.logs.client.common.tcp.LogProtobufTcpClient;
@@ -25,9 +24,7 @@ public class ProtobufLogManager implements LogManager {
     @Override
     public boolean send(LogDataEvent event) {
         try {
-            // 转换为 Protobuf 消息
-            LogData logData = LogDataConverter.toProto(event);
-            // 发送
+            LogData logData = event.toProto();
             tcpClient.send(logData);
             return true;
         } catch (Exception e) {

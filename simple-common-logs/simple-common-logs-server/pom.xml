@@ -22,6 +22,12 @@
 
         <dependency>
             <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-logs-client</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.simple.common</groupId>
             <artifactId>simple-common-core</artifactId>
         </dependency>
 

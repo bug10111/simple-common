@@ -30,7 +30,6 @@ public class HasAuthorityAspect {
     @Autowired
     private ClientAuthInfo clientAuthInfo;
 
-    @Qualifier("clientLoginInfoManager")
     @Autowired
     private LoginInfoManager loginInfoManager;
 
