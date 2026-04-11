@@ -2,6 +2,7 @@ package com.simple.common.logs.client.common.event;
 
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -13,6 +14,7 @@ import java.time.LocalDateTime;
  */
 @Data
 public class LogDataEvent implements Serializable {
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

@@ -1,21 +1,21 @@
 package com.simple.common.logs.server.common.properties;
 
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
 
 /**
  * TCP日志服务端配置属性
  *
  * @author qty
  */
-@Data
-@ConfigurationProperties(prefix = "simple.logs.tcp.server")
+@Getter
+@Setter
+@Configuration
+@ConfigurationProperties(prefix = "simple.logs.server")
 public class LogTcpServerProperties {
 
-    /**
-     * 是否启用TCP日志服务
-     */
-    private boolean enabled = true;
 
     /**
      * 服务端监听端口
@@ -50,10 +50,10 @@ public class LogTcpServerProperties {
     /**
      * 日志批量处理大小
      */
-    private int batchSize = 100;
+    private int batchSize = 1000;
 
     /**
      * 读空闲超时时间（秒）
      */
-    private int readerIdleTime = 120;
+    private int readerIdleTime = 10;
 }

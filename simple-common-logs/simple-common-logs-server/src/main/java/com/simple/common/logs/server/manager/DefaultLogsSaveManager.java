@@ -1,39 +1,57 @@
 package com.simple.common.logs.server.manager;
 
+import com.simple.common.core.common.service.thread.ThreadService;
 import com.simple.common.logs.proto.LogDataEvent;
 import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import com.simple.common.logs.server.common.properties.LogTcpServerProperties;
-import com.simple.common.logs.server.common.service.SysOperationLogsService;
+import com.simple.common.logs.server.common.view.SysOperationLogsView;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 默认日志保存管理器
- * 使用内存队列批量保存日志
+ * Created with IntelliJ IDEA
+ * BlockingQueue常见用法
+ * <p>
+ * 插入元素：
+ * add(E e)：添加元素，如果队列满，抛出异常。
+ * offer(E e)：尝试插入元素，如果队列满，则返回 false。
+ * put(E e)：插入元素，如果队列满，阻塞等待。
+ * <p>
+ * 移除元素：
+ * remove()：删除并返回队列头元素，如果队列空则抛出异常。
+ * poll()：尝试移除队列头元素，如果队列为空返回 null。
+ * take()：删除并返回队列头元素，如果队列为空，阻塞等待。
+ * <p>
+ * 检查元素：
+ * peek()：查看队列头元素但不移除，若队列空则返回 null。
  *
  * @author qty
  */
 @Slf4j
 @Component
-public class DefaultLogsSaveManager implements LogsSaveManager {
+public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean {
 
     @Autowired
-    private SysOperationLogsService sysOperationLogsService;
+    private SysOperationLogsView sysOperationLogsView;
 
     @Autowired
-    private LogTcpServerProperties properties;
+    private LogTcpServerProperties logTcpServerProperties;
+
+    @Autowired
+    private ThreadService threadService;
 
     /**
      * 日志数据队列
      */
-    private final LinkedBlockingQueue<LogDataEvent> logQueue = new LinkedBlockingQueue<>(10000);
+    private final LinkedBlockingQueue<LogDataEvent> logQueue = new LinkedBlockingQueue<>(50000);
 
     @Override
     public void addLogData(LogDataEvent logDataEvent) {
@@ -49,45 +67,11 @@ public class DefaultLogsSaveManager implements LogsSaveManager {
         }
     }
 
-    /**
-     * 定时批量保存日志
-     * 默认每5秒执行一次
-     */
-    @Scheduled(fixedRateString = "${simple.logs.tcp.server.batch-interval:5000}")
-    public void scheduledProcessLogs() {
-        processLogs();
-    }
-
     @Override
     public void processLogs() {
-        int batchSize = properties.getBatchSize();
-        List<LogDataEvent> batchList = new ArrayList<>(batchSize);
-        logQueue.drainTo(batchList, batchSize);
-
-        if (batchList.isEmpty()) {
-            return;
-        }
-
-        log.info("开始批量保存日志，数量: {}", batchList.size());
-
-        try {
-            // 转换为实体列表
-            List<SysOperationLogs> logsList = new ArrayList<>();
-            for (LogDataEvent event : batchList) {
-                // 转换为实体对象
-                SysOperationLogs logs = SysOperationLogs.fromLogDataEvent(event);
-                
-                log.debug("保存日志: id={}, operName={}, method={}, status={}", 
-                        logs.getId(), logs.getOperName(), logs.getMethod(), logs.getStatus());
-                logsList.add(logs);
-            }
-
-            // 批量保存
-            sysOperationLogsService.batchSave(logsList);
-            log.info("批量保存日志成功，数量: {}", logsList.size());
-        } catch (Exception e) {
-            log.error("批量保存日志失败", e);
-        }
+        List<LogDataEvent> logsToSave = new ArrayList<>();
+        logQueue.drainTo(logsToSave, logTcpServerProperties.getBatchSize());
+        persistence(logsToSave);
     }
 
     @Override
@@ -96,28 +80,36 @@ public class DefaultLogsSaveManager implements LogsSaveManager {
     }
 
     /**
-     * 将LogDataEvent转换为SysOperationLogs实体
+     * 持久化，可根据需求选择持久化到哪里
+     *
+     * @param logsToSave 数据集合
      */
-    private SysOperationLogs convertToEntity(LogDataEvent event) {
-        SysOperationLogs logs = new SysOperationLogs();
-        if (event.getTraceId() != null) {
-            logs.setTraceId(event.getTraceId());
+    protected void persistence(List<LogDataEvent> logsToSave) {
+        if (!logsToSave.isEmpty()) {
+            List<SysOperationLogs> logsList = new ArrayList<>();
+            for (LogDataEvent event : logsToSave) {
+                SysOperationLogs logs = SysOperationLogs.fromLogDataEvent(event);
+                log.debug("保存日志: id={}, operName={}, method={}, status={}", logs.getId(), logs.getOperName(), logs.getMethod(), logs.getStatus());
+                logsList.add(logs);
+            }
+            sysOperationLogsView.saves(logsList);
+            if (log.isDebugEnabled()) {
+                log.debug("批量保存日志到PG，成功[{}]条", logsToSave.size());
+            }
         }
-        logs.setOperIp(event.getOperIp());
-        logs.setMethod(event.getMethod());
-        logs.setOperUrl(event.getOperUrl());
-        logs.setOperName(event.getOperName());
-        logs.setOperParam(event.getOperParam());
-        logs.setOperResult(event.getOperResult());
-        logs.setErrorMessage(event.getErrorMessage());
-        logs.setOperTime(event.getOperTime());
-        logs.setUserId(event.getUserId());
-        logs.setUserName(event.getUserName());
-        logs.setDeptId(event.getDeptId());
-        logs.setDeptName(event.getDeptName());
-        logs.setRequestMethod(event.getRequestMethod());
-        logs.setOperType(event.getOperType());
-        return logs;
     }
 
+    @Override
+    public void afterPropertiesSet() {
+        threadService.scheduleWithFixedDelay(() -> {
+            try {
+                processLogs();
+            } catch (Exception e) {
+
+                // 处理异常，记录日志等
+                log.error("任务执行失败: {}", e.getMessage());
+            }
+
+        }, logTcpServerProperties.getBatchInterval(), TimeUnit.SECONDS);
+    }
 }

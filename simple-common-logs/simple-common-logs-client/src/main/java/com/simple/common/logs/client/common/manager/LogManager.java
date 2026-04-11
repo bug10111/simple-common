@@ -1,19 +1,30 @@
 package com.simple.common.logs.client.common.manager;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import com.simple.common.logs.client.common.event.LogDataEvent;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 日志生成接口
+ * 日志发送器接口
  *
  * @author qty
  */
 public interface LogManager {
 
     /**
-     * 生成日志
+     * 发送日志数据
+     *
+     * @param logData 日志数据
+     * @return 是否发送成功
      */
-    void create(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex);
+    boolean send(LogDataEvent logData);
+
+    /**
+     * 启动日志客户端
+     */
+    void start();
+
+    /**
+     * 停止日志客户端
+     */
+    void stop();
 
 }

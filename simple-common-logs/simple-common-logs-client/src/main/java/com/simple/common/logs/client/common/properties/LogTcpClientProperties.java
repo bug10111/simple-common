@@ -12,13 +12,10 @@ import org.springframework.stereotype.Component;
  */
 @Getter
 @Setter
+@Component
 @ConfigurationProperties(prefix = "simple.logs.client")
 public class LogTcpClientProperties {
 
-    /**
-     * 是否启用
-     */
-    private boolean enabled = true;
 
     /**
      * 服务端主机地址

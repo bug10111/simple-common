@@ -1,4 +1,4 @@
-package com.simple.common.logs.client.manager;
+package com.simple.common.logs.client.service;
 
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.ContentType;
@@ -8,7 +8,7 @@ import com.simple.common.logs.client.common.event.LogDataEvent;
 import com.simple.common.logs.client.common.httpservletrequest.CachedBodyHttpServletRequest;
 import com.simple.common.logs.client.common.manager.LogManager;
 import com.simple.common.logs.client.common.manager.LogUserManager;
-import com.simple.common.logs.client.common.manager.LogSenderManager;
+import com.simple.common.logs.client.common.service.LogService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
@@ -29,17 +29,17 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class DefaultLogManager implements LogManager {
+public class DefaultLogService implements LogService {
 
     @Autowired(required = false)
     private LogUserManager logUserManager;
 
     @Autowired(required = false)
-    private LogSenderManager logSenderManager;
+    private LogManager logManager;
 
     @Override
     @SneakyThrows
-    public void create(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+    public void send(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
 
         //构建请求对象
         LogDataEvent logDataEvent = new LogDataEvent();
@@ -101,11 +101,21 @@ public class DefaultLogManager implements LogManager {
         logDataEvent.setCreateTime(LocalDateTime.now());
 
         // 发送日志数据
-        if (logSenderManager != null) {
-            logSenderManager.send(logDataEvent);
+        if (logManager != null) {
+            logManager.send(logDataEvent);
         } else {
             log.warn("LogSender未初始化，日志数据将不会发送");
         }
+    }
+
+    @Override
+    public void start() {
+        logManager.start();
+    }
+
+    @Override
+    public void stop() {
+        logManager.stop();
     }
 
     /**

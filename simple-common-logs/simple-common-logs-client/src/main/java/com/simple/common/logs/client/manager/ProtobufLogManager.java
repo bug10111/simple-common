@@ -2,11 +2,12 @@ package com.simple.common.logs.client.manager;
 
 import com.simple.common.logs.client.common.converter.LogDataConverter;
 import com.simple.common.logs.client.common.event.LogDataEvent;
-import com.simple.common.logs.client.common.manager.LogSenderManager;
+import com.simple.common.logs.client.common.manager.LogManager;
 import com.simple.common.logs.client.common.tcp.LogProtobufTcpClient;
 import com.simple.common.logs.proto.LogData;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 /**
  * Protobuf 日志发送管理器
@@ -15,10 +16,11 @@ import lombok.extern.slf4j.Slf4j;
  * @author Admin
  */
 @Slf4j
-@RequiredArgsConstructor
-public class ProtobufLogSenderManager implements LogSenderManager {
+@Component
+public class ProtobufLogManager implements LogManager {
 
-    private final LogProtobufTcpClient tcpClient;
+    @Autowired
+    private LogProtobufTcpClient tcpClient;
 
     @Override
     public boolean send(LogDataEvent event) {
@@ -34,17 +36,13 @@ public class ProtobufLogSenderManager implements LogSenderManager {
         }
     }
 
-    /**
-     * 关闭客户端
-     */
-    public void shutdown() {
-        tcpClient.shutdown();
+    @Override
+    public void start() {
+        tcpClient.start();
     }
 
-    /**
-     * 检查客户端是否活跃
-     */
-    public boolean isActive() {
-        return tcpClient.isActive();
+    @Override
+    public void stop() {
+        tcpClient.shutdown();
     }
 }

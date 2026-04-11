@@ -8,8 +8,11 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 
@@ -19,64 +22,54 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Admin
  */
+@Slf4j
+@Configuration
 public class LogProtobufTcpServer {
 
-    private static final Logger log = LoggerFactory.getLogger(LogProtobufTcpServer.class);
-
+    @Autowired
     private LogTcpServerProperties properties;
+
+    @Autowired
     private LogsSaveManager logsSaveManager;
+
     private EventLoopGroup bossGroup;
+
     private EventLoopGroup workerGroup;
+
     private Channel serverChannel;
-
-    public LogProtobufTcpServer() {
-    }
-
-    public LogProtobufTcpServer(LogTcpServerProperties properties, LogsSaveManager logsSaveManager) {
-        this.properties = properties;
-        this.logsSaveManager = logsSaveManager;
-    }
-
-    public void setProperties(LogTcpServerProperties properties) {
-        this.properties = properties;
-    }
-
-    public void setLogsSaveManager(LogsSaveManager logsSaveManager) {
-        this.logsSaveManager = logsSaveManager;
-    }
 
     /**
      * 启动服务端
      */
+    @PostConstruct
     public void start() {
         bossGroup = new NioEventLoopGroup(1);
         workerGroup = new NioEventLoopGroup();
-        
+
         try {
             ServerBootstrap bootstrap = new ServerBootstrap();
             bootstrap.group(bossGroup, workerGroup)
-                    .channel(NioServerSocketChannel.class)
-                    .option(ChannelOption.SO_BACKLOG, 128)
-                    .option(ChannelOption.SO_REUSEADDR, true)
-                    .childOption(ChannelOption.SO_KEEPALIVE, true)
-                    .childOption(ChannelOption.TCP_NODELAY, true)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel ch) throws Exception {
-                            ChannelPipeline pipeline = ch.pipeline();
-                            
-                            // 心跳检测
-                            pipeline.addLast("idleStateHandler", 
-                                    new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.MILLISECONDS));
-                            
-                            // Protobuf 编解码器
-                            pipeline.addLast("decoder", new LogProtobufDecoder());
-                            pipeline.addLast("encoder", new LogResponseEncoder());
-                            
-                            // 业务处理器
-                            pipeline.addLast("handler", new LogProtobufServerHandler(logsSaveManager));
-                        }
-                    });
+                     .channel(NioServerSocketChannel.class)
+                     .option(ChannelOption.SO_BACKLOG, 128)
+                     .option(ChannelOption.SO_REUSEADDR, true)
+                     .childOption(ChannelOption.SO_KEEPALIVE, true)
+                     .childOption(ChannelOption.TCP_NODELAY, true)
+                     .childHandler(new ChannelInitializer<SocketChannel>() {
+                         @Override
+                         protected void initChannel(SocketChannel ch) throws Exception {
+                             ChannelPipeline pipeline = ch.pipeline();
+
+                             // 心跳检测
+                             pipeline.addLast("idleStateHandler", new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.MILLISECONDS));
+
+                             // Protobuf 编解码器
+                             pipeline.addLast("decoder", new LogProtobufDecoder());
+                             pipeline.addLast("encoder", new LogResponseEncoder());
+
+                             // 业务处理器
+                             pipeline.addLast("handler", new LogProtobufServerHandler(logsSaveManager));
+                         }
+                     });
 
             // 绑定端口
             ChannelFuture future = bootstrap.bind(properties.getPort()).sync();
@@ -91,6 +84,7 @@ public class LogProtobufTcpServer {
     /**
      * 关闭服务端
      */
+    @PreDestroy
     public void shutdown() {
         if (serverChannel != null) {
             serverChannel.close();

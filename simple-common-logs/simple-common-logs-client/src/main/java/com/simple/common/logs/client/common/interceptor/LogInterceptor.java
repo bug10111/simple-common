@@ -1,6 +1,6 @@
 package com.simple.common.logs.client.common.interceptor;
 
-import com.simple.common.logs.client.common.manager.LogManager;
+import com.simple.common.logs.client.common.service.LogService;
 import com.simple.common.logs.client.common.constant.LogConstant;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -20,7 +20,7 @@ import org.springframework.web.servlet.HandlerInterceptor;
 public class LogInterceptor implements HandlerInterceptor {
 
     @Autowired
-    private LogManager logManager;
+    private LogService logService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
@@ -36,7 +36,7 @@ public class LogInterceptor implements HandlerInterceptor {
     @Override
     public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
         if (!"OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            logManager.create(request, response, handler, ex);
+            logService.send(request, response, handler, ex);
         }
     }
 }
