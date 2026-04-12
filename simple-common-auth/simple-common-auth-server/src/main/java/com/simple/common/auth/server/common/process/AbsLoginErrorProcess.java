@@ -1,45 +1,53 @@
 package com.simple.common.auth.server.common.process;
 
 import com.simple.common.auth.server.common.entity.ClientDetails;
-
 import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.server.common.enums.process.LoginErrorKindProcess;
-import com.simple.common.auth.server.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 登录异常处理抽象基类
+ * 登录异常处理抽象基类。
  *
- * @author qty
+ * @author qty (修复版本)
  */
 @Slf4j
 public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
 
     @Autowired
+    @Qualifier("authCacheManager")
     protected CacheManager cacheManager;
 
     @Autowired
     protected AuthProperties authProperties;
 
     /**
-     * 获取登录标识key（如账号、IP等）
+     * 获取登录标识 key（如账号、IP 等）。
      *
      * @param clientDetails 客户端信息
      * @param adapter       登录参数
-     * @param ip            请求IP
-     * @return 标识key
+     * @param ip            请求 IP
+     * @return 标识 key
      */
     protected abstract String getLoginKey(ClientDetails clientDetails, Object adapter, String ip);
 
     /**
-     * 获取Redis存储key的前缀
+     * 获取 Redis 存储 key 的前缀。
      *
      * @return 前缀
      */
     protected abstract String getKeyPrefix();
 
+    /**
+     * 检查登录失败次数是否超限。
+     *
+     * @param clientDetails 客户端信息
+     * @param adapter       登录参数
+     * @param ip            请求 IP
+     * @return true 未超限，false 已超限
+     */
     @Override
     public boolean checkErrorNum(ClientDetails clientDetails, Object adapter, String ip) {
         String key = getKeyPrefix() + getLoginKey(clientDetails, adapter, ip);
@@ -51,16 +59,30 @@ public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
         return true;
     }
 
+    /**
+     * 记录登录失败。
+     *
+     * @param clientDetails 客户端信息
+     * @param adapter       登录参数
+     * @param ip            请求 IP
+     */
     @Override
     public void recordError(ClientDetails clientDetails, Object adapter, String ip) {
         String key = getKeyPrefix() + getLoginKey(clientDetails, adapter, ip);
-        Long increment = cacheManager.increment(key, 1);
-        if (increment != null && increment == 1) {
+        Long increment = cacheManager.increment(key, 1L);
+        if (increment != null && increment >= 1) {
             cacheManager.expire(key, authProperties.getLoginErrorTime());
         }
         log.debug("登录失败记录已更新，key: {}, 次数: {}", key, increment);
     }
 
+    /**
+     * 清除登录失败记录（登录成功后调用）。
+     *
+     * @param clientDetails 客户端信息
+     * @param adapter       登录参数
+     * @param ip            请求 IP
+     */
     @Override
     public void clearError(ClientDetails clientDetails, Object adapter, String ip) {
         String key = getKeyPrefix() + getLoginKey(clientDetails, adapter, ip);

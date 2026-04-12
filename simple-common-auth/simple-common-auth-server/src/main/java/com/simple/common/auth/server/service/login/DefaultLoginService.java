@@ -106,8 +106,8 @@ public class DefaultLoginService implements LoginService {
         //校验客户端
         HttpServletRequest request = HttpServletUtils.getRequest();
         ClientDetails clientDetails = clientDetailsService.getClientDetails(request);
-        AssertUtils.isTrue(clientDetails.getClientId().equals(((HashSet<?>) payload.get(TokenConstant.audKey)).toArray()[0]),
-                           LoginException.RE_LOGIN_EXPIRED);
+        String clientIdFromToken = ((HashSet<?>) payload.get(TokenConstant.audKey)).toArray()[0].toString();
+        AssertUtils.isTrue(Objects.equals(clientDetails.getClientId(), clientIdFromToken), LoginException.RE_LOGIN_EXPIRED, "客户端ID不匹配");
 
         //获取内省数据
         Map<Object, Object> userInfo = loginUserOperationManager.getUserInfo(jti);
@@ -132,7 +132,7 @@ public class DefaultLoginService implements LoginService {
         loginReturn.put(TokenConstant.accessTokenKey, accessToken);
         loginReturn.put(TokenConstant.refreshTokenKey, refreshToken);
         loginReturn.put(TokenConstant.expKey, tokenData.getAccessTokenMap().get(TokenConstant.expKey).toString());
-        loginReturn.put(TokenConstant.scopesKey, tokenData.getSaveInfoMap().get(TokenConstant.scopesKey));
+        loginReturn.put(TokenConstant.scopesKey, tokenData.getSaveInfoMap().get(TokenConstant.scopesKey).toString());
 
         //更新用户信息
         loginUserOperationManager.saveUserInfo(tokenData, false);

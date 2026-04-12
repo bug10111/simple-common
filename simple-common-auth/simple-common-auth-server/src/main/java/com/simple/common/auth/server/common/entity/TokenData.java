@@ -30,7 +30,7 @@ public class TokenData {
     private Map<String, Object> refreshTokenMap = new HashMap<>();
 
     @Schema(description = "内省数据对象")
-    private Map<String, String> saveInfoMap = new HashMap<>();
+    private Map<Object, Object> saveInfoMap = new HashMap<>();
 
     /**
      * 获取token载荷

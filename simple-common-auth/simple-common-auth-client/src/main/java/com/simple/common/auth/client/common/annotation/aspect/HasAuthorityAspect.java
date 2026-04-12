@@ -18,7 +18,9 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * Created with IntelliJ IDEA
+ * 权限注解切面。
+ * <p>
+ * 调用 LoginInfoManager.hasAuth 进行权限校验，内部已优化为本地缓存优先。
  *
  * @author qty
  */
@@ -30,26 +32,29 @@ public class HasAuthorityAspect {
     @Autowired
     private ClientAuthInfo clientAuthInfo;
 
+    @Qualifier("clientLoginInfoManager")
     @Autowired
     private LoginInfoManager loginInfoManager;
 
+    /**
+     * 前置通知：校验方法上的 @HasAuthority 注解。
+     *
+     * @param joinPoint 切点
+     */
     @Before("@annotation(com.simple.common.auth.client.common.annotation.HasAuthority)")
     public void before(JoinPoint joinPoint) {
-
         boolean login = clientAuthInfo.getLogin();
         boolean authentication = clientAuthInfo.getAuthentication();
 
         if (login && authentication) {
-
-            //获取注解先关参数
             MethodSignature signature = (MethodSignature) joinPoint.getSignature();
             Method method = signature.getMethod();
             HasAuthority hasAuthority = method.getAnnotation(HasAuthority.class);
             String[] value = hasAuthority.value();
+
             Boolean hasAuth = loginInfoManager.hasAuth(LoginUserUtils.getUserTemporary().getLoginRole(), value);
 
             AssertUtils.isTrue(hasAuth, LoginException.INSUFFICIENT_PERMISSIONS);
         }
     }
-
 }

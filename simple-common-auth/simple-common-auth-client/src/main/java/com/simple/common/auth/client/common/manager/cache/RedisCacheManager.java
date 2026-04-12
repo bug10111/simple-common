@@ -7,9 +7,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Redis缓存管理器实现
+ * Redis 缓存管理器实现。
  *
- * @author Admin
+ * @author Admin (优化版本)
  */
 public class RedisCacheManager implements CacheManager {
 
@@ -42,7 +42,7 @@ public class RedisCacheManager implements CacheManager {
     @Override
     public boolean hasKey(String key) {
         Boolean hasKey = redisTemplate.hasKey(key);
-        return hasKey;
+        return hasKey != null && hasKey;
     }
 
     @Override
@@ -52,12 +52,23 @@ public class RedisCacheManager implements CacheManager {
 
     @Override
     public long getExpire(String key) {
-        return redisTemplate.getExpire(key, TimeUnit.SECONDS);
+        Long expire = redisTemplate.getExpire(key, TimeUnit.SECONDS);
+        return expire != null ? expire : -2;
+    }
+
+    @Override
+    public void expire(String key, long timeout, TimeUnit unit) {
+        redisTemplate.expire(key, timeout, unit);
     }
 
     @Override
     public Long increment(String key, long delta) {
         return redisTemplate.opsForValue().increment(key, delta);
+    }
+
+    @Override
+    public Long decrement(String key, long delta) {
+        return redisTemplate.opsForValue().decrement(key, delta);
     }
 
     @Override

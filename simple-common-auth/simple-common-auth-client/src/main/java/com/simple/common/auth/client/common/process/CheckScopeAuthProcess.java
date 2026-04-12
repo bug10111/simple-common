@@ -14,10 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.HashSet;
-import java.util.HashSet;
 
 /**
- * Created with IntelliJ IDEA
+ * 授权范围校验处理器。
+ * <p>
+ * 修复：移除重复的 HashSet 导入。
  *
  * @author qty
  */
@@ -34,15 +35,16 @@ public class CheckScopeAuthProcess implements AuthProcess {
     }
 
     @Override
-    public void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr) {
-
-        //需要鉴权
+    public void execute(HttpServletRequest request, HttpServletResponse response,
+                        String token, String path, String ipAddr) {
+        // 需要鉴权
         if (clientAuthInfo.getAuthentication()) {
             HashSet<String> scopes = LoginUserUtils.getUserTemporary().getScopes();
 
-            //判断授权范围
+            // 判断授权范围
             if (!CollectionUtils.matches(clientAuthInfo.getScope(), scopes)) {
-                AssertUtils.error(LoginException.INSUFFICIENT_PERMISSIONS, "授权范围权限不足", "URL==>[{}]请求被拦截！授权范围权限不足！", path);
+                AssertUtils.error(LoginException.INSUFFICIENT_PERMISSIONS,
+                                  "授权范围权限不足", "URL==>[{}]请求被拦截！授权范围权限不足！", path);
             }
         }
     }

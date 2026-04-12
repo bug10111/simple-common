@@ -1,6 +1,7 @@
 package com.simple.common.auth.client.common.entity.auth;
 
 import lombok.Getter;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;

@@ -1,7 +1,6 @@
 package com.simple.common.auth.client.common.manager.cache;
 
 import com.simple.common.auth.client.common.enums.CacheTypeEnum;
-import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
@@ -21,10 +20,10 @@ public class CacheManagerFactory {
      * @return 缓存管理器
      */
     public static CacheManager createCacheManager(CacheTypeEnum cacheType,
-                                                   StringRedisTemplate redisTemplate,
-                                                   LocalCacheFactory localCacheFactory) {
+                                                  StringRedisTemplate redisTemplate,
+                                                  LocalCacheFactory localCacheFactory) {
         if (cacheType == CacheTypeEnum.LOCAL) {
-            return new LocalCacheManager(localCacheFactory);
+            return new LocalCacheManager();
         } else {
             return new RedisCacheManager(redisTemplate);
         }

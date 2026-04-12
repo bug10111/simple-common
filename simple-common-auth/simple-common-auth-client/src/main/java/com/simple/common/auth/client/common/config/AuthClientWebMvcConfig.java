@@ -16,7 +16,7 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
  */
 @Service
 @Configuration
-public class WebMvcConfig extends DefaultWebMvcConfigurer {
+public class AuthClientWebMvcConfig extends DefaultWebMvcConfigurer {
 
     @Autowired
     private CookieProcessingHandlerInterceptor cookieProcessingHandlerInterceptor;
@@ -32,12 +32,4 @@ public class WebMvcConfig extends DefaultWebMvcConfigurer {
         registry.addInterceptor(cookieProcessingHandlerInterceptor).addPathPatterns("/**").order(1);
         registry.addInterceptor(authHandlerInterceptor).addPathPatterns("/**").order(2);
     }
-
-    //    /**
-    //     * 静态资源配置
-    //     */
-    //    @Override
-    //    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    //        registry.addResourceHandler("/**").addResourceLocations("classpath:/static/");
-    //    }
 }

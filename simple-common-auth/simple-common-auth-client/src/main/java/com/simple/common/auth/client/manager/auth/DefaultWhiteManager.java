@@ -1,38 +1,55 @@
 package com.simple.common.auth.client.manager.auth;
 
+import cn.hutool.core.util.ObjUtil;
+import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
+import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.auth.WhiteManager;
-import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.core.utils.JsonUtils;
+import com.simple.common.core.utils.UrlRulesUtils;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA
- * <p>
- * 默认白名单管理器实现
  *
  * @author qty
  */
+@Slf4j
 @Component
 public class DefaultWhiteManager implements WhiteManager {
 
-    private static final String WHITE_LIST_KEY = "auth:white:list";
-    
-    private final CacheManager cacheManager;
-
-    public DefaultWhiteManager(CacheManager authCacheManager) {
-        this.cacheManager = authCacheManager;
-    }
+    @Autowired
+    private ClientAuthInfo clientAuthInfo;
 
     @Override
-    public void addWhiteList(Set<String> urls) {
-        for (String url : urls) {
-            cacheManager.set(WHITE_LIST_KEY + ":" + url, "1");
+    public void checkWhiteIp(String path, String ipAddr) {
+
+        //获取需要限制IP的路由
+        Set<String> paths = clientAuthInfo.getIpMap().keySet();
+
+        //有ip限制
+        if (ObjUtil.isNotEmpty(paths)) {
+
+            paths.forEach(s -> {
+
+                //当前请求处于限制范围
+                if (UrlRulesUtils.isMatch(s, path)) {
+
+                    //获取允许的IP地址
+                    HashSet<String> strings = clientAuthInfo.getIpMap().get(s);
+
+                    //不包含，不允许通行
+                    if (ObjUtil.isEmpty(strings) || !strings.contains(ipAddr)) {
+                        log.error("[{}]==>[{}]被拦截", JsonUtils.toJsonStr(strings), ipAddr);
+                        AssertUtils.error(LoginException.INSUFFICIENT_PERMISSIONS);
+                    }
+                }
+            });
         }
-    }
-
-    @Override
-    public boolean isWhite(String url) {
-        return cacheManager.hasKey(WHITE_LIST_KEY + ":" + url);
     }
 }
