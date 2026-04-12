@@ -14,10 +14,4 @@ import org.springframework.context.annotation.Configuration;
 @ComponentScan(basePackages = { "com.simple.common.cache" })
 public class CacheConfig {
 
-    @Bean
-    @SuppressWarnings("rawtypes")
-    public LocalCacheFactory<?, ?> localCacheFactory(){
-        return new LocalCacheFactory();
-    }
-
 }
