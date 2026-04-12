@@ -2,14 +2,10 @@ package com.simple.common.logs.server.manager;
 
 import com.simple.common.core.common.service.thread.ThreadService;
 import com.simple.common.logs.client.common.event.LogDataEvent;
-import com.simple.common.logs.server.common.entity.SysOperationLogs;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import com.simple.common.logs.server.common.properties.LogTcpServerProperties;
-import com.simple.common.logs.server.common.view.SysOperationLogsView;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -36,17 +32,11 @@ import java.util.concurrent.TimeUnit;
  * @author qty
  */
 @Slf4j
-@Component
-public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean {
+public abstract class AbsLogsSaveManager implements LogsSaveManager, InitializingBean {
 
-    @Autowired
-    private SysOperationLogsView sysOperationLogsView;
+    protected abstract LogTcpServerProperties getProperties();
 
-    @Autowired
-    private LogTcpServerProperties logTcpServerProperties;
-
-    @Autowired
-    private ThreadService threadService;
+    protected abstract ThreadService getThreadService();
 
     /**
      * 日志数据队列
@@ -70,7 +60,7 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
     @Override
     public void processLogs() {
         List<LogDataEvent> logsToSave = new ArrayList<>();
-        logQueue.drainTo(logsToSave, logTcpServerProperties.getBatchSize());
+        logQueue.drainTo(logsToSave, getProperties().getBatchSize());
         if (!logsToSave.isEmpty()) {
             persistence(logsToSave);
         }
@@ -86,24 +76,11 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
      *
      * @param logsToSave 数据集合
      */
-    protected void persistence(List<LogDataEvent> logsToSave) {
-        if (!logsToSave.isEmpty()) {
-            List<SysOperationLogs> logsList = new ArrayList<>();
-            for (LogDataEvent event : logsToSave) {
-                SysOperationLogs logs = SysOperationLogs.fromLogDataEvent(event);
-                log.debug("保存日志: id={}, operName={}, method={}, status={}", logs.getId(), logs.getOperName(), logs.getMethod(), logs.getStatus());
-                logsList.add(logs);
-            }
-            sysOperationLogsView.saves(logsList);
-            if (log.isDebugEnabled()) {
-                log.debug("批量保存日志到PG，成功[{}]条", logsToSave.size());
-            }
-        }
-    }
+    protected abstract void persistence(List<LogDataEvent> logsToSave);
 
     @Override
     public void afterPropertiesSet() {
-        threadService.scheduleWithFixedDelay(() -> {
+        getThreadService().scheduleWithFixedDelay(() -> {
             try {
                 processLogs();
             } catch (Exception e) {
@@ -112,6 +89,6 @@ public class DefaultLogsSaveManager implements LogsSaveManager, InitializingBean
                 log.error("任务执行失败: {}", e.getMessage());
             }
 
-        }, logTcpServerProperties.getBatchInterval(), TimeUnit.SECONDS);
+        }, getProperties().getBatchInterval(), TimeUnit.SECONDS);
     }
 }
