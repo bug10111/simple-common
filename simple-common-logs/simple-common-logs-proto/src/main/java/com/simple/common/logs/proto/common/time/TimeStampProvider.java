@@ -6,7 +6,7 @@ import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -29,6 +29,11 @@ public class TimeStampProvider {
     private final AtomicLong currentTimestamp = new AtomicLong(System.currentTimeMillis());
 
     /**
+     * 定时更新任务的 Future，用于在销毁时取消任务
+     */
+    private ScheduledFuture<?> scheduledFuture;
+
+    /**
      * 获取当前缓存的时间戳（毫秒）
      * <p>
      * 精度为秒级，适用于日志记录场景。
@@ -45,8 +50,8 @@ public class TimeStampProvider {
      */
     @PostConstruct
     public void start() {
-        // 定时批量处理（单位：毫秒）
-        ThreadUtils.scheduleWithFixedDelay(() -> {
+        // 定时批量处理（单位：毫秒），保存 Future 以便关闭时取消
+        scheduledFuture = ThreadUtils.scheduleWithFixedDelayFuture(() -> {
             try {
                 currentTimestamp.set(System.currentTimeMillis());
             } catch (Exception e) {
@@ -54,5 +59,17 @@ public class TimeStampProvider {
             }
         }, 1, TimeUnit.SECONDS);
         log.debug("TimeStampProvider 已启动");
+    }
+
+    /**
+     * 停止定时任务，释放资源
+     */
+    @PreDestroy
+    public void stop() {
+        if (scheduledFuture != null) {
+            scheduledFuture.cancel(false);
+            log.debug("TimeStampProvider 定时任务已取消");
+        }
+        log.debug("TimeStampProvider 已停止");
     }
 }

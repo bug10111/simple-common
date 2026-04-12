@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
@@ -76,9 +77,14 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
     private final AtomicBoolean running = new AtomicBoolean(true);
 
     /**
-     * WAL 恢复线程
+     * 定时批量处理任务的 Future（用于关闭时取消）
      */
-    private Thread walRecoveryThread;
+    private ScheduledFuture<?> processLogsFuture;
+
+    /**
+     * WAL 恢复定时任务的 Future（用于关闭时取消）
+     */
+    private ScheduledFuture<?> walRecoveryFuture;
 
     @Override
     public void saveLog(LogDataEvent logDataEvent) {
@@ -213,44 +219,27 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
     @Override
     public void afterPropertiesSet() {
-        // 定时批量处理（单位：毫秒）
-        ThreadUtils.scheduleWithFixedDelay(() -> {
+        // 1. 启动定时批量处理任务（处理内存队列中的日志）
+        processLogsFuture = ThreadUtils.scheduleWithFixedDelayFuture(() -> {
             try {
                 processLogs();
             } catch (Exception e) {
-                log.error("任务执行失败: {}", e.getMessage());
+                log.error("批量处理任务执行失败", e);
             }
         }, getProperties().getBatchInterval(), TimeUnit.MILLISECONDS);
+        log.info("日志批量处理任务已启动，间隔: {} ms", getProperties().getBatchInterval());
 
-        // 启动 WAL 恢复线程
+        // 2. 启动 WAL 恢复定时任务（扫描并重试已轮转的 WAL 文件）
         if (getProperties().isWalEnabled() && getProperties().isWalRecoveryEnabled()) {
-            walRecoveryThread = new Thread(this::walRecoveryLoop, "WAL-Recovery");
-            walRecoveryThread.setDaemon(true);
-            walRecoveryThread.start();
-            log.info("WAL 恢复线程已启动，扫描间隔: {} ms", getProperties().getWalRecoveryInterval());
+            walRecoveryFuture = ThreadUtils.scheduleWithFixedDelayFuture(() -> {
+                try {
+                    recoverWalFiles();
+                } catch (Exception e) {
+                    log.error("WAL 恢复任务执行失败", e);
+                }
+            }, getProperties().getWalRecoveryInterval(), TimeUnit.MILLISECONDS);
+            log.info("WAL 恢复任务已启动，扫描间隔: {} ms", getProperties().getWalRecoveryInterval());
         }
-    }
-
-    /**
-     * WAL 恢复循环
-     * <p>
-     * 定期扫描 WAL 目录下已轮转的文件，尝试将其中的日志重新持久化。
-     * </p>
-     */
-    private void walRecoveryLoop() {
-        while (running.get()) {
-            try {
-                recoverWalFiles();
-                Thread.sleep(getProperties().getWalRecoveryInterval());
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("WAL 恢复线程被中断");
-                break;
-            } catch (Exception e) {
-                log.error("WAL 恢复循环异常", e);
-            }
-        }
-        log.info("WAL 恢复线程退出");
     }
 
     /**
@@ -292,7 +281,7 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
-                // 修正：将 Path 转换为 String
+                // 将 Path 转换为 String
                 LogDataEvent event = parseWalLine(line, file.getFileName().toString(), lineNumber);
                 if (event == null) {
                     deadCount++;
@@ -398,14 +387,18 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
     @PreDestroy
     public void shutdown() {
         running.set(false);
-        if (walRecoveryThread != null) {
-            try {
-                walRecoveryThread.join(5000);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                log.warn("等待 WAL 恢复线程结束时被中断");
-            }
+
+        // 取消定时任务
+        if (processLogsFuture != null) {
+            processLogsFuture.cancel(false);
+            log.debug("批量处理定时任务已取消");
         }
+        if (walRecoveryFuture != null) {
+            walRecoveryFuture.cancel(false);
+            log.debug("WAL 恢复定时任务已取消");
+        }
+
+        // 关闭 WAL 写入器
         walLock.lock();
         try {
             if (walWriter != null) {

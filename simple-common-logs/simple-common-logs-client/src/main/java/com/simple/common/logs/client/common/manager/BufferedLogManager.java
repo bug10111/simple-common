@@ -230,6 +230,7 @@ public class BufferedLogManager implements LogManager {
      * 降级写入本地文件
      * <p>
      * 将日志事件序列化为 JSON 行写入降级文件，保证即使 TCP 不可用也不丢数据。
+     * 若写入器未初始化或已关闭，会尝试重新初始化。
      * </p>
      *
      * @param event 日志事件
@@ -237,8 +238,14 @@ public class BufferedLogManager implements LogManager {
     private void writeToFallback(LogDataEvent event) {
         fallbackLock.lock();
         try {
+            // 若写入器为空，尝试重新初始化（处理初始化失败或异常关闭的场景）
             if (fallbackWriter == null) {
-                return;
+                try {
+                    initFallbackDirectory();
+                } catch (Exception e) {
+                    log.error("降级目录重新初始化失败，无法写入降级日志", e);
+                    return;
+                }
             }
             // 使用 Hutool JSON 序列化
             String json = JSONUtil.toJsonStr(event);
@@ -253,6 +260,15 @@ public class BufferedLogManager implements LogManager {
 
         } catch (IOException e) {
             log.error("降级写入失败", e);
+            // 写入异常时关闭并置空写入器，下次写入时重新初始化
+            try {
+                if (fallbackWriter != null) {
+                    fallbackWriter.close();
+                }
+            } catch (IOException ex) {
+                // 忽略关闭异常
+            }
+            fallbackWriter = null;
         } finally {
             fallbackLock.unlock();
         }
