@@ -3,10 +3,7 @@ package com.simple.common.core.utils;
 import cn.hutool.extra.spring.SpringUtil;
 import com.simple.common.core.common.service.thread.ThreadService;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 /**
@@ -35,8 +32,6 @@ import java.util.function.Supplier;
  */
 public class ThreadUtils {
 
-    private static volatile ThreadService threadService;
-
     /**
      * 异步执行任务，并使用高性能线程池
      *
@@ -62,7 +57,19 @@ public class ThreadUtils {
      * @param timeUnit 时间单位
      */
     public static void schedule(Runnable runnable, long time, TimeUnit timeUnit) {
-        getScheduledThreadPoolExecutor().schedule(runnable, time, timeUnit);
+        getThreadService().schedule(runnable, time, timeUnit);
+    }
+
+    /**
+     * 延时执行任务，并返回 ScheduledFuture 用于取消或检查状态
+     *
+     * @param runnable 任务
+     * @param time     延迟时间
+     * @param timeUnit 时间单位
+     * @return ScheduledFuture 对象，可用于取消任务
+     */
+    public static ScheduledFuture<?> scheduleWithFuture(Runnable runnable, long time, TimeUnit timeUnit) {
+        return getThreadService().schedule(runnable, time, timeUnit);
     }
 
     /**
@@ -74,7 +81,20 @@ public class ThreadUtils {
      * @param timeUnit    时间单位
      */
     public static void scheduleWithFixedDelay(Runnable runnable, long initialTime, long fixedTime, TimeUnit timeUnit) {
-        getScheduledThreadPoolExecutor().scheduleWithFixedDelay(runnable, initialTime, fixedTime, timeUnit);
+        getThreadService().scheduleWithFixedDelay(runnable, initialTime, fixedTime, timeUnit);
+    }
+
+    /**
+     * 定期以固定速率执行任务，并返回 ScheduledFuture 用于取消或检查状态
+     *
+     * @param runnable     任务
+     * @param initialDelay 初始延迟时间
+     * @param delay        任务完成后每delay时间执行一次
+     * @param timeUnit     时间单位
+     * @return ScheduledFuture 对象，可用于取消任务
+     */
+    public static ScheduledFuture<?> scheduleWithFixedDelayFuture(Runnable runnable, long initialDelay, long delay, TimeUnit timeUnit) {
+        return getThreadService().scheduleWithFixedDelay(runnable, initialDelay, delay, timeUnit);
     }
 
     /**
@@ -86,6 +106,47 @@ public class ThreadUtils {
      */
     public static void scheduleWithFixedDelay(Runnable runnable, long fixedTime, TimeUnit timeUnit) {
         scheduleWithFixedDelay(runnable, 0, fixedTime, timeUnit);
+    }
+
+    /**
+     * 定期以固定速率执行任务，并返回 ScheduledFuture 用于取消或检查状态
+     *
+     * @param runnable 任务
+     * @param delay    任务完成后每delay时间执行一次
+     * @param timeUnit 时间单位
+     * @return ScheduledFuture 对象，可用于取消任务
+     */
+    public static ScheduledFuture<?> scheduleWithFixedDelayFuture(Runnable runnable, long delay, TimeUnit timeUnit) {
+        return getThreadService().scheduleWithFixedDelay(runnable, 0, delay, timeUnit);
+    }
+
+    /**
+     * 定期以固定速率执行任务，并自动捕获任务内部异常，保证单次失败后周期性调度继续。
+     * <p>
+     * 注意：此方法内部已包含 try-catch，使用者无需再自行处理异常，
+     * 但业务异常将被记录日志，不会向上抛出。
+     * </p>
+     *
+     * @param runnable     原始任务
+     * @param initialDelay 初始延迟时间
+     * @param delay        任务完成后每delay时间执行一次
+     * @param timeUnit     时间单位
+     * @return ScheduledFuture 对象，可用于取消任务
+     */
+    public static ScheduledFuture<?> scheduleWithFixedDelaySafe(Runnable runnable, long initialDelay, long delay, TimeUnit timeUnit) {
+        return getThreadService().scheduleWithFixedDelaySafe(runnable, initialDelay, delay, timeUnit);
+    }
+
+    /**
+     * 定期以固定速率执行任务（无初始延迟），并自动捕获任务内部异常，保证单次失败后周期性调度继续。
+     *
+     * @param runnable 原始任务
+     * @param delay    任务完成后每delay时间执行一次
+     * @param timeUnit 时间单位
+     * @return ScheduledFuture 对象，可用于取消任务
+     */
+    public static ScheduledFuture<?> scheduleWithFixedDelaySafe(Runnable runnable, long delay, TimeUnit timeUnit) {
+        return scheduleWithFixedDelaySafe(runnable, 0, delay, timeUnit);
     }
 
     /**
@@ -102,20 +163,45 @@ public class ThreadUtils {
         return getThreadService().getAsyncExecutor();
     }
 
+    // ==================== 监控方法 ====================
+
+    /**
+     * 获取定时调度线程池的队列大小
+     *
+     * @return 当前等待执行的任务数量
+     */
+    public static int getScheduledQueueSize() {
+        return getThreadService().getScheduledQueueSize();
+    }
+
+    /**
+     * 获取异步线程池的活跃线程数
+     *
+     * @return 当前正在执行任务的线程数
+     */
+    public static int getAsyncActiveCount() {
+        return getThreadService().getAsyncActiveCount();
+    }
+
+    /**
+     * 获取异步线程池的队列大小
+     *
+     * @return 当前等待执行的任务数量
+     */
+    public static int getAsyncQueueSize() {
+        return getThreadService().getAsyncQueueSize();
+    }
 
     /**
      * 获取 ThreadService
+     * <p>
+     * 注意：每次调用均从 Spring 容器获取最新 Bean，不进行静态缓存，
+     * 以避免容器刷新或关闭后引用失效的问题。
+     * </p>
      */
     private static ThreadService getThreadService() {
-        if (threadService == null) {
-            synchronized (ThreadUtils.class) {
-                if (threadService == null) {
-                    ThreadService bean = SpringUtil.getBean(ThreadService.class);
-                    AssertUtils.notEmpty(bean, "ThreadService 未加载，请在spring初始化完成后使用");
-                    threadService = bean;
-                }
-            }
-        }
-        return threadService;
+        ThreadService bean = SpringUtil.getBean(ThreadService.class);
+        AssertUtils.notEmpty(bean, "ThreadService 未加载，请在spring初始化完成后使用");
+        return bean;
     }
 }

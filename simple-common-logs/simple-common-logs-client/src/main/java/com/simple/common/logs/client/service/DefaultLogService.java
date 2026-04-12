@@ -1,17 +1,17 @@
 package com.simple.common.logs.client.service;
 
-import cn.hutool.core.date.DateTime;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.ContentType;
 import cn.hutool.json.JSONUtil;
 import com.simple.common.core.common.constant.CoreConstant;
 import com.simple.common.core.utils.IPUtils;
 import com.simple.common.logs.client.common.constant.LogConstant;
-import com.simple.common.logs.client.common.event.LogDataEvent;
 import com.simple.common.logs.client.common.httpservletrequest.CachedBodyHttpServletRequest;
-import com.simple.common.logs.client.common.manager.LogManager;
+import com.simple.common.logs.client.common.manager.BufferedLogManager;
 import com.simple.common.logs.client.common.manager.LogUserManager;
 import com.simple.common.logs.client.common.service.LogService;
+import com.simple.common.logs.proto.common.event.LogDataEvent;
+import com.simple.common.logs.proto.common.time.TimeStampProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +26,10 @@ import java.io.StringWriter;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA
+ * 默认日志服务实现
+ * <p>
+ * 负责从 HTTP 请求中提取日志信息，并通过 BufferedLogManager 异步发送。
+ * </p>
  *
  * @author qty
  */
@@ -38,92 +41,101 @@ public class DefaultLogService implements LogService {
     private LogUserManager logUserManager;
 
     @Autowired
-    private LogManager logManager;
+    private BufferedLogManager bufferedLogManager;
+
+    @Autowired
+    private TimeStampProvider timeStampProvider;
 
     @Override
-    @SneakyThrows
     public void send(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex) {
+        // 从对象池获取 LogDataEvent 实例（避免频繁创建对象）
+        LogDataEvent logDataEvent = LogDataEvent.acquire();
 
-        //构建请求对象
-        LogDataEvent logDataEvent = new LogDataEvent();
-        Long startTime = (Long) request.getAttribute(LogConstant.START_TIME);
-        long duration = System.currentTimeMillis() - startTime;
+        try {
+            Long startTime = (Long) request.getAttribute(LogConstant.START_TIME);
+            long duration = System.currentTimeMillis() - startTime;
 
-        // 设置 TraceId（从请求属性中获取，由拦截器/过滤器设置）
-        Object traceId = request.getAttribute(LogConstant.TRACE_ID_HEADER);
-        if (traceId != null) {
-            logDataEvent.setTraceId(traceId.toString());
-        }
-
-        //获取请求参数
-        logDataEvent.setOperParam(getAllParameters(request));
-
-        logDataEvent.setMethod(request.getMethod());
-        logDataEvent.setOperUrl(request.getRequestURI());
-        logDataEvent.setOperIp(IPUtils.getIpAddr(request));
-
-        String userId = logUserManager.loginUserId();
-        if (ObjUtil.isEmpty(userId)) {
-            logDataEvent.setUserId(null);
-        } else {
-            logDataEvent.setUserId(userId);
-        }
-
-        String nickName = logUserManager.loginNickName();
-        if (ObjUtil.isEmpty(nickName)) {
-            logDataEvent.setNickname("-");
-        } else {
-            logDataEvent.setNickname(nickName);
-        }
-
-        //获取接口
-        if (handler instanceof HandlerMethod handlerMethod) {
-
-            // 获取接口上的注解
-            Operation operation = handlerMethod.getMethod().getAnnotation(Operation.class);
-
-            if (operation != null) {
-                logDataEvent.setTitle(operation.summary());
-            } else {
-                logDataEvent.setTitle("-");
+            // 设置 TraceId（从请求属性中获取，由拦截器/过滤器设置）
+            Object traceId = request.getAttribute(LogConstant.TRACE_ID_HEADER);
+            if (traceId != null) {
+                logDataEvent.setTraceId(traceId.toString());
             }
-        }
 
-        //请求成功
-        if (response.getStatus() == HttpServletResponse.SC_OK) {
-            logDataEvent.setStatus(HttpServletResponse.SC_OK);
-            logDataEvent.setErrorMsg("请求成功");
-        } else {
-            logDataEvent.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            Object attribute = request.getAttribute(CoreConstant.EXCEPTION);
-            if (attribute instanceof Exception exception) {
-                logDataEvent.setErrorMsg(exception.getMessage());
+            // 获取请求参数
+            logDataEvent.setOperParam(getAllParameters(request));
 
-                String stackTrace = getStackTraceAsString(exception);
-                logDataEvent.setErrorData(stackTrace);
+            logDataEvent.setMethod(request.getMethod());
+            logDataEvent.setOperUrl(request.getRequestURI());
+            logDataEvent.setOperIp(IPUtils.getIpAddr(request));
+
+            String userId = logUserManager.loginUserId();
+            if (ObjUtil.isEmpty(userId)) {
+                logDataEvent.setUserId(null);
             } else {
-                logDataEvent.setErrorMsg("未收集到有效异常信息");
+                logDataEvent.setUserId(userId);
             }
-            request.removeAttribute(CoreConstant.EXCEPTION);
-        }
 
-        logDataEvent.setRequestTime(duration);
-        logDataEvent.setCreateTime(DateTime.now());
-        logManager.send(logDataEvent);
+            String nickName = logUserManager.loginNickName();
+            if (ObjUtil.isEmpty(nickName)) {
+                logDataEvent.setNickname("-");
+            } else {
+                logDataEvent.setNickname(nickName);
+            }
+
+            // 获取接口注解信息
+            if (handler instanceof HandlerMethod handlerMethod) {
+                Operation operation = handlerMethod.getMethod().getAnnotation(Operation.class);
+                if (operation != null) {
+                    logDataEvent.setTitle(operation.summary());
+                } else {
+                    logDataEvent.setTitle("-");
+                }
+            }
+
+            // 请求状态处理
+            if (response.getStatus() == HttpServletResponse.SC_OK) {
+                logDataEvent.setStatus(HttpServletResponse.SC_OK);
+                logDataEvent.setErrorMsg("请求成功");
+            } else {
+                logDataEvent.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                Object attribute = request.getAttribute(CoreConstant.EXCEPTION);
+                if (attribute instanceof Exception exception) {
+                    logDataEvent.setErrorMsg(exception.getMessage());
+                    logDataEvent.setErrorData(getStackTraceAsString(exception));
+                } else {
+                    logDataEvent.setErrorMsg("未收集到有效异常信息");
+                }
+                request.removeAttribute(CoreConstant.EXCEPTION);
+            }
+
+            logDataEvent.setRequestTime(duration);
+            // 使用缓存的时间戳（秒级精度），避免创建 DateTime 对象
+            logDataEvent.setCreateTimestamp(timeStampProvider.getCurrentTimestamp());
+
+            // 发送日志（异步入队）
+            bufferedLogManager.send(logDataEvent);
+        } catch (Exception e) {
+            log.error("构建日志事件失败", e);
+            // 异常情况下必须回收对象，避免线程内对象污染
+            logDataEvent.recycle();
+        }
     }
 
     @Override
     public void start() {
-        logManager.start();
+        bufferedLogManager.start();
     }
 
     @Override
     public void stop() {
-        logManager.stop();
+        bufferedLogManager.stop();
     }
 
     /**
      * 辅助方法：将异常堆栈转换为字符串
+     *
+     * @param throwable 异常对象
+     * @return 堆栈字符串
      */
     protected String getStackTraceAsString(Throwable throwable) {
         StringWriter sw = new StringWriter();
@@ -143,6 +155,9 @@ public class DefaultLogService implements LogService {
      * - multipart/form-data: 从ParameterMap读取（不包含文件内容）
      * - 其他类型: 从ParameterMap读取
      * </p>
+     *
+     * @param request HttpServletRequest
+     * @return 参数字符串
      */
     @SneakyThrows
     protected String getAllParameters(HttpServletRequest request) {
@@ -196,5 +211,4 @@ public class DefaultLogService implements LogService {
         }
         return JSONUtil.toJsonStr(parameterMap);
     }
-
 }

@@ -1,6 +1,6 @@
 package com.simple.common.logs.server.common.tcp;
 
-import com.simple.common.logs.proto.LogData;
+import com.simple.common.logs.proto.LogBatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageDecoder;
@@ -8,8 +8,8 @@ import io.netty.handler.codec.ByteToMessageDecoder;
 import java.util.List;
 
 /**
- * Protobuf 日志解码器
- * 将接收到的字节数组解码为 LogData Protobuf 消息
+ * Protobuf 批量日志解码器
+ * 将接收到的字节数组解码为 LogBatch Protobuf 消息
  * 解码格式：[长度(4字节)] + [消息体]
  *
  * @author Admin
@@ -45,8 +45,8 @@ public class LogProtobufDecoder extends ByteToMessageDecoder {
         byte[] bytes = new byte[length];
         in.readBytes(bytes);
         
-        // 解析 Protobuf 消息
-        LogData logData = LogData.parseFrom(bytes);
-        out.add(logData);
+        // 解析 Protobuf 消息为 LogBatch
+        LogBatch batch = LogBatch.parseFrom(bytes);
+        out.add(batch);
     }
 }

@@ -1,6 +1,6 @@
 package com.simple.common.logs.client.common.manager;
 
-import com.simple.common.logs.client.common.event.LogDataEvent;
+import com.simple.common.logs.proto.common.event.LogDataEvent;
 
 /**
  * 日志发送器接口

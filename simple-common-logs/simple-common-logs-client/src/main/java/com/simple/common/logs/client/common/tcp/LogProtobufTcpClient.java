@@ -1,7 +1,7 @@
 package com.simple.common.logs.client.common.tcp;
 
 import com.simple.common.logs.client.common.properties.LogTcpClientProperties;
-import com.simple.common.logs.proto.LogData;
+import com.simple.common.logs.proto.LogBatch;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -18,8 +18,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Protobuf TCP 日志客户端
- * 基于 Netty 实现，使用 Protobuf 进行序列化
+ * Protobuf TCP 日志客户端（Fire-and-Forget 模式）
+ * 基于 Netty 实现，使用 Protobuf 进行序列化（仅支持批量发送）
+ * <p>
+ * 为追求极致性能，本客户端不处理服务端响应，仅单向发送日志数据。
+ * </p>
  *
  * @author Admin
  */
@@ -56,7 +59,7 @@ public class LogProtobufTcpClient {
      * 初始化并建立 TCP 连接
      * <p>
      * 配置 Netty Bootstrap，包括线程组、通道类型、TCP 参数和处理器管道。
-     * 处理器管道包含心跳检测、Protobuf 编解码器和业务处理器。
+     * 处理器管道包含心跳检测、Protobuf 编码器和简化的业务处理器（无响应处理）。
      * </p>
      */
     private void connect() {
@@ -77,11 +80,11 @@ public class LogProtobufTcpClient {
                          // 心跳检测
                          pipeline.addLast("idleStateHandler", new IdleStateHandler(0, 30000, 0, TimeUnit.MILLISECONDS));
 
-                         // Protobuf 编解码器
+                         // Protobuf 编码器（仅编码 LogBatch）
                          pipeline.addLast("encoder", new LogProtobufEncoder());
-                         pipeline.addLast("decoder", new LogResponseDecoder());
 
-                         // 业务处理器
+                         // 注意：Fire-and-Forget 模式下无需解码器，所有入站数据将被忽略
+                         // 业务处理器（仅处理异常和心跳）
                          pipeline.addLast("handler", new LogProtobufClientHandler());
                      }
                  });
@@ -136,24 +139,40 @@ public class LogProtobufTcpClient {
     }
 
     /**
-     * 发送日志数据
+     * 发送批量日志（LogBatch 协议）
      * <p>
-     * 通过当前活跃的通道发送 Protobuf 格式的日志数据。
-     * 若通道未激活则记录警告日志，发送失败则记录错误日志。
+     * 将多条日志合并为一个 LogBatch 消息发送，减少网络包和编解码开销。
+     * 采用 Fire-and-Forget 模式，不等待也不处理服务端响应。
      * </p>
      *
-     * @param logData Protobuf 格式的日志数据对象
+     * @param logBatch 批量日志容器
      */
-    public void send(LogData logData) {
+    public void sendBatch(LogBatch logBatch) {
         if (channel != null && channel.isActive()) {
-            channel.writeAndFlush(logData).addListener((ChannelFutureListener) future -> {
+            channel.writeAndFlush(logBatch).addListener((ChannelFutureListener) future -> {
                 if (!future.isSuccess()) {
-                    log.error("日志发送失败: {}", future.cause().getMessage());
+                    log.error("批量日志发送失败: {}", future.cause().getMessage());
+                } else {
+                    // 发送成功，无额外处理
+                    log.debug("批量日志发送成功, 数量: {}", logBatch.getLogsCount());
                 }
             });
         } else {
-            log.warn("通道未激活，无法发送日志");
+            log.warn("通道未激活，无法发送批量日志");
+            throw new IllegalStateException("通道未激活");
         }
+    }
+
+    /**
+     * 判断连接是否活跃
+     * <p>
+     * 通过连接状态标记和通道状态双重判断，确保连接真实可用。
+     * </p>
+     *
+     * @return true 表示连接活跃，false 表示连接不可用
+     */
+    public boolean isActive() {
+        return connected.get() && channel != null && channel.isActive();
     }
 
     /**
@@ -171,17 +190,5 @@ public class LogProtobufTcpClient {
             group.shutdownGracefully();
         }
         log.info("Protobuf TCP 日志客户端已关闭");
-    }
-
-    /**
-     * 检查连接是否活跃
-     * <p>
-     * 通过连接状态标记和通道状态双重判断，确保连接真实可用。
-     * </p>
-     *
-     * @return true 表示连接活跃，false 表示连接不可用
-     */
-    private boolean isActive() {
-        return connected.get() && channel != null && channel.isActive();
     }
 }

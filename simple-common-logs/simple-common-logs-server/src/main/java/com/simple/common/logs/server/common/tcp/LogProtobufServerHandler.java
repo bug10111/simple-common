@@ -1,20 +1,25 @@
 package com.simple.common.logs.server.common.tcp;
 
-import com.simple.common.logs.client.common.event.LogDataEvent;
-import com.simple.common.logs.proto.LogData;
-import com.simple.common.logs.proto.LogResponse;
+import com.simple.common.logs.proto.common.event.LogDataEvent;
+import com.simple.common.logs.proto.LogBatch;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.List;
+
 /**
- * Protobuf 日志服务端处理器
+ * Protobuf 批量日志服务端处理器（Fire-and-Forget 模式）
+ * <p>
+ * 接收客户端批量日志，直接转交保存管理器处理，不发送任何响应。
+ * 这种设计可减少网络往返开销和编解码消耗，适合极高吞吐场景。
+ * </p>
  *
  * @author qty
  */
 @Slf4j
-public class LogProtobufServerHandler extends SimpleChannelInboundHandler<LogData> {
+public class LogProtobufServerHandler extends SimpleChannelInboundHandler<LogBatch> {
 
     private final LogsSaveManager logsSaveManager;
 
@@ -23,25 +28,18 @@ public class LogProtobufServerHandler extends SimpleChannelInboundHandler<LogDat
     }
 
     @Override
-    protected void channelRead0(ChannelHandlerContext ctx, LogData msg) throws Exception {
-        log.debug("收到日志数据: traceId={}, operUrl={}", msg.getTraceId(), msg.getOperUrl());
-
+    protected void channelRead0(ChannelHandlerContext ctx, LogBatch batch) throws Exception {
         try {
-            // 将 Protobuf LogData 转换为 LogDataEvent
-            LogDataEvent event = LogDataEvent.fromProto(msg);
+            // 将 Protobuf LogBatch 转换为 LogDataEvent 列表
+            List<LogDataEvent> events = LogDataEvent.fromBatchProto(batch);
 
-            // 保存日志
-            logsSaveManager.saveLog(event);
+            // 批量保存日志（充分利用批量接口，减少入队次数）
+            logsSaveManager.saveLogBatch(events);
 
-            // 发送成功响应
-            LogResponse response = LogResponse.newBuilder().setSuccess(true).setMessage("日志保存成功").build();
-            ctx.writeAndFlush(response);
+            log.debug("批量日志处理完成, 数量: {}", events.size());
         } catch (Exception e) {
-            log.error("保存日志失败: {}", e.getMessage(), e);
-
-            // 发送失败响应
-            LogResponse response = LogResponse.newBuilder().setSuccess(false).setMessage("日志保存失败: " + e.getMessage()).build();
-            ctx.writeAndFlush(response);
+            log.error("批量日志处理失败", e);
+            // Fire-and-Forget 模式下无需向客户端返回错误信息
         }
     }
 

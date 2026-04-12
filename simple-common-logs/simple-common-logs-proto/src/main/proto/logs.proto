@@ -8,26 +8,28 @@ option java_outer_classname = "LogsProto";
 
 // 日志数据消息 - 与 Client 端 LogDataEvent 保持一致
 message LogData {
-    string traceId = 1;          // 追踪ID
-    string title = 2;            // 方法名称/操作标题
-    string method = 3;           // 请求方式
-    string operUrl = 4;          // 请求URL
-    string operIp = 5;           // 主机地址
-    string operLocation = 6;     // 操作地点
-    string userId = 7;           // 操作人员id
-    string nickname = 8;         // 用户名
-    string operName = 9;         // 操作名称
-    string operParam = 10;       // 请求参数
-    int32 status = 11;           // 操作状态
-    string errorMsg = 12;       // 错误消息
-    string errorData = 13;       // 异常信息
-    int64 requestTime = 14;      // 接口耗时（毫秒）
-    int64 createTime = 15;      // 创建时间（时间戳）
+  string traceId = 1;          // 追踪ID
+  string title = 2;            // 方法名称/操作标题
+  string method = 3;           // 请求方式
+  string operUrl = 4;          // 请求URL
+  string operIp = 5;           // 主机地址
+  string operLocation = 6;     // 操作地点
+  string userId = 7;           // 操作人员id
+  string nickname = 8;         // 用户名
+  string operName = 9;         // 操作名称
+  string operParam = 10;       // 请求参数
+  int32 status = 11;           // 操作状态
+  string errorMsg = 12;        // 错误消息
+  string errorData = 13;       // 异常信息
+  int64 requestTime = 14;      // 接口耗时（毫秒）
+  int64 createTime = 15;       // 创建时间
 }
 
-// 日志响应消息
-message LogResponse {
-    bool success = 1;            // 是否成功
-    int32 code = 2;              // 响应码
-    string message = 3;          // 响应消息
+// 批量日志消息容器
+// 用于客户端批量发送和服务端批量处理，减少网络包和编解码开销
+message LogBatch {
+  repeated LogData logs = 1;
 }
+
+// 注意：为追求极致性能，本协议已移除响应消息。
+// 客户端采用 Fire-and-Forget 模式发送日志，不等待也不处理服务端响应。
