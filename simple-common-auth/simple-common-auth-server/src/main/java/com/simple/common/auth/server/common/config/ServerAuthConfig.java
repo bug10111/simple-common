@@ -1,7 +1,5 @@
 package com.simple.common.auth.server.common.config;
 
-import com.simple.common.auth.server.common.manager.cache.CacheManagerFactory;
-import com.simple.common.auth.server.common.properties.AuthServerProperties;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,6 +13,5 @@ import org.springframework.context.annotation.Configuration;
 @ComponentScan(basePackages = "com.simple.common.auth.server")
 @Configuration
 public class ServerAuthConfig {
-
 
 }
