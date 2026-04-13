@@ -34,7 +34,7 @@ public class RedisRepeatRMQManager implements RepeatRMQManager {
 
     @Override
     public void update(String queue, String msgId, Integer time, TimeUnit timeUnit) {
-        redisTemplate.expire(getRepeatedConsumptionKey(queue, msgId),time, timeUnit);
+        redisTemplate.expire(getRepeatedConsumptionKey(queue, msgId), time, timeUnit);
     }
 
     @Override
@@ -49,7 +49,7 @@ public class RedisRepeatRMQManager implements RepeatRMQManager {
      * @param queue queue
      * @param msgId 自定义消息id
      */
-    protected String getRepeatedConsumptionKey(String queue, String msgId) {
+    public String getRepeatedConsumptionKey(String queue, String msgId) {
         return rabbitMqProperties.getWhetherToConsume() + ":" + queue + ":" + msgId;
     }
 

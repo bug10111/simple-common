@@ -1,5 +1,0 @@
-# 针对未参数化的泛型类（原始类型）的使用
-@SuppressWarnings("rawtypes")
-
-# 针对不安全的类型操作（如转换或赋值）的潜在风险
-@SuppressWarnings("unchecked")

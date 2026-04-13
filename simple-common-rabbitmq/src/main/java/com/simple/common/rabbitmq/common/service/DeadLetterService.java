@@ -31,8 +31,11 @@ public interface DeadLetterService {
      * @param e       失败得到异常
      */
     default void save(Message message, Exception e) {
-        save(message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
-             message.getMessageProperties().getConsumerQueue(), JsonUtils.toJsonStr(SerializeUtils.deserialize(message.getBody(), DefaultMessage.class)), e);
+        save(message.getMessageProperties().getReceivedExchange(),
+                message.getMessageProperties().getReceivedRoutingKey(),
+                message.getMessageProperties().getConsumerQueue(),
+                JsonUtils.toJsonStr(SerializeUtils.deserialize(message.getBody(), DefaultMessage.class)),
+                e);
     }
 
 }

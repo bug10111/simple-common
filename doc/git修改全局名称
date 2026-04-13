@@ -1,5 +1,0 @@
-# 查看全局名称
-git config --global user.name
-
-# 修改全局名称
-git config --global user.name qty

@@ -16,7 +16,6 @@ public class DefaultAckRMQManager implements AckRMQManager {
 
     @Override
     public void basicAck(Channel channel, Long deliveryTag) throws IOException {
-
         /*
          * 手动应答:
          * 1.消息标记tag-类似唯一主键
@@ -27,7 +26,6 @@ public class DefaultAckRMQManager implements AckRMQManager {
 
     @Override
     public void basicNack(Channel channel, Long deliveryTag, boolean b) throws IOException {
-
         /*
          * 手动应答:
          * 1.消息标记tag-类似唯一主键

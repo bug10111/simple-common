@@ -52,16 +52,6 @@ public class WebSocketProperties {
     private int writeBufferLow = 32 * 1024;
 
     /**
-     * 关闭静默期（毫秒）
-     */
-    private int shutdownQuietPeriod = 5000;
-
-    /**
-     * 关闭超时时间（毫秒）
-     */
-    private int shutdownTimeOut = 15000;
-
-    /**
      * 读空闲超时时间（秒）
      */
     private int readerIdleTime = 120;
@@ -117,5 +107,4 @@ public class WebSocketProperties {
          */
         private long initialDelay = 30;
     }
-
 }

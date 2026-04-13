@@ -87,11 +87,11 @@ public class TokenData {
         String ati = IdUtils.getFastUUID();
 
         accessTokenMap.put(TokenConstant.jtiKey, jti);
-        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.etKey))).getTime() + "");
+        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.etKey).toString())).getTime() + "");
         accessTokenMap.put(TokenConstant.audKey, saveInfoMap.get(TokenConstant.clientIdKey));
 
         refreshTokenMap.put(TokenConstant.atiKey, ati);
-        refreshTokenMap.put(TokenConstant.expKey,DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.rEtKey))).getTime() + "");
+        refreshTokenMap.put(TokenConstant.expKey,DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.rEtKey).toString())).getTime() + "");
         refreshTokenMap.put(TokenConstant.jtiKey, jti);
         refreshTokenMap.put(TokenConstant.audKey, saveInfoMap.get(TokenConstant.clientIdKey));
 

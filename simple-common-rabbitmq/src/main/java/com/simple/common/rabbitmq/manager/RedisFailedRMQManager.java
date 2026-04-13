@@ -21,8 +21,9 @@ public class RedisFailedRMQManager implements FailedRMQManager {
     @Override
     public Long getFailedSum(String failedKey) {
         String failed = redisTemplate.opsForValue().get(failedKey);
+        // 若key不存在则返回0，保证重试次数正确
         if (StrUtil.isEmpty(failed)) {
-            failed = "1";
+            return 0L;
         }
         return Long.parseLong(failed);
     }

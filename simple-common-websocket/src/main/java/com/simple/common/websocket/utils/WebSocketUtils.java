@@ -153,12 +153,12 @@ public class WebSocketUtils {
     }
 
     /**
-     * 对敏感键进行脱敏处理
+     * 对敏感键进行脱敏处理（公共方法）
      *
      * @param key 原始键
      * @return 脱敏后的键
      */
-    private static String maskKey(String key) {
+    public static String maskKey(String key) {
         if (key == null || key.length() <= 4) {
             return "****";
         }

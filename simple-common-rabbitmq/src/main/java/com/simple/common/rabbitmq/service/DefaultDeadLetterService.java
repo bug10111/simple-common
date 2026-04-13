@@ -15,6 +15,7 @@ public class DefaultDeadLetterService implements DeadLetterService {
 
     @Override
     public void save(String exchange, String key, String queue, String body, Exception e) {
-        log.error("队列exchange[{}]=>key[{}]=>queue[{}]==>[{}]执行默认保存策略，请实现接口[DeadLetterService]进行保存！", exchange, key, queue, body);
+        log.error("队列exchange[{}]=>key[{}]=>queue[{}]==>[{}]执行默认保存策略，请实现接口[DeadLetterService]进行保存！",
+                exchange, key, queue, body);
     }
 }

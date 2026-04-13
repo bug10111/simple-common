@@ -5,14 +5,15 @@ import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
 import com.simple.common.websocket.common.manager.CheckWebSocketManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.utils.WebSocketUtils;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.QueryStringDecoder;
-import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.*;
 import io.netty.handler.timeout.IdleStateEvent;
 import io.netty.util.AttributeKey;
+import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
@@ -30,7 +31,6 @@ import java.util.Map;
 public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
 
     private final WebSocketProperties properties;
-
     private final CheckWebSocketManager checkManager;
 
     public WebSocketAuthHandler(WebSocketProperties properties, CheckWebSocketManager checkManager) {
@@ -41,16 +41,15 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof FullHttpRequest request) {
-
-            //解析uri，判断握手点
+            // 解析uri，判断握手点
             String uri = request.uri();
             if (!uri.contains(properties.getPath())) {
                 log.error("握手端点错误：{}", properties.getPath());
-                sendErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_PATH);
+                sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_PATH);
                 return;
             }
 
-            //解析握手参数
+            // 解析握手参数
             QueryStringDecoder query = new QueryStringDecoder(request.uri());
             Map<String, List<String>> parameters = query.parameters();
 
@@ -62,13 +61,13 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
             // 参数校验
             if (types == null || types.isEmpty()) {
                 log.warn("缺少type参数 [uri={}]", maskUri(request.uri()));
-                sendErrorAndClose(ctx, WebsocketExceptionEnum.MISSING_PARAM, "缺少type参数");
+                sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.MISSING_PARAM, "缺少type参数");
                 return;
             }
 
             if (cliKeys == null || cliKeys.isEmpty()) {
                 log.warn("缺少cliKey参数 [uri={}]", maskUri(request.uri()));
-                sendErrorAndClose(ctx, WebsocketExceptionEnum.MISSING_PARAM, "缺少cliKey参数");
+                sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.MISSING_PARAM, "缺少cliKey参数");
                 return;
             }
 
@@ -79,7 +78,7 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
             // 参数长度校验
             if (type.length() > 64 || cliKey.length() > 128) {
                 log.warn("参数长度超限 [type={}, cliKey={}]", type.length(), cliKey.length());
-                sendErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_MESSAGE, "参数长度超限");
+                sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_MESSAGE, "参数长度超限");
                 return;
             }
 
@@ -88,7 +87,7 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
                 boolean authResult = checkManager.checkToken(token, type, cliKey);
                 if (!authResult) {
                     log.warn("Token认证失败 [type={}, cliKey={}]", type, cliKey);
-                    sendErrorAndClose(ctx, WebsocketExceptionEnum.AUTH_FAILED);
+                    sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.AUTH_FAILED);
                     return;
                 }
             }
@@ -104,7 +103,7 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
             // 记录连接日志
             if (log.isDebugEnabled()) {
                 InetSocketAddress remoteAddress = (InetSocketAddress) ctx.channel().remoteAddress();
-                log.debug("WebSocket连接成功 [type={}, cliKey={}, ip={}]", type, maskKey(cliKey), remoteAddress.getAddress().getHostAddress());
+                log.debug("WebSocket连接成功 [type={}, cliKey={}, ip={}]", type, WebSocketUtils.maskKey(cliKey), remoteAddress.getAddress().getHostAddress());
             }
         }
         super.channelRead(ctx, msg);
@@ -115,7 +114,7 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
         if (evt instanceof IdleStateEvent) {
             String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
             String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
-            log.debug("连接超时，关闭连接 [type={}, cliKey={}]", type, maskKey(cliKey));
+            log.debug("连接超时，关闭连接 [type={}, cliKey={}]", type, WebSocketUtils.maskKey(cliKey));
             ctx.close();
         } else {
             super.userEventTriggered(ctx, evt);
@@ -135,26 +134,35 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
         if (type != null && cliKey != null) {
             WebSocketUtils.del(type, cliKey, ctx);
             if (log.isDebugEnabled()) {
-                log.debug("连接断开 [type={}, cliKey={}]", type, maskKey(cliKey));
+                log.debug("连接断开 [type={}, cliKey={}]", type, WebSocketUtils.maskKey(cliKey));
             }
         }
     }
 
     /**
-     * 发送错误消息并关闭连接
+     * 发送HTTP错误响应并关闭连接
      */
-    private void sendErrorAndClose(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum) {
-        String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), exceptionEnum.getMessage());
-        ctx.writeAndFlush(new TextWebSocketFrame(json)).addListener(ChannelFutureListener.CLOSE);
+    private void sendHttpErrorAndClose(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum) {
+        sendHttpErrorAndClose(ctx, exceptionEnum, null);
     }
 
     /**
-     * 发送错误消息并关闭连接（带附加信息）
+     * 发送HTTP错误响应并关闭连接（带附加信息）
      */
-    private void sendErrorAndClose(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum, String extraMessage) {
+    private void sendHttpErrorAndClose(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum, String extraMessage) {
         String message = exceptionEnum.getMessage() + (extraMessage != null ? ": " + extraMessage : "");
         String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), message);
-        ctx.writeAndFlush(new TextWebSocketFrame(json)).addListener(ChannelFutureListener.CLOSE);
+        
+        ByteBuf content = Unpooled.copiedBuffer(json, CharsetUtil.UTF_8);
+        FullHttpResponse response = new DefaultFullHttpResponse(
+                HttpVersion.HTTP_1_1, 
+                exceptionEnum == WebsocketExceptionEnum.AUTH_FAILED ? HttpResponseStatus.UNAUTHORIZED : HttpResponseStatus.BAD_REQUEST,
+                content
+        );
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE, "application/json; charset=UTF-8");
+        response.headers().set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
+        
+        ctx.writeAndFlush(response).addListener(ChannelFutureListener.CLOSE);
     }
 
     /**
@@ -166,23 +174,12 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
     }
 
     /**
-     * 对客户端标识进行脱敏
-     */
-    private String maskKey(String key) {
-        if (key == null || key.length() <= 4) {
-            return "****";
-        }
-        return key.substring(0, 2) + "****" + key.substring(key.length() - 2);
-    }
-
-    /**
      * 对URI进行脱敏
      */
     private String maskUri(String uri) {
         if (uri == null) {
             return "null";
         }
-        // 只显示路径部分，隐藏敏感参数
         int queryIndex = uri.indexOf('?');
         return queryIndex > 0 ? uri.substring(0, queryIndex) + "?***" : uri;
     }

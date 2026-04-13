@@ -64,7 +64,7 @@ public class ChannelMap<K, V, T> {
             }
             List<T> list = new ArrayList<>(vs.size());
             for (V v : vs) {
-                T value = get(key, v);
+                T value = valueMap.get(getKey(key, v));
                 if (value != null) {
                     list.add(value);
                 }
@@ -100,7 +100,6 @@ public class ChannelMap<K, V, T> {
             Set<V> vs = keyMap.get(key);
             if (vs != null) {
                 vs.remove(key2);
-                // 如果子键集合为空，移除主键
                 if (vs.isEmpty()) {
                     keyMap.remove(key);
                 }

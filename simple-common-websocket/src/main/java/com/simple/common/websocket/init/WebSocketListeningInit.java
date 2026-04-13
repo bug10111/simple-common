@@ -1,6 +1,7 @@
 package com.simple.common.websocket.init;
 
 import com.simple.common.websocket.common.annotation.WebSocketListening;
+import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,7 +11,6 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
-import java.util.Optional;
 
 /**
  * Created with IntelliJ IDEA
@@ -29,7 +29,6 @@ public class WebSocketListeningInit implements ApplicationListener<ApplicationRe
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
-
         // 扫描所有 Spring Bean 中的监听方法
         String[] beanNames = context.getBeanDefinitionNames();
         for (String beanName : beanNames) {
@@ -39,20 +38,23 @@ public class WebSocketListeningInit implements ApplicationListener<ApplicationRe
                 if (annotation != null) {
                     validateMethod(method);
                     manager.registerMethod(annotation.type(), annotation.cliKey(), bean, method);
+                    log.debug("注册WebSocket监听方法: {}.{} -> type={}, cliKey={}", 
+                            bean.getClass().getSimpleName(), method.getName(), annotation.type(), annotation.cliKey());
                 }
             }
         }
     }
 
     /**
-     * 校验监听方法
+     * 校验监听方法签名
+     * 要求：参数为 WebSocketRequest，返回值为 String（或可转为String的任意类型）
      */
     private void validateMethod(Method method) {
-        if (method.getParameterCount() != 1 || !method.getParameterTypes()[0].equals(String.class)) {
-            throw new IllegalArgumentException("方法 " + method.getName() + " 参数必须为 (String msg)");
-        }
-        if (!method.getReturnType().equals(String.class)) {
-            throw new IllegalArgumentException("方法 " + method.getName() + " 返回值必须为 String");
+        Class<?>[] paramTypes = method.getParameterTypes();
+        if (paramTypes.length != 1 || !paramTypes[0].equals(WebSocketRequest.class)) {
+            throw new IllegalArgumentException(
+                    String.format("方法 %s 参数必须为 (WebSocketRequest request)，当前参数: %s", 
+                            method.getName(), java.util.Arrays.toString(paramTypes)));
         }
     }
 }

@@ -6,6 +6,7 @@ import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
 import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
+import com.simple.common.websocket.utils.WebSocketUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.websocketx.*;
@@ -51,13 +52,10 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         } else if (frame instanceof BinaryWebSocketFrame) {
             handleBinaryFrame(ctx, (BinaryWebSocketFrame) frame);
         } else if (frame instanceof PingWebSocketFrame) {
-            // 响应Ping帧
             ctx.writeAndFlush(new PongWebSocketFrame(frame.content().retain()));
         } else if (frame instanceof PongWebSocketFrame) {
-            // Pong帧，无需处理
             log.debug("收到Pong帧");
         } else if (frame instanceof CloseWebSocketFrame) {
-            // 关闭帧
             log.debug("收到关闭帧");
             ctx.close();
         } else {
@@ -72,14 +70,12 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
     private void handleTextFrame(ChannelHandlerContext ctx, TextWebSocketFrame frame) {
         String text = frame.text();
 
-        // 空消息校验
         if (text == null || text.isEmpty()) {
             log.warn("收到空消息");
             sendError(ctx, WebsocketExceptionEnum.EMPTY_MESSAGE);
             return;
         }
 
-        // 消息长度校验
         int maxLength = properties.getMaxTextMessageLength();
         if (text.length() > maxLength) {
             log.warn("消息过长，拒绝处理 [length={}, max={}]", text.length(), maxLength);
@@ -87,22 +83,19 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        // 详细日志（可配置）
         if (log.isDebugEnabled()) {
             String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
             String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
-            log.debug("收到消息 [type={}, cliKey={}, length={}]", type, maskKey(cliKey), text.length());
+            log.debug("收到消息 [type={}, cliKey={}, length={}]", type, WebSocketUtils.maskKey(cliKey), text.length());
         }
 
         try {
-            // 解析请求
             WebSocketRequest request = JSON.parseObject(text, WebSocketRequest.class);
             if (request == null) {
                 sendError(ctx, WebsocketExceptionEnum.INVALID_MESSAGE);
                 return;
             }
 
-            // 获取当前连接的身份信息（握手时确定）
             String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
             String channelCliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
 
@@ -111,7 +104,6 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
                 return;
             }
 
-            // 调用监听器处理消息（只能处理当前连接身份的消息）
             Optional<Object> result = webSocketListeningManager.invoke(channelType, channelCliKey, request);
             result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o))));
         } catch (Exception e) {
@@ -132,7 +124,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
         String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
         String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
-        log.error("WebSocket异常 [type={}, cliKey={}]", type, maskKey(cliKey), cause);
+        log.error("WebSocket异常 [type={}, cliKey={}]", type, WebSocketUtils.maskKey(cliKey), cause);
         ctx.close();
     }
 
@@ -141,45 +133,24 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
         String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
         if (type != null && cliKey != null) {
-            // 注意：这里不调用WebSocketUtils.del，因为WebSocketAuthHandler已经处理了
             if (log.isDebugEnabled()) {
-                log.debug("连接断开 [type={}, cliKey={}]", type, maskKey(cliKey));
+                log.debug("连接断开 [type={}, cliKey={}]", type, WebSocketUtils.maskKey(cliKey));
             }
         }
     }
 
-    /**
-     * 发送错误消息
-     */
     private void sendError(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum) {
-        String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), exceptionEnum.getMessage());
-        ctx.writeAndFlush(new TextWebSocketFrame(json));
+        sendError(ctx, exceptionEnum, null);
     }
 
-    /**
-     * 发送错误消息（带附加信息）
-     */
     private void sendError(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum, String extraMessage) {
         String message = exceptionEnum.getMessage() + (extraMessage != null ? ": " + extraMessage : "");
         String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), message);
         ctx.writeAndFlush(new TextWebSocketFrame(json));
     }
 
-    /**
-     * 获取Channel属性
-     */
     private String getChannelAttr(ChannelHandlerContext ctx, String key) {
         Object value = ctx.channel().attr(AttributeKey.valueOf(key)).get();
         return value != null ? value.toString() : null;
-    }
-
-    /**
-     * 对客户端标识进行脱敏
-     */
-    private String maskKey(String key) {
-        if (key == null || key.length() <= 4) {
-            return "****";
-        }
-        return key.substring(0, 2) + "****" + key.substring(key.length() - 2);
     }
 }

@@ -24,7 +24,7 @@ public class DefaultRMQProcess implements RabbitMqProcess {
 
     @Override
     public void execution(Message message, Channel channel, RabbitMqConsumption rabbitMqConsumption) {
-
+        // 可在此处添加默认前置处理逻辑
     }
 
 }

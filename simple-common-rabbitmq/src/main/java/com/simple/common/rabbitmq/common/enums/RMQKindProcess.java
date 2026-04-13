@@ -13,7 +13,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum RMQKindProcess implements DefaultKindProcess {
 
-    TEST("测试步骤", true, 1),
+    TEST("测试步骤", false, 1),
 
     ;
 

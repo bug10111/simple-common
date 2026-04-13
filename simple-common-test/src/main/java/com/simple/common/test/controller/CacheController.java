@@ -29,11 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class CacheController implements InitializingBean {
 
-    @Autowired
-    private LocalCacheFactory<String, String> cacheFactory;
-
-    @Autowired
-    private LocalCacheFactory<String, DocTestEntity> objFactory;
 
     private Cache<String, String> string;
 
@@ -58,8 +53,8 @@ public class CacheController implements InitializingBean {
     @GetMapping("obj")
     @SneakyThrows
     public R<Object> obj() {
-        LocalCacheFactory<String, DocTestEntity> factory = new LocalCacheFactory<>();
-        Cache<String, DocTestEntity> cache = factory.createCache("string", config -> config.expireAfterWrite(10));
+
+        Cache<String, DocTestEntity> cache = CacheUtils.createLocalCache("string", config -> config.expireAfterWrite(10));
 
         cache.put("key", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
         log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
@@ -110,6 +105,6 @@ public class CacheController implements InitializingBean {
 
     @Override
     public void afterPropertiesSet() throws Exception {
-         string = cacheFactory.createCache("string", config -> config.maximumSize(100));
+         string = CacheUtils.createLocalCache("string", config -> config.maximumSize(100));
     }
 }
