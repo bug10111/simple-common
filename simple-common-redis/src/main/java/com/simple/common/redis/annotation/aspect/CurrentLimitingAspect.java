@@ -30,7 +30,7 @@ public class CurrentLimitingAspect {
     private CurrentLimitingManager<CurrentLimiting> currentLimitingManager;
 
     @Before("@annotation(com.simple.common.redis.annotation.CurrentLimiting)")
-    public void around(JoinPoint joinPoint) {
+    public void before(JoinPoint joinPoint) {
 
         //获取注解先关参数
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();

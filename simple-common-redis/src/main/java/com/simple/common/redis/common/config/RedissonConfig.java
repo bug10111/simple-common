@@ -2,6 +2,7 @@ package com.simple.common.redis.common.config;
 
 import cn.hutool.core.util.StrUtil;
 import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.redisson.config.SingleServerConfig;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,27 +21,36 @@ import org.springframework.context.annotation.Configuration;
 @ConditionalOnProperty(prefix = "redisson", name = "open", havingValue = "true", matchIfMissing = true)
 public class RedissonConfig {
 
-    @Value("${spring.data.redis.database}")
+    @Value("${spring.data.redis.database:0}")
     private int database;
 
-    @Value("${spring.data.redis.host}")
+    @Value("${spring.data.redis.host:localhost}")
     private String host;
 
-    @Value("${spring.data.redis.port}")
-    private Integer port;
+    @Value("${spring.data.redis.port:6379}")
+    private int port;
 
-    @Value("${spring.data.redis.password}")
+    @Value("${spring.data.redis.password:}")
     private String password;
 
+    @Value("${spring.data.redis.timeout:3000}")
+    private int timeout;
+
+    @Value("${redisson.connection-min-idle-size:10}")
+    private int connectionMinimumIdleSize;
+
     @Bean(destroyMethod = "shutdown")
-    public Redisson redisson() {
-        String adsStr = "redis://" + host + ":" + port;
+    public RedissonClient redisson() {
+        String address = "redis://" + host + ":" + port;
         Config config = new Config();
-        SingleServerConfig singleServerConfig = config.useSingleServer();
-        singleServerConfig.setAddress(adsStr).setDatabase(database).setConnectionMinimumIdleSize(10);
+        SingleServerConfig singleServerConfig = config.useSingleServer()
+                                                      .setAddress(address)
+                                                      .setDatabase(database)
+                                                      .setConnectionMinimumIdleSize(connectionMinimumIdleSize)
+                                                      .setTimeout(timeout);
         if (StrUtil.isNotEmpty(password)) {
             singleServerConfig.setPassword(password);
         }
-        return (Redisson) Redisson.create(config);
+        return Redisson.create(config);
     }
 }

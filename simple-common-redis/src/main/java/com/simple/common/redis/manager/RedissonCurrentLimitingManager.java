@@ -1,29 +1,26 @@
 package com.simple.common.redis.manager;
 
 import cn.hutool.extra.spring.SpringUtil;
+import com.simple.common.core.common.properties.LockProperties;
 import com.simple.common.core.common.service.jwt.CoreLoginUserService;
 import com.simple.common.core.utils.HttpServletUtils;
 import com.simple.common.core.utils.IPUtils;
 import com.simple.common.redis.annotation.CurrentLimiting;
 import com.simple.common.redis.common.enums.CurrentLimitingRulesEnum;
 import com.simple.common.redis.common.manager.CurrentLimitingManager;
-import com.simple.common.core.common.properties.LockProperties;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.redisson.Redisson;
 import org.redisson.api.RRateLimiter;
 import org.redisson.api.RateIntervalUnit;
 import org.redisson.api.RateType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created by IntelliJ IDEA
+ * 基于 Redisson 的限流管理器。
  *
  * @author qty
  */
@@ -32,7 +29,7 @@ import java.util.concurrent.TimeUnit;
 public class RedissonCurrentLimitingManager implements CurrentLimitingManager<CurrentLimiting> {
 
     @Autowired
-    private Redisson redisson;
+    private RedissonClient redisson;
 
     @Autowired
     private LockProperties lockProperties;
@@ -43,49 +40,57 @@ public class RedissonCurrentLimitingManager implements CurrentLimitingManager<Cu
         if (lockProperties.isBag()) {
             rules = lockProperties.getDefaultBag() + ":" + rules;
         }
-        RRateLimiter rRateLimiter = getRRateLimiter(rules, currentLimiting);
-        return rRateLimiter.tryAcquire(currentLimiting.waitingTime(), TimeUnit.SECONDS);
+        RRateLimiter rateLimiter = getRateLimiter(rules, currentLimiting);
+        return rateLimiter.tryAcquire(currentLimiting.waitingTime(), TimeUnit.SECONDS);
     }
 
     /**
-     * 获取限流规则
-     *
-     * @param currentLimiting 限流注解参数
+     * 获取限流规则 Key
      */
     protected String getKey(CurrentLimiting currentLimiting) {
         HttpServletRequest request = HttpServletUtils.getRequest();
-        CurrentLimitingRulesEnum key = currentLimiting.key();
+        CurrentLimitingRulesEnum keyType = currentLimiting.key();
 
         String keyStr = "";
-        if (key.equals(CurrentLimitingRulesEnum.URL)) {
+        if (keyType == CurrentLimitingRulesEnum.URL) {
             keyStr = request.getRequestURI();
-        } else if (key.equals(CurrentLimitingRulesEnum.USER_ID)) {
+        } else if (keyType == CurrentLimitingRulesEnum.USER_ID) {
             CoreLoginUserService bean = SpringUtil.getBean(CoreLoginUserService.class);
             if (bean != null) {
                 keyStr = bean.getUserId();
             } else {
-                log.error("未获取到userId,请实现CoreLoginUserService的getUserId方法");
+                log.error("未获取到userId，请实现CoreLoginUserService的getUserId方法");
+                keyStr = "anonymous";
             }
-        } else if (key.equals(CurrentLimitingRulesEnum.IP)) {
-            keyStr = IPUtils.getIpAddr() + request.getRequestURI();
+        } else if (keyType == CurrentLimitingRulesEnum.IP) {
+            keyStr = IPUtils.getIpAddr() + ":" + request.getRequestURI();
         }
         return keyStr;
     }
 
     /**
-     * 获取限流器
-     *
-     * @param key             限流器标志
-     * @param currentLimiting 直接参数对象
+     * 获取或创建限流器，使用细粒度锁避免全局阻塞。
      */
-    protected RRateLimiter getRRateLimiter(String key, CurrentLimiting currentLimiting) {
+    protected RRateLimiter getRateLimiter(String key, CurrentLimiting currentLimiting) {
         RRateLimiter rateLimiter = redisson.getRateLimiter(key);
-        if (!rateLimiter.isExists()) {
-            synchronized (RedissonCurrentLimitingManager.class){
-                 rateLimiter = redisson.getRateLimiter(key);
-                if (!rateLimiter.isExists()) {
-                    rateLimiter.trySetRate(RateType.PER_CLIENT, currentLimiting.sum(), currentLimiting.time(), RateIntervalUnit.SECONDS);
+        // 快速路径：已存在直接返回
+        if (rateLimiter.isExists()) {
+            return rateLimiter;
+        }
+        // 使用分布式锁初始化，防止并发重复创建
+        String initLockKey = key + ":init";
+        var lock = redisson.getLock(initLockKey);
+        try {
+            lock.lock(5, TimeUnit.SECONDS);
+            if (!rateLimiter.isExists()) {
+                boolean success = rateLimiter.trySetRate(RateType.OVERALL, currentLimiting.sum(), currentLimiting.time(), RateIntervalUnit.SECONDS);
+                if (!success) {
+                    log.warn("限流器 [{}] 初始化失败，可能已被其他进程设置", key);
                 }
+            }
+        } finally {
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
         }
         return rateLimiter;

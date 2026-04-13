@@ -70,7 +70,7 @@ public class RedisCacheAspect {
                     if(log.isDebugEnabled()){
                         log.debug("开始执行查询数据库！{}", joinPoint.getArgs());
                     }
-                    saveValue = JsonUtils.toJsonStr(joinPoint.proceed(joinPoint.getArgs()));
+                    saveValue = JsonUtils.toJsonStr(joinPoint.proceed());
                     Integer cacheTime = redisCacheAspectManager.getCacheTime(redisCache.cacheTime(), redisCache.appendRandomDuration());
                     saveValue = ObjUtil.isNull(saveValue) ? redisCacheProperties.getNoReturnValue() : saveValue;
                     redisTemplate.opsForValue().set(cacheKey, saveValue, cacheTime, TimeUnit.SECONDS);
