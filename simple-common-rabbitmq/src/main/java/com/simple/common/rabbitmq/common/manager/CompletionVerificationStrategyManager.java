@@ -1,6 +1,6 @@
 package com.simple.common.rabbitmq.common.manager;
 
-import org.springframework.amqp.core.Message;
+import com.simple.common.rabbitmq.common.config.DefaultMessage;
 
 /**
  * 业务完成校验策略，每个队列可对应不同的校验实现。
@@ -16,7 +16,7 @@ public interface CompletionVerificationStrategyManager {
      * @param message    原始消息对象
      * @return true-已完成，可安全丢弃消息；false-未完成，应重新消费
      */
-    boolean isCompleted(String businessId, Message message);
+    boolean isCompleted(String businessId, DefaultMessage message);
 
     /**
      * 返回该策略支持的队列名称

@@ -23,7 +23,7 @@ import java.util.Map;
 public class DelayedRetryConfig {
 
     @Autowired
-    private RabbitMqProperties advancedProperties;
+    private RabbitMqProperties rabbitMqProperties;
 
     /**
      * 定义延迟交换机，类型为 x-delayed-message
@@ -32,16 +32,13 @@ public class DelayedRetryConfig {
     @Bean
     public Exchange delayedExchange() {
         Map<String, Object> args = new HashMap<>();
-        args.put("x-delayed-type", "topic");
-        return new CustomExchange(advancedProperties.getDelayedExchange(), "x-delayed-message", true, false, args);
+        args.put("x-delayed-type", "direct");
+        return new CustomExchange(rabbitMqProperties.getDelayedExchange(), rabbitMqProperties.getDelayedExchange(), true, false, args);
     }
 
-    /**
-     * 示例绑定：将订单队列绑定到延迟交换机
-     * 实际使用时，请根据业务需求在各自的配置类中绑定，此处仅作演示。
-     */
-    @Bean
-    public Binding delayedOrderBinding(Queue orderQueue, Exchange delayedExchange) {
-        return BindingBuilder.bind(orderQueue).to(delayedExchange).with("order.routing.key").noargs();
-    }
+    // 实际使用时，请根据业务需求在各自的配置类中绑定，此处仅作演示。
+    // @Bean
+    // public Binding delayedOrderBinding(Queue orderQueue, Exchange delayedExchange) {
+    //     return BindingBuilder.bind(orderQueue).to(delayedExchange).with("order.routing.key").noargs();
+    // }
 }

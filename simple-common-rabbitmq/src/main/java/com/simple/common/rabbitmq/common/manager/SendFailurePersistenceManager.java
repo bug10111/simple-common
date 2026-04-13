@@ -1,5 +1,8 @@
 package com.simple.common.rabbitmq.common.manager;
 
+import com.simple.common.core.utils.JsonUtils;
+import com.simple.common.core.utils.SerializeUtils;
+import com.simple.common.rabbitmq.common.config.DefaultMessage;
 import org.springframework.amqp.core.Message;
 
 /**
@@ -11,13 +14,15 @@ import org.springframework.amqp.core.Message;
 public interface SendFailurePersistenceManager {
 
     /**
-     * 保存发送失败的消息（ConfirmCallback 收到 ack=false）
+     * 保存到交换机失败的信息
      *
-     * @param correlationId 消息唯一ID
-     * @param message       原始消息对象
-     * @param cause         失败原因
+     * @param correlationId      消息唯一ID
+     * @param cause              失败原因
+     * @param receivedExchange   目标交换机
+     * @param receivedRoutingKey key
+     * @param jsonStr            发送数据
      */
-    void saveConfirmFailure(String correlationId, Message message, String cause);
+    void saveConfirmFailure(String correlationId, String cause, String receivedExchange, String receivedRoutingKey, String jsonStr);
 
     /**
      * 保存路由失败的消息（ReturnCallback 触发）
@@ -29,4 +34,17 @@ public interface SendFailurePersistenceManager {
      * @param routingKey 路由键
      */
     void saveReturnFailure(Message message, int replyCode, String replyText, String exchange, String routingKey);
+
+    /**
+     * 保存发送失败的消息（ConfirmCallback 收到 ack=false）
+     *
+     * @param correlationId 消息唯一ID
+     * @param message       原始消息对象
+     * @param cause         失败原因
+     */
+    default void saveConfirmFailure(String correlationId, Message message, String cause) {
+        saveConfirmFailure(correlationId, cause, message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
+                           JsonUtils.toJsonStr(SerializeUtils.deserialize(message.getBody(), DefaultMessage.class)));
+    }
+
 }

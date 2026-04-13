@@ -19,16 +19,6 @@ public class RedisFailedRMQManager implements FailedRMQManager {
     private StringRedisTemplate redisTemplate;
 
     @Override
-    public Long getFailedSum(String failedKey) {
-        String failed = redisTemplate.opsForValue().get(failedKey);
-        // 若key不存在则返回0，保证重试次数正确
-        if (StrUtil.isEmpty(failed)) {
-            return 0L;
-        }
-        return Long.parseLong(failed);
-    }
-
-    @Override
     public Long increment(String failedKey) {
         return redisTemplate.opsForValue().increment(failedKey);
     }
@@ -42,5 +32,4 @@ public class RedisFailedRMQManager implements FailedRMQManager {
     public String getFailedMqRedisKey(String calculation, String queue, String msgId) {
         return calculation + ":" + queue + ":" + msgId;
     }
-
 }

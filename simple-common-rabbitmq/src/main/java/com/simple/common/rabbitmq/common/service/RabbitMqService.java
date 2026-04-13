@@ -23,6 +23,7 @@ public interface RabbitMqService {
 
     /**
      * 基于插件的延时队列
+     * 需要将当前交换机，绑定到目标业务的队列上
      *
      * @param defaultMessage 消息体
      * @param exchangeName   交换机名称

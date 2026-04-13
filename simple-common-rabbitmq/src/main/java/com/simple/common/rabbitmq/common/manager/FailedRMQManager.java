@@ -9,13 +9,6 @@ package com.simple.common.rabbitmq.common.manager;
 public interface FailedRMQManager {
 
     /**
-     * 获取失败次数
-     *
-     * @param failedKey 标志key
-     */
-    Long getFailedSum(String failedKey);
-
-    /**
      * 失败次数加一
      *
      * @param failedKey 标志key
@@ -36,5 +29,4 @@ public interface FailedRMQManager {
      * @param msgId       自定义消息id
      */
     String getFailedMqRedisKey(String calculation, String queue, String msgId);
-
 }

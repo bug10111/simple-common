@@ -27,8 +27,11 @@ public class RedisRepeatRMQManager implements RepeatRMQManager {
 
     @Override
     public boolean register(String queue, String msgId, Integer time, TimeUnit timeUnit) {
-        Boolean b = redisTemplate.opsForValue().setIfAbsent(getRepeatedConsumptionKey(queue, msgId), "1", time, timeUnit);
-        assert b != null : "redis再消息队列消费注册时缓存异常";
+        Boolean b = redisTemplate.opsForValue()
+                .setIfAbsent(getRepeatedConsumptionKey(queue, msgId), "1", time, timeUnit);
+        if (b == null) {
+            throw new IllegalStateException("Redis SETNX returned null, possible connection issue");
+        }
         return b;
     }
 
@@ -52,5 +55,4 @@ public class RedisRepeatRMQManager implements RepeatRMQManager {
     public String getRepeatedConsumptionKey(String queue, String msgId) {
         return rabbitMqProperties.getWhetherToConsume() + ":" + queue + ":" + msgId;
     }
-
 }
