@@ -3,8 +3,8 @@ package com.simple.common.auth.server.manager;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.simple.common.auth.client.common.constant.TokenConstant;
-import com.simple.common.auth.server.common.entity.TokenData;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.server.common.entity.TokenData;
 import com.simple.common.auth.server.common.manager.user.LoginUserOperationManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,12 +13,13 @@ import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 服务端登录用户操作管理器。
  * <p>
  * 优化：
- * 1. 增加本地权限缓存（permissionCache），减少 Redis 查询。
+ * 1. 增加本地权限缓存（permissionCache），按 jti 缓存用户权限集合，减少 Redis 查询。
  * 2. 实现 getAuthorities 方法，从缓存或 Redis 加载角色权限。
  *
  * @author Admin (优化版本)
@@ -32,13 +33,10 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     private CacheManager cacheManager;
 
     /**
-     * 本地权限缓存：Key = 角色名，Value = 权限标识 Set。
+     * 本地权限缓存：Key = jti，Value = 权限标识 Set。
      * 使用 Caffeine，过期时间默认 30 分钟，与 Token 刷新时间对齐。
      */
-    private final Cache<String, Map<Object, Object>> permissionCache = Caffeine.newBuilder()
-                                                                               .maximumSize(5000)
-                                                                               .expireAfterWrite(30, TimeUnit.MINUTES)
-                                                                               .build();
+    private final Cache<String, Set<String>> permissionCache = Caffeine.newBuilder().maximumSize(10000).expireAfterWrite(30, TimeUnit.MINUTES).build();
 
     /**
      * 保存用户登录信息（包括用户详情、权限关联等）。
@@ -48,8 +46,8 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
      */
     @Override
     public void saveUserInfo(TokenData tokenData, boolean isLogin) {
-        String userId = tokenData.getSaveInfoMap().get(TokenConstant.userIdKey);
-        long timeOut = Long.parseLong(tokenData.getSaveInfoMap().get(TokenConstant.rEtKey));
+        String userId = tokenData.getSaveInfoMap().get(TokenConstant.userIdKey).toString();
+        long timeOut = Long.parseLong(tokenData.getSaveInfoMap().get(TokenConstant.rEtKey).toString());
         String jti = tokenData.getRefreshTokenMap().get(TokenConstant.jtiKey).toString();
 
         String infoKey = TokenConstant.getUserInfoKey(jti);
@@ -59,6 +57,34 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         String userTokenKey = TokenConstant.getUserTokenKey(userId);
         cacheManager.setAdd(userTokenKey, jti);
         cacheManager.expire(userTokenKey, timeOut, TimeUnit.SECONDS);
+
+        // 如果是登录或刷新，重建权限缓存
+        rebuildPermissionCache(jti, tokenData.getSaveInfoMap());
+    }
+
+    /**
+     * 重建用户权限本地缓存。
+     *
+     * @param jti      登录唯一标识
+     * @param userInfo 用户信息 Map
+     */
+    private void rebuildPermissionCache(String jti, Map<Object, Object> userInfo) {
+        Object loginRoleObj = userInfo.get(TokenConstant.loginRole);
+        if (loginRoleObj == null) return;
+
+        Set<String> allPermissions = new HashSet<>();
+        try {
+            List<String> roles = com.simple.common.core.utils.JsonUtils.toList(loginRoleObj.toString(), String.class);
+            for (String role : roles) {
+                Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
+                if (perms != null) {
+                    allPermissions.addAll(perms.keySet().stream().map(Object::toString).collect(Collectors.toSet()));
+                }
+            }
+            permissionCache.put(jti, allPermissions);
+        } catch (Exception e) {
+            log.error("重建权限缓存失败，jti={}", jti, e);
+        }
     }
 
     /**
@@ -70,7 +96,10 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     public void loginOut(String userId) {
         Set<String> members = getUserToken(userId);
         if (members != null && !members.isEmpty()) {
-            members.forEach(jti -> cacheManager.delete(TokenConstant.getUserInfoKey(jti)));
+            members.forEach(jti -> {
+                cacheManager.delete(TokenConstant.getUserInfoKey(jti));
+                permissionCache.invalidate(jti);
+            });
         }
         cacheManager.delete(TokenConstant.getUserTokenKey(userId));
     }
@@ -85,6 +114,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     public void loginOut(String userId, String jti) {
         cacheManager.delete(TokenConstant.getUserInfoKey(jti));
         cacheManager.setRemove(TokenConstant.getUserTokenKey(userId), jti);
+        permissionCache.invalidate(jti);
     }
 
     /**
@@ -112,13 +142,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         }
         Map<Object, Map<Object, Object>> result = new HashMap<>();
         for (String role : loginRole) {
-            Map<Object, Object> perms = permissionCache.getIfPresent(role);
-            if (perms == null) {
-                perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
-                if (perms != null && !perms.isEmpty()) {
-                    permissionCache.put(role, perms);
-                }
-            }
+            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
             if (perms != null && !perms.isEmpty()) {
                 result.put(role, perms);
             }
@@ -138,7 +162,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     }
 
     /**
-     * 判断用户是否拥有指定权限（服务端实现中未使用，预留）。
+     * 判断用户是否拥有指定权限（服务端实现，供客户端远程调用）。
      *
      * @param loginRole 用户角色
      * @param authority 权限标识数组
@@ -148,17 +172,58 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     public Boolean hasAuth(HashSet<String> loginRole, String[] authority) {
         if (authority == null || authority.length == 0) return true;
         if (loginRole == null || loginRole.isEmpty()) return false;
+
         for (String role : loginRole) {
-            Map<Object, Object> perms = permissionCache.getIfPresent(role);
-            if (perms == null) {
-                perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
-                if (perms != null) permissionCache.put(role, perms);
-            }
+            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
             if (perms != null) {
                 for (String auth : authority) {
                     if (perms.containsKey(auth)) return true;
                 }
             }
+        }
+        return false;
+    }
+
+    /**
+     * 根据 jti 判断用户是否拥有指定权限（优化后的方法，供内部使用）。
+     *
+     * @param jti       登录唯一标识
+     * @param authority 权限标识数组
+     * @return 是否有权限
+     */
+    public Boolean hasAuthByJti(String jti, String[] authority) {
+        if (authority == null || authority.length == 0) return true;
+        Set<String> permissions = permissionCache.getIfPresent(jti);
+        if (permissions != null) {
+            for (String auth : authority) {
+                if (permissions.contains(auth)) return true;
+            }
+            return false;
+        }
+
+        // 缓存未命中，降级查询
+        Map<Object, Object> userInfo = getUserInfo(jti);
+        if (userInfo.isEmpty()) return false;
+        Object loginRoleObj = userInfo.get(TokenConstant.loginRole);
+        if (loginRoleObj == null) return false;
+
+        try {
+            List<String> roles = com.simple.common.core.utils.JsonUtils.toList(loginRoleObj.toString(), String.class);
+            for (String role : roles) {
+                Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
+                if (perms != null) {
+                    for (String auth : authority) {
+                        if (perms.containsKey(auth)) {
+                            // 回填缓存
+                            Set<String> allPerms = perms.keySet().stream().map(Object::toString).collect(Collectors.toSet());
+                            permissionCache.put(jti, allPerms);
+                            return true;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.error("权限校验异常", e);
         }
         return false;
     }

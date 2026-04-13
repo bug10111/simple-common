@@ -48,8 +48,7 @@ public class CheckTokenAuthProcess implements AuthProcess {
 
     @Override
     public void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr) {
-
-        //首先从头里面看能不能获取到已处理好的数据
+        // 检查内部传递头
         String encoded = request.getHeader(TokenConstant.userHead);
         String sign = request.getHeader(TokenConstant.userSignHead);
         String key = signManager.getKey();
@@ -65,7 +64,7 @@ public class CheckTokenAuthProcess implements AuthProcess {
             }
         }
 
-        //获取不到，走正常校验流程，然后追加到头信息
+        // 正常 token 校验
         Map<String, Object> payload = tokenManager.check(token, false);
         LoginInfoManager loginInfoManager;
         if (clientAuthInfo.getClient()) {
@@ -73,6 +72,8 @@ public class CheckTokenAuthProcess implements AuthProcess {
         } else {
             loginInfoManager = LoginInfoManagerUtils.getSerLoginInfoManager();
         }
+        AssertUtils.notNull(loginInfoManager, "LoginInfoManager 未正确初始化");
+
         Map<Object, Object> userInfo = loginInfoManager.getUserInfo(payload.get(TokenConstant.jtiKey).toString());
         AssertUtils.notEmpty(userInfo, LoginException.LOGIN_EXPIRED);
 

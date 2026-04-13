@@ -12,10 +12,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * 基于 Caffeine 的本地缓存实现，通过 LocalCacheFactory 管理缓存实例。
  * <p>
+ * 优化：使用 Caffeine 的原子加载方法 {@code get(key, Function)} 替代显式的 {@code compute}，
+ * 减少锁竞争，充分利用 Caffeine 的并发特性。
+ * <p>
  * 注意：Caffeine 不支持单条记录的独立过期时间，因此带有过期时间的 set 方法将忽略 seconds 参数，
  * 统一使用缓存实例的默认过期策略。如需精细控制过期时间，建议使用 RedisCacheManager。
  *
- * @author qty (修复版本)
+ * @author qty (优化版本)
  */
 @Slf4j
 public class LocalCacheManager implements CacheManager {
@@ -42,15 +45,9 @@ public class LocalCacheManager implements CacheManager {
      * 适用于 Spring 通过工厂创建时的默认场景。
      */
     public LocalCacheManager() {
-        this.stringCache = cacheFactory.createCache("auth:string", spec -> spec
-                        .maximumSize(10000)
-                        .expireAfterWrite(1800));
-        this.hashCache = cacheFactory.createCache("auth:hash", spec -> spec
-                        .maximumSize(5000)
-                        .expireAfterWrite(1800));
-        this.setCache = cacheFactory.createCache("auth:set", spec -> spec
-                        .maximumSize(5000)
-                        .expireAfterWrite(1800));
+        this.stringCache = cacheFactory.createCache("auth:string", spec -> spec.maximumSize(10000).expireAfterWrite(1800));
+        this.hashCache = cacheFactory.createCache("auth:hash", spec -> spec.maximumSize(5000).expireAfterWrite(1800));
+        this.setCache = cacheFactory.createCache("auth:set", spec -> spec.maximumSize(5000).expireAfterWrite(1800));
     }
 
     /**
@@ -60,9 +57,7 @@ public class LocalCacheManager implements CacheManager {
      * @param hashCache   Hash 缓存实例
      * @param setCache    Set 缓存实例
      */
-    public LocalCacheManager(Cache<String, String> stringCache,
-                             Cache<String, Map<Object, Object>> hashCache,
-                             Cache<String, Set<String>> setCache) {
+    public LocalCacheManager(Cache<String, String> stringCache, Cache<String, Map<Object, Object>> hashCache, Cache<String, Set<String>> setCache) {
         this.stringCache = stringCache;
         this.hashCache = hashCache;
         this.setCache = setCache;
@@ -133,7 +128,7 @@ public class LocalCacheManager implements CacheManager {
         return increment(key, -delta);
     }
 
-    // ==================== Hash 操作 ====================
+    // ==================== Hash 操作（优化版） ====================
 
     @Override
     public Map<Object, Object> hashGetAll(String key) {
@@ -143,13 +138,9 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public void hashPutAll(String key, Map<Object, Object> map) {
-        hashCache.asMap().compute(key, (k, oldMap) -> {
-            if (oldMap == null) {
-                oldMap = new ConcurrentHashMap<>();
-            }
-            oldMap.putAll(map);
-            return oldMap;
-        });
+        // 原子性地获取或创建 Map，然后合并数据
+        Map<Object, Object> existing = hashCache.get(key, k -> new ConcurrentHashMap<>());
+        existing.putAll(map);
     }
 
     @Override
@@ -160,13 +151,9 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public void hashPut(String key, String field, String value) {
-        hashCache.asMap().compute(key, (k, map) -> {
-            if (map == null) {
-                map = new ConcurrentHashMap<>();
-            }
-            map.put(field, value);
-            return map;
-        });
+        // 原子性地获取或创建 Map，然后 put
+        Map<Object, Object> map = hashCache.get(key, k -> new ConcurrentHashMap<>());
+        map.put(field, value);
     }
 
     @Override
@@ -187,25 +174,19 @@ public class LocalCacheManager implements CacheManager {
                 count++;
             }
         }
-        if (map.isEmpty()) {
-            hashCache.invalidate(key);
-        }
+        // 如果 Map 为空，可选择删除缓存 key，但需注意并发问题，这里不做自动删除
         return count;
     }
 
-    // ==================== Set 操作 ====================
+    // ==================== Set 操作（优化版） ====================
 
     @Override
     public Long setAdd(String key, String... values) {
-        setCache.asMap().compute(key, (k, v) -> {
-            if (v == null) {
-                v = ConcurrentHashMap.newKeySet();
-            }
-            for (String val : values) {
-                v.add(val);
-            }
-            return v;
-        });
+        // 原子性地获取或创建 Set，然后添加元素
+        Set<String> set = setCache.get(key, k -> ConcurrentHashMap.newKeySet());
+        for (String val : values) {
+            set.add(val);
+        }
         return (long) values.length;
     }
 
@@ -232,9 +213,6 @@ public class LocalCacheManager implements CacheManager {
             if (set.remove(val)) {
                 count++;
             }
-        }
-        if (set.isEmpty()) {
-            setCache.invalidate(key);
         }
         return count;
     }

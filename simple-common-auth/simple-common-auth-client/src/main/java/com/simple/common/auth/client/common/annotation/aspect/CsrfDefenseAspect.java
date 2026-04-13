@@ -33,11 +33,12 @@ public class CsrfDefenseAspect {
     @Before("@annotation(com.simple.common.auth.client.common.annotation.CsrfDefense)")
     public void before() {
         if (csrfProperties.isCsrfDefense()) {
-
             String userId = LoginUserUtils.getUserTemporary().getUserId();
             String path = LoginUserUtils.getUserTemporary().getPath();
-            HttpServletRequest request = HttpServletUtils.getRequest();
+            AssertUtils.notEmpty(userId, "用户未登录，无法进行 CSRF 校验");
+            AssertUtils.notEmpty(path, "请求路径不能为空");
 
+            HttpServletRequest request = HttpServletUtils.getRequest();
             String token = request.getHeader(csrfProperties.getCsrfHeader());
             AssertUtils.notEmpty(token, "请求失败", "用户[{}]==>[{}] CSRF token不存在", userId, path);
             csrfService.checkToken(userId, path, token);
