@@ -1,0 +1,12 @@
+# 将所有源码下载下来
+mvn dependency:sources
+mvn -U dependency:sources
+
+# 编译某个指定的类到指定目录
+javac -cp target/classes -d target/classes src/main/java/com/sjhy/plugin/tool/NameUtils.java
+
+# 查看当前没被git记录的文件夹
+git clean -fdn
+
+# 删除未提交的空文件夹
+git clean -fd

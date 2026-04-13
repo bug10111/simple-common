@@ -1,0 +1,11 @@
+ctrl + shift + l 格式化代码
+ctrl + shift + o 优化导入
+ctrl + h 查看类结构层次
+ctrl + shift + h 查看方法的调用类和地点
+alt + f8 表达式调试
+alt + f7 获取所有调用
+ctrl + shift + u 选中代码大小写转化
+ctrl + [ 跳转到方法名处
+alt + ins 快速构造
+shift + f6 重构代码名称
+ctrl + alt + l 格式化清理、可在包执行

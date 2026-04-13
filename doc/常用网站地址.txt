@@ -1,0 +1,24 @@
+# 中央仓库
+https://mvnrepository.com/
+
+# alibaba微服务
+https://sca.aliyun.com/docs/2023/overview/version-explain/?spm=5176.29160081.0.0.74805c726iZAej
+https://sentinelguard.io/zh-cn/docs/introduction.html
+
+# rocketmq
+https://github.com/apache/rocketmq/tree/master/docs/cn
+
+# PolarDB数据库
+https://apsaradb.github.io/PolarDB-for-PostgreSQL/zh/
+
+# shardingsphere 分库分表工具
+https://shardingsphere.apache.org/index_zh.html
+
+# 微信官方文档地址
+https://developers.weixin.qq.com/doc/
+
+# oracle官网
+https://www.oracle.com/cn/java/
+
+# jdk地址（启动快，内存占用4低，性能启动即巅峰，多语言支持）
+https://github.com/graalvm/graalvm-ce-builds/tags
