@@ -2,9 +2,8 @@ package com.simple.common.rabbitmq.manager;
 
 import com.rabbitmq.client.Channel;
 import com.simple.common.rabbitmq.common.manager.AckRMQManager;
+import lombok.SneakyThrows;
 import org.springframework.stereotype.Component;
-
-import java.io.IOException;
 
 /**
  * Created with IntelliJ IDEA
@@ -15,7 +14,8 @@ import java.io.IOException;
 public class DefaultAckRMQManager implements AckRMQManager {
 
     @Override
-    public void basicAck(Channel channel, Long deliveryTag) throws IOException {
+    @SneakyThrows
+    public void basicAck(Channel channel, Long deliveryTag) {
         /*
          * 手动应答:
          * 1.消息标记tag-类似唯一主键
@@ -25,7 +25,8 @@ public class DefaultAckRMQManager implements AckRMQManager {
     }
 
     @Override
-    public void basicNack(Channel channel, Long deliveryTag, boolean b) throws IOException {
+    @SneakyThrows
+    public void basicNack(Channel channel, Long deliveryTag, boolean b) {
         /*
          * 手动应答:
          * 1.消息标记tag-类似唯一主键

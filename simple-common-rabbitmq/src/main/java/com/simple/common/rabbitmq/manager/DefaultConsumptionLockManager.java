@@ -1,0 +1,174 @@
+package com.simple.common.rabbitmq.manager;
+
+import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.manager.CompletionVerificationRouterManager;
+import com.simple.common.rabbitmq.common.manager.CompletionVerificationStrategyManager;
+import com.simple.common.rabbitmq.common.manager.ConsumptionLockManager;
+import com.simple.common.rabbitmq.common.properties.RabbitMqProperties;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.stereotype.Component;
+
+import java.util.Collections;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * 消费防重锁管理器默认实现（支持续期）
+ *
+ * @author qty
+ */
+@Slf4j
+@Component
+@RequiredArgsConstructor
+public class DefaultConsumptionLockManager implements ConsumptionLockManager {
+
+    private final StringRedisTemplate redisTemplate;
+    private final RabbitMqProperties properties;
+    private final CompletionVerificationRouterManager verificationRouterManager;
+
+    /**
+     * Lua脚本：仅当值等于期望值时设置过期时间
+     */
+    private static final String EXPIRE_IF_VALUE_EQUALS_SCRIPT =
+            "if redis.call('GET', KEYS[1]) == ARGV[1] then " +
+            "    return redis.call('EXPIRE', KEYS[1], ARGV[2]) " +
+            "else " +
+            "    return 0 " +
+            "end";
+
+    private final DefaultRedisScript<Boolean> expireIfValueEqualsScript =
+            new DefaultRedisScript<>(EXPIRE_IF_VALUE_EQUALS_SCRIPT, Boolean.class);
+
+    /**
+     * 构建防重锁的 Redis Key
+     *
+     * @param queue         队列名称
+     * @param correlationId 消息唯一标识
+     * @return Redis Key
+     */
+    @Override
+    public String buildLockKey(String queue, String correlationId) {
+        return properties.getWhetherToConsume() + ":" + queue + ":" + correlationId;
+    }
+
+    /**
+     * 尝试获取消费锁，使用 Redis SET NX EX 原子操作
+     *
+     * @param queue         队列名称
+     * @param correlationId 消息唯一标识
+     * @param businessTime  业务预估执行时长
+     * @param timeUnit      时间单位
+     * @return true-获取成功，false-锁已存在
+     */
+    @Override
+    public boolean tryAcquire(String queue, String correlationId, int businessTime, TimeUnit timeUnit) {
+        String lockKey = buildLockKey(queue, correlationId);
+        Boolean success = redisTemplate.opsForValue()
+                .setIfAbsent(lockKey, properties.getLockStatusProcessing(), businessTime, timeUnit);
+        return Boolean.TRUE.equals(success);
+    }
+
+    /**
+     * 续期锁的过期时间，仅当锁的值仍为 PROCESSING 时成功
+     *
+     * @param queue         队列名
+     * @param correlationId 消息ID
+     * @param businessTime  业务预估时长
+     * @param timeUnit      时间单位
+     * @return true-续期成功，false-锁不存在或已变更
+     */
+    @Override
+    public boolean renewLock(String queue, String correlationId, int businessTime, TimeUnit timeUnit) {
+        String lockKey = buildLockKey(queue, correlationId);
+        long expireSeconds = timeUnit.toSeconds(businessTime);
+        Boolean result = redisTemplate.execute(expireIfValueEqualsScript,
+                Collections.singletonList(lockKey),
+                properties.getLockStatusProcessing(),
+                String.valueOf(expireSeconds));
+        return Boolean.TRUE.equals(result);
+    }
+
+    /**
+     * 检查已存在的锁状态，返回处理建议
+     *
+     * @param queue          队列名
+     * @param correlationId  消息ID
+     * @param defaultMessage 消息体
+     * @return 锁状态及建议操作
+     */
+    @Override
+    public LockStatus checkLockStatus(String queue, String correlationId, DefaultMessage defaultMessage) {
+        String lockKey = buildLockKey(queue, correlationId);
+        String status = redisTemplate.opsForValue().get(lockKey);
+
+        if (status == null) {
+            return LockStatus.NOT_EXISTS;
+        }
+
+        if (status.startsWith(properties.getLockStatusDonePrefix())) {
+            String businessId = status.substring(properties.getLockStatusDonePrefix().length());
+            CompletionVerificationStrategyManager strategy = verificationRouterManager.getStrategy(queue);
+            if (strategy != null && !strategy.isCompleted(businessId, defaultMessage)) {
+                return LockStatus.COMPLETED_BUT_VERIFICATION_FAILED;
+            }
+            return LockStatus.COMPLETED_AND_VERIFIED;
+        }
+
+        Long ttl = redisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
+        if (ttl != null && ttl > properties.getLockTtlRecoveryThresholdSeconds()) {
+            Boolean shortened = redisTemplate.execute(expireIfValueEqualsScript,
+                    Collections.singletonList(lockKey),
+                    properties.getLockStatusProcessing(),
+                    String.valueOf(properties.getLockTtlRecoveryThresholdSeconds()));
+            if (Boolean.TRUE.equals(shortened)) {
+                return LockStatus.PROCESSING_WITH_RECOVERED_TTL;
+            }
+        }
+        return LockStatus.PROCESSING;
+    }
+
+    /**
+     * 删除锁
+     *
+     * @param queue         队列名
+     * @param correlationId 消息ID
+     */
+    @Override
+    public void release(String queue, String correlationId) {
+        redisTemplate.delete(buildLockKey(queue, correlationId));
+    }
+
+    /**
+     * 将锁标记为已完成
+     *
+     * @param queue           队列名
+     * @param correlationId   消息ID
+     * @param businessId      业务返回的唯一标识
+     * @param effectiveSeconds 完成状态有效时长
+     * @param timeUnit        时间单位
+     */
+    @Override
+    public void markAsDone(String queue, String correlationId, String businessId, long effectiveSeconds,
+                           TimeUnit timeUnit) {
+        String lockKey = buildLockKey(queue, correlationId);
+        String doneStatus = properties.getLockStatusDonePrefix() + businessId;
+        redisTemplate.opsForValue().set(lockKey, doneStatus, effectiveSeconds, timeUnit);
+    }
+
+    /**
+     * 重置锁为处理中状态（用于校验失败时重新进入处理状态）
+     *
+     * @param queue         队列名
+     * @param correlationId 消息ID
+     * @param businessTime  业务预估时长
+     * @param timeUnit      时间单位
+     */
+    @Override
+    public void resetToProcessing(String queue, String correlationId, int businessTime, TimeUnit timeUnit) {
+        String lockKey = buildLockKey(queue, correlationId);
+        long expireSeconds = timeUnit.toSeconds(businessTime);
+        redisTemplate.opsForValue().set(lockKey, properties.getLockStatusProcessing(), expireSeconds, TimeUnit.SECONDS);
+    }
+}
