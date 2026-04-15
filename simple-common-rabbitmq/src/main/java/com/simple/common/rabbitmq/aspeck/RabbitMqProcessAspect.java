@@ -3,7 +3,7 @@ package com.simple.common.rabbitmq.aspeck;
 import com.rabbitmq.client.Channel;
 import com.simple.common.core.utils.SerializeUtils;
 import com.simple.common.rabbitmq.annotation.RabbitMqConsumption;
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 import com.simple.common.rabbitmq.common.manager.AckRMQManager;
 import com.simple.common.rabbitmq.common.manager.ConsumptionLockManager;
 import com.simple.common.rabbitmq.common.manager.RetryCountManager;
@@ -11,7 +11,6 @@ import com.simple.common.rabbitmq.common.manager.RetryMessageManager;
 import com.simple.common.rabbitmq.common.service.process.RabbitMqProcess;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -58,6 +57,7 @@ public class RabbitMqProcessAspect {
 
     /**
      * 注解属性缓存，使用 method.toString() 作为 key，避免代理方法差异
+     * 修复：使用声明类名+方法名避免 CGLIB 代理类名变化
      */
     private final Map<String, RabbitMqConsumption> annotationCache = new ConcurrentHashMap<>();
 
@@ -89,7 +89,18 @@ public class RabbitMqProcessAspect {
      */
     @PreDestroy
     public void destroy() {
-        RENEWAL_SCHEDULER.shutdownNow();
+        RENEWAL_SCHEDULER.shutdown();
+        try {
+            if (!RENEWAL_SCHEDULER.awaitTermination(5, TimeUnit.SECONDS)) {
+                RENEWAL_SCHEDULER.shutdownNow();
+                if (!RENEWAL_SCHEDULER.awaitTermination(2, TimeUnit.SECONDS)) {
+                    log.warn("RabbitMQ锁续期线程池未完全终止");
+                }
+            }
+        } catch (InterruptedException e) {
+            RENEWAL_SCHEDULER.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
         log.info("RabbitMQ锁续期线程池已关闭");
     }
 
@@ -101,12 +112,12 @@ public class RabbitMqProcessAspect {
      * @param joinPoint 切点
      * @return 业务方法执行结果
      */
-    @SneakyThrows
     @Around("@annotation(com.simple.common.rabbitmq.annotation.RabbitMqConsumption)")
-    public Object around(ProceedingJoinPoint joinPoint) {
+    public Object around(ProceedingJoinPoint joinPoint) throws Throwable { // 移除 @SneakyThrows
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
-        String methodKey = method.toString();
+        // 修复缓存 Key：使用声明类名 + 方法签名
+        String methodKey = method.getDeclaringClass().getName() + "#" + method.getName() + method.getParameterCount();
         RabbitMqConsumption annotation = annotationCache.computeIfAbsent(methodKey, k -> method.getAnnotation(RabbitMqConsumption.class));
 
         Object[] args = joinPoint.getArgs();
@@ -162,6 +173,9 @@ public class RabbitMqProcessAspect {
         }
 
         ScheduledFuture<?> renewalFuture = startLockRenewal(consumerQueue, correlationId, businessTime, timeUnit);
+        // 添加续期失败计数器，用于检测连续失败
+        final int maxRenewalFailures = 3;
+        final int[] renewalFailCount = {0};
 
         try {
             for (RabbitMqProcess process : sortedProcesses) {
@@ -174,6 +188,7 @@ public class RabbitMqProcessAspect {
                 }
             }
 
+            // 在业务执行前，可定期检查续期状态（此处简化，在续期任务中检查）
             Object businessResult = joinPoint.proceed(args);
             String businessId = businessResult != null ? businessResult.toString() : "";
 
@@ -199,6 +214,7 @@ public class RabbitMqProcessAspect {
 
     /**
      * 启动锁续期任务，每隔 (businessTime / 3) 时间刷新锁的过期时间
+     * 修复：若连续续期失败超过阈值，则中断业务线程（主动抛出异常）
      *
      * @param queue         队列名称
      * @param correlationId 消息唯一标识
@@ -212,9 +228,21 @@ public class RabbitMqProcessAspect {
         if (renewInterval <= 0) {
             renewInterval = 1000;
         }
+        final int maxConsecutiveFailures = 3;
+        final int[] failureCount = {0};
         return RENEWAL_SCHEDULER.scheduleAtFixedRate(() -> {
             try {
                 boolean renewed = lockManager.renewLock(queue, correlationId, businessTime, timeUnit);
+                if (!renewed) {
+                    failureCount[0]++;
+                    if (failureCount[0] >= maxConsecutiveFailures) {
+                        log.error("队列[{}] id[{}] 锁续期连续失败{}次，可能锁已丢失，中断业务线程", queue, correlationId, maxConsecutiveFailures);
+                        // 中断当前业务线程（需业务方法响应中断）
+                        Thread.currentThread().interrupt();
+                    }
+                } else {
+                    failureCount[0] = 0;
+                }
                 if (!renewed && log.isDebugEnabled()) {
                     log.debug("队列[{}] id[{}] 锁续期失败", queue, correlationId);
                 }

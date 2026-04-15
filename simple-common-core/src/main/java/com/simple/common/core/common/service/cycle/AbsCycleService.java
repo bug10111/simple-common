@@ -77,12 +77,17 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
     }
 
     /**
-     * 格式化业务参数
-     *
-     * @param runBody 业务茶树
+     * 转换事件参数类型
+     * 注意：若原始对象与目标类型不匹配，会通过JSON序列化再反序列化，
+     * 可能导致Date、LocalDateTime等特殊类型转换异常，请确保参数类型兼容。
      */
-    public T toBean(Object runBody) {
-        return JSONUtil.toBean((JSONObject) runBody, eventClass);
+    @SuppressWarnings("unchecked")
+    protected T toBean(Object rawBody) {
+        if (eventClass.isInstance(rawBody)) {
+            return (T) rawBody;
+        }
+        // 使用JSON转换，注意类型兼容性
+        return JsonUtils.toJsonObj(JsonUtils.toJsonStr(rawBody), eventClass);
     }
 
     /**

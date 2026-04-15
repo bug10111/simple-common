@@ -1,6 +1,6 @@
 package com.simple.common.rabbitmq.common.manager;
 
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 
 /**
  * 业务完成校验策略，每个队列可对应不同的校验实现。

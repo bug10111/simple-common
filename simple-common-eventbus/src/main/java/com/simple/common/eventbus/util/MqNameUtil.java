@@ -1,6 +1,7 @@
 package com.simple.common.eventbus.util;
 
 import cn.hutool.extra.spring.SpringUtil;
+import org.springframework.util.StringUtils;
 
 /**
  * Created with IntelliJ IDEA
@@ -31,10 +32,20 @@ public class MqNameUtil {
     }
 
     /**
-     * 获取队列相关名称前缀
+     * 获取队列相关名称前缀，格式：服务名-环境标识
      */
     public static String getEnvironment(String name) {
-        return name + "-" + SpringUtil.getActiveProfile();
+        String profile = null;
+        try {
+            profile = SpringUtil.getActiveProfile();
+        } catch (Exception e) {
+            // 忽略异常，使用默认值
+        }
+        // 若未设置环境，使用默认值防止空字符串
+        if (!StringUtils.hasText(profile)) {
+            profile = "default";
+        }
+        return name + "-" + profile;
     }
 
 }

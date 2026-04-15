@@ -39,7 +39,7 @@ public class RabbitMqProperties {
     /**
      * 延迟交换机名称，用于消费失败后的延迟重试
      */
-    private String delayedExchange = "simple.mq.delayed.exchange";
+    private String delayedExchange = "simple.delayed.retry.exchange";
 
     /**
      * Redis 重试计数过期时间（秒），默认 1 小时

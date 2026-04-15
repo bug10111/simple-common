@@ -4,6 +4,7 @@ import com.simple.common.core.common.enums.order.SimpleOrder;
 import com.simple.common.eventbus.common.annotation.EventHandler;
 import com.simple.common.eventbus.common.manager.EventHandlerManager;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -12,6 +13,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Method;
 import java.util.stream.Stream;
 
 /**
@@ -33,8 +35,14 @@ public class EventHandlerInit implements ApplicationListener<ApplicationReadyEve
     public void onApplicationEvent(ApplicationReadyEvent event) {
         Stream.of(applicationContext.getBeanDefinitionNames())
               .map(bName -> applicationContext.getBean(bName))
-              .map(AopUtils::getTargetClass)
-              .flatMap(c -> Stream.of(c.getMethods()))
+              .map(bean -> {
+                  // 获取最终的目标类（处理JDK动态代理和CGLIB代理）
+                  if (AopUtils.isAopProxy(bean)) {
+                      return AopProxyUtils.ultimateTargetClass(bean);
+                  }
+                  return bean.getClass();
+              })
+              .flatMap(c -> Stream.of(c.getDeclaredMethods())) // 只扫描当前类声明的方法，避免重复
               .filter(m -> m.isAnnotationPresent(EventHandler.class))
               .forEach(m -> eventHandlerManager.register(m));
         log.info("领域事件EventHandler初始化完成");

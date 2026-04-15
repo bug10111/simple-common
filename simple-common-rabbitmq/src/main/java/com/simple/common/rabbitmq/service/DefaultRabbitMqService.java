@@ -1,6 +1,6 @@
 package com.simple.common.rabbitmq.service;
 
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 import com.simple.common.rabbitmq.common.service.RabbitMqService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;

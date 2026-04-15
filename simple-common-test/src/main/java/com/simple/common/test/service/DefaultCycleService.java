@@ -20,8 +20,8 @@ public class DefaultCycleService extends AbsEventCycleService<DataDemo> {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultCycleService.class);
 
-    public DefaultCycleService() {
-        super(DataDemo.class);
+    public DefaultCycleService(Class<DataDemo> eventClass) {
+        super(eventClass);
     }
 
     @Override
@@ -45,4 +45,5 @@ public class DefaultCycleService extends AbsEventCycleService<DataDemo> {
     protected void error(DataDemo runBody, Map<String, Object> parameters) {
         log.debug("业务异常，查询失败");
     }
+
 }

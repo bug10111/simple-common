@@ -101,11 +101,11 @@ public class ThreadUtils {
      * 定期以固定速率执行任务
      *
      * @param runnable  任务
-     * @param fixedTime 任务完成后每fixedTime时间执行一次
+     * @param delay 任务完成后每delay时间执行一次
      * @param timeUnit  时间单位
      */
-    public static void scheduleWithFixedDelay(Runnable runnable, long fixedTime, TimeUnit timeUnit) {
-        scheduleWithFixedDelay(runnable, 0, fixedTime, timeUnit);
+    public static void scheduleWithFixedDelay(Runnable runnable, long delay, TimeUnit timeUnit) {
+        scheduleWithFixedDelay(runnable, 0, delay, timeUnit);
     }
 
     /**

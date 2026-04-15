@@ -2,7 +2,7 @@ package com.simple.common.rabbitmq.common.manager;
 
 import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.core.utils.SerializeUtils;
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 import org.springframework.amqp.core.Message;
 
 /**

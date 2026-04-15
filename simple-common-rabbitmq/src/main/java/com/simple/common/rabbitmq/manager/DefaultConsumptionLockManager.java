@@ -1,6 +1,6 @@
 package com.simple.common.rabbitmq.manager;
 
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 import com.simple.common.rabbitmq.common.manager.CompletionVerificationRouterManager;
 import com.simple.common.rabbitmq.common.manager.CompletionVerificationStrategyManager;
 import com.simple.common.rabbitmq.common.manager.ConsumptionLockManager;
@@ -38,8 +38,9 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
             "    return 0 " +
             "end";
 
-    private final DefaultRedisScript<Boolean> expireIfValueEqualsScript =
-            new DefaultRedisScript<>(EXPIRE_IF_VALUE_EQUALS_SCRIPT, Boolean.class);
+    // 修复：改用 Long 类型避免隐式转换问题
+    private final DefaultRedisScript<Long> expireIfValueEqualsScript =
+            new DefaultRedisScript<>(EXPIRE_IF_VALUE_EQUALS_SCRIPT, Long.class);
 
     /**
      * 构建防重锁的 Redis Key
@@ -83,11 +84,11 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
     public boolean renewLock(String queue, String correlationId, int businessTime, TimeUnit timeUnit) {
         String lockKey = buildLockKey(queue, correlationId);
         long expireSeconds = timeUnit.toSeconds(businessTime);
-        Boolean result = redisTemplate.execute(expireIfValueEqualsScript,
+        Long result = redisTemplate.execute(expireIfValueEqualsScript,
                 Collections.singletonList(lockKey),
                 properties.getLockStatusProcessing(),
                 String.valueOf(expireSeconds));
-        return Boolean.TRUE.equals(result);
+        return result != null && result == 1L;
     }
 
     /**
@@ -116,14 +117,19 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
             return LockStatus.COMPLETED_AND_VERIFIED;
         }
 
+        // 修复竞态条件：当缩短TTL失败时，重新检查状态
         Long ttl = redisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
         if (ttl != null && ttl > properties.getLockTtlRecoveryThresholdSeconds()) {
-            Boolean shortened = redisTemplate.execute(expireIfValueEqualsScript,
+            Long shortened = redisTemplate.execute(expireIfValueEqualsScript,
                     Collections.singletonList(lockKey),
                     properties.getLockStatusProcessing(),
                     String.valueOf(properties.getLockTtlRecoveryThresholdSeconds()));
-            if (Boolean.TRUE.equals(shortened)) {
+            if (shortened != null && shortened == 1L) {
                 return LockStatus.PROCESSING_WITH_RECOVERED_TTL;
+            } else {
+                // 锁值已变化（可能被标记为DONE），递归重新判断状态
+                log.debug("锁[{}]缩短TTL失败，值已变更，重新检查状态", lockKey);
+                return checkLockStatus(queue, correlationId, defaultMessage);
             }
         }
         return LockStatus.PROCESSING;

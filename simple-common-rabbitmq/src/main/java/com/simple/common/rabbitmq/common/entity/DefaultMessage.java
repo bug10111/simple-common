@@ -1,4 +1,4 @@
-package com.simple.common.rabbitmq.common.config;
+package com.simple.common.rabbitmq.common.entity;
 
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.IdUtil;

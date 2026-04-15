@@ -1,7 +1,7 @@
 package com.simple.common.rabbitmq.manager;
 
 import com.rabbitmq.client.Channel;
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 import com.simple.common.rabbitmq.common.manager.RetryCountManager;
 import com.simple.common.rabbitmq.common.manager.RetryMessageManager;
 import com.simple.common.rabbitmq.common.properties.RabbitMqProperties;
@@ -66,6 +66,7 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
 
     /**
      * 执行重试核心逻辑：判断次数、计算延迟、发送延迟消息或进入死信
+     * 修复：使用 < maxRetryCount 以确保最大重试次数语义正确
      *
      * @param retryKey           重试计数Key
      * @param message            原始消息
@@ -82,7 +83,8 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
         String routingKey = props.getReceivedRoutingKey();
         String correlationId = props.getCorrelationId();
 
-        if (currentCount <= maxRetryCount) {
+        // 修复：currentCount 从 1 开始计数，应小于 maxRetryCount 才重试
+        if (currentCount < maxRetryCount) {
             long delayMs = Math.min(
                     properties.getRetryDelayBaseMs() * (1L << (currentCount - 1)),
                     properties.getRetryDelayMaxMs());
@@ -100,7 +102,7 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
                 retryCountManager.delete(retryKey);
             }
         } else {
-            log.debug("队列[{}] id[{}] 重试次数已达上限，进入死信", consumerQueue, correlationId);
+            log.debug("队列[{}] id[{}] 重试次数已达上限（{}次），进入死信", consumerQueue, correlationId, maxRetryCount);
             deadLetterService.save(message, cause);
             retryCountManager.delete(retryKey);
         }

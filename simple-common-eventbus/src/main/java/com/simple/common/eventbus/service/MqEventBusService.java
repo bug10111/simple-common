@@ -11,8 +11,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 异步事件执行器
+ * 异步事件执行器（基于RabbitMQ）
  *
  * @author qty
  */
@@ -24,19 +23,31 @@ public class MqEventBusService extends AbsEventBusService {
     @Autowired
     private RabbitMqService rabbitMqService;
 
+    /**
+     * 发送普通事件到所有目标系统
+     *
+     * @param eventData 事件数据
+     */
     @Override
     protected void handler(EventData eventData) {
-        eventData.getObjectivesApplication().forEach(s -> {
-            eventData.setObjectives(s);
-            rabbitMqService.sendMsg(eventData, MqNameUtil.exchangeName(s), MqNameUtil.keyName(s));
-        });
+        for (String target : eventData.getObjectivesApplication()) {
+            // 避免修改原始对象，直接使用目标构建发送参数
+            rabbitMqService.sendMsg(eventData, MqNameUtil.exchangeName(target), MqNameUtil.keyName(target));
+        }
     }
 
+    /**
+     * 发送延迟事件到所有目标系统
+     *
+     * @param eventData 事件数据
+     * @param time      延迟时间
+     * @param timeUnit  时间单位
+     */
     @Override
     protected void handler(EventData eventData, int time, TimeUnit timeUnit) {
-        eventData.getObjectivesApplication().forEach(s -> {
-            eventData.setObjectives(s);
-            rabbitMqService.sendMsg(eventData, MqNameUtil.delayExchangeName(s), MqNameUtil.keyName(s), time, timeUnit);
-        });
+        for (String target : eventData.getObjectivesApplication()) {
+            rabbitMqService.sendMsg(eventData, MqNameUtil.delayExchangeName(target),
+                    MqNameUtil.keyName(target), time, timeUnit);
+        }
     }
 }

@@ -1,6 +1,6 @@
 package com.simple.common.rabbitmq.common.service;
 
-import com.simple.common.rabbitmq.common.config.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 
 import java.util.concurrent.TimeUnit;
 
