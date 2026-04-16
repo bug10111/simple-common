@@ -71,7 +71,7 @@ public final class DateTimeCache {
         // CAS 更新，确保只有一个线程执行清理
         if (lastCleanupTime.compareAndSet(last, now)) {
             long expireSecond = (now / 1000) - MAX_CACHE_SIZE;
-            CACHE.entrySet().removeIf(entry -> entry.getKey() < expireSecond);
+            CACHE.keySet().removeIf(key -> key < expireSecond);
         }
     }
 }

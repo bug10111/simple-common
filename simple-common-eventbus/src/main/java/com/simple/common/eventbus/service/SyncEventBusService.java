@@ -33,16 +33,28 @@ public class SyncEventBusService extends AbsEventBusService {
         eventHandlerManager.handler(eventData);
     }
 
+    /**
+     * 处理延迟事件（同步模式下使用调度线程池）
+     * <p>修复：当 time <= 0 时，视为立即执行，避免事件被丢弃</p>
+     *
+     * @param eventData 事件数据
+     * @param time      延迟时间
+     * @param timeUnit  时间单位
+     */
     @Override
     protected void handler(EventData eventData, int time, TimeUnit timeUnit) {
         if (eventData == null) {
             log.error("事件数据为空");
             return;
         }
-        
+
         if (time > 0) {
             ThreadUtils.schedule(() -> eventHandlerManager.handler(eventData), time, timeUnit);
             log.debug("同步事件执行器处理了延迟事件，延迟时间: {} {}", time, timeUnit);
+        } else {
+            // 修复：time <= 0 时立即执行，符合语义预期
+            eventHandlerManager.handler(eventData);
+            log.debug("同步事件执行器立即执行事件（延迟时间非正）");
         }
     }
 }

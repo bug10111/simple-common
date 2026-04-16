@@ -33,14 +33,16 @@ public class MqNameUtil {
 
     /**
      * 获取队列相关名称前缀，格式：服务名-环境标识
+     * <p>修复：处理多 Profile 情况，取第一个有效 profile</p>
+     * <p>注意：当存在多个激活的 Profile 时，仅取第一个。若需精确区分，建议通过配置项显式指定环境标识。</p>
      */
     public static String getEnvironment(String name) {
         String profile = null;
-        try {
-            profile = SpringUtil.getActiveProfile();
-        } catch (Exception e) {
-            // 忽略异常，使用默认值
+        String[] activeProfiles = SpringUtil.getActiveProfiles();
+        if (activeProfiles != null && activeProfiles.length > 0) {
+            profile = activeProfiles[0];
         }
+
         // 若未设置环境，使用默认值防止空字符串
         if (!StringUtils.hasText(profile)) {
             profile = "default";

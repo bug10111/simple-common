@@ -99,39 +99,31 @@ public class LogDataEvent implements Serializable {
      */
     private long createTimestamp;
 
-    // ==================== 对象池实现 ====================
+    // ==================== 对象创建与回收 ====================
 
     /**
-     * 对象池 ThreadLocal，每个线程独立池避免竞争
-     */
-    private static final ThreadLocal<LogDataEvent> POOL = ThreadLocal.withInitial(LogDataEvent::new);
-
-    /**
-     * 从对象池获取一个实例（自动 reset）
+     * 获取一个新的 LogDataEvent 实例
      * <p>
      * <b>使用规范（重要）</b>：
-     * 获取的实例必须配合 {@link com.simple.common.logs.client.common.manager.BufferedLogManager#send(LogDataEvent)}
-     * 使用，该方法会在发送完成后自动调用 {@link #recycle()} 回收对象。
-     * 如果在使用过程中发生异常导致未调用 send，必须在 catch 块中显式调用 recycle()，
-     * 否则会造成当前线程后续获取的对象状态异常。
+     * 每次调用均返回全新实例，避免跨线程数据竞争问题。
+     * 现代 JVM 对短生命周期对象回收效率极高，此方式对性能影响可忽略。
+     * 发送完成后可调用 {@link #recycle()}（当前为空操作，保留以兼容原有调用）。
      * </p>
      *
-     * @return 重置后的 LogDataEvent 实例
+     * @return 新的 LogDataEvent 实例
      */
     public static LogDataEvent acquire() {
-        LogDataEvent event = POOL.get();
-        event.reset();
-        return event;
+        return new LogDataEvent();
     }
 
     /**
-     * 将当前实例归还到对象池
+     * 将当前实例归还（当前版本无实际操作，保留以兼容原有调用）
      * <p>
      * 归还后不应再使用该实例的任何字段。
      * </p>
      */
     public void recycle() {
-        // 由于使用 ThreadLocal，无需显式放回队列，只需确保下次 acquire 时 reset 即可
+        // 无实际操作
     }
 
     /**
@@ -213,9 +205,9 @@ public class LogDataEvent implements Serializable {
     }
 
     /**
-     * 重置对象字段，用于对象池复用
+     * 重置对象字段（保留方法，供内部使用）
      * <p>
-     * 将字段置为默认值，避免重复创建对象带来的 GC 压力。
+     * 将字段置为默认值。
      * </p>
      */
     public void reset() {

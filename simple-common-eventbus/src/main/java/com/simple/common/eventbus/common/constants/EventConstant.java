@@ -1,15 +1,12 @@
 package com.simple.common.eventbus.common.constants;
 
-import org.springframework.stereotype.Component;
-
 /**
  * Created with IntelliJ IDEA
  * Description: 定义事件默认常量
  *
  * @author qty
  */
-@Component
-public class EventConstant {
+public final class EventConstant {
 
     //所有系统
     public static final String TARGET_ALL_X = "event.all";

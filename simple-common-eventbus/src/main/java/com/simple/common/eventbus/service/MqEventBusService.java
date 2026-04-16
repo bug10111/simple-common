@@ -31,8 +31,12 @@ public class MqEventBusService extends AbsEventBusService {
     @Override
     protected void handler(EventData eventData) {
         for (String target : eventData.getObjectivesApplication()) {
-            // 避免修改原始对象，直接使用目标构建发送参数
-            rabbitMqService.sendMsg(eventData, MqNameUtil.exchangeName(target), MqNameUtil.keyName(target));
+            try {
+                rabbitMqService.sendMsg(eventData, MqNameUtil.exchangeName(target), MqNameUtil.keyName(target));
+            } catch (Exception e) {
+                log.error("发送事件到目标 [{}] 失败，事件名称: {}", target, eventData.getEventName(), e);
+                // 继续发送下一个目标，不因单个目标失败而中断
+            }
         }
     }
 
@@ -46,8 +50,13 @@ public class MqEventBusService extends AbsEventBusService {
     @Override
     protected void handler(EventData eventData, int time, TimeUnit timeUnit) {
         for (String target : eventData.getObjectivesApplication()) {
-            rabbitMqService.sendMsg(eventData, MqNameUtil.delayExchangeName(target),
-                    MqNameUtil.keyName(target), time, timeUnit);
+            try {
+                rabbitMqService.sendMsg(eventData, MqNameUtil.delayExchangeName(target),
+                        MqNameUtil.keyName(target), time, timeUnit);
+            } catch (Exception e) {
+                log.error("发送延迟事件到目标 [{}] 失败，事件名称: {}", target, eventData.getEventName(), e);
+                // 继续发送下一个目标，不因单个目标失败而中断
+            }
         }
     }
 }

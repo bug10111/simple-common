@@ -1,6 +1,7 @@
 package com.simple.common.core.utils;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import lombok.SneakyThrows;
 
 /**
@@ -32,5 +33,13 @@ public class SerializeUtils {
     @SneakyThrows
     public static <T> T deserialize(byte[] bytes, Class<T> aclass) {
         return objectMapper.readValue(bytes, aclass);
+    }
+
+    /**
+     * ObjectReader工厂
+     */
+    @SneakyThrows
+    public static ObjectReader readerFor(Class<?> aclass) {
+        return objectMapper.readerFor(aclass);
     }
 }

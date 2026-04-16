@@ -4,7 +4,6 @@ import com.simple.common.core.common.enums.order.SimpleOrder;
 import com.simple.common.eventbus.common.annotation.EventHandler;
 import com.simple.common.eventbus.common.manager.EventHandlerManager;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.aop.framework.AopProxyUtils;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -12,6 +11,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationListener;
 import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
+import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.util.stream.Stream;
@@ -33,18 +33,18 @@ public class EventHandlerInit implements ApplicationListener<ApplicationReadyEve
 
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
+        // 获取所有 Bean 名称，并收集每个 Bean 的原始方法
         Stream.of(applicationContext.getBeanDefinitionNames())
-              .map(bName -> applicationContext.getBean(bName))
-              .map(bean -> {
-                  // 获取最终的目标类（处理JDK动态代理和CGLIB代理）
-                  if (AopUtils.isAopProxy(bean)) {
-                      return AopProxyUtils.ultimateTargetClass(bean);
-                  }
-                  return bean.getClass();
-              })
-              .flatMap(c -> Stream.of(c.getDeclaredMethods())) // 只扫描当前类声明的方法，避免重复
-              .filter(m -> m.isAnnotationPresent(EventHandler.class))
-              .forEach(m -> eventHandlerManager.register(m));
+              .forEach(beanName -> {
+                  Object bean = applicationContext.getBean(beanName);
+                  // 【修复】使用 ReflectionUtils.doWithMethods 遍历类及接口的所有方法，避免 JDK 动态代理遗漏方法
+                  Class<?> targetClass = AopUtils.getTargetClass(bean);
+                  ReflectionUtils.doWithMethods(targetClass, method -> {
+                      if (method.isAnnotationPresent(EventHandler.class)) {
+                          eventHandlerManager.register(beanName, method);
+                      }
+                  }, ReflectionUtils.USER_DECLARED_METHODS);
+              });
         log.info("领域事件EventHandler初始化完成");
     }
 

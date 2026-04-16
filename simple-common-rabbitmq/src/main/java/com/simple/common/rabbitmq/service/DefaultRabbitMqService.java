@@ -31,8 +31,7 @@ public class DefaultRabbitMqService implements RabbitMqService {
             defaultMessage.initialization();
             String msgId = defaultMessage.getId();
             // 构建携带消息详情的 CorrelationData
-            EnhancedCorrelationData data = EnhancedCorrelationData.of(
-                    msgId, defaultMessage, exchangeName, routingKey, null);
+            EnhancedCorrelationData data = EnhancedCorrelationData.of(msgId, defaultMessage, exchangeName, routingKey, null);
 
             rabbitTemplate.convertAndSend(exchangeName, routingKey, defaultMessage, message -> {
                 message.getMessageProperties().setCorrelationId(msgId);
@@ -43,12 +42,10 @@ public class DefaultRabbitMqService implements RabbitMqService {
             }, data);
 
             if (log.isDebugEnabled()) {
-                log.debug("消息发送成功，exchange={}, routingKey={}, msgId={}, 耗时={}ms",
-                        exchangeName, routingKey, msgId, System.currentTimeMillis() - start);
+                log.debug("消息发送成功，exchange={}, routingKey={}, msgId={}, 耗时={}ms", exchangeName, routingKey, msgId, System.currentTimeMillis() - start);
             }
         } catch (AmqpException e) {
-            log.error("消息发送失败，exchange={}, routingKey={}, msgId={}, 耗时={}ms",
-                    exchangeName, routingKey, defaultMessage.getId(), System.currentTimeMillis() - start, e);
+            log.error("消息发送失败，exchange={}, routingKey={}, msgId={}, 耗时={}ms", exchangeName, routingKey, defaultMessage.getId(), System.currentTimeMillis() - start, e);
             throw e;
         }
     }
@@ -59,8 +56,7 @@ public class DefaultRabbitMqService implements RabbitMqService {
         try {
             defaultMessage.initialization();
             String msgId = defaultMessage.getId();
-            EnhancedCorrelationData data = EnhancedCorrelationData.of(
-                    msgId, defaultMessage, exchangeName, routingKey, null);
+            EnhancedCorrelationData data = EnhancedCorrelationData.of(msgId, defaultMessage, exchangeName, routingKey, null);
 
             rabbitTemplate.convertAndSend(exchangeName, routingKey, defaultMessage, message -> {
                 message.getMessageProperties().setCorrelationId(msgId);
@@ -71,13 +67,11 @@ public class DefaultRabbitMqService implements RabbitMqService {
             }, data);
 
             if (log.isDebugEnabled()) {
-                log.debug("延迟消息发送成功，exchange={}, routingKey={}, msgId={}, delay={}ms, 耗时={}ms",
-                        exchangeName, routingKey, msgId, toMilliseconds(time, timeUnit),
-                        System.currentTimeMillis() - start);
+                log.debug("延迟消息发送成功，exchange={}, routingKey={}, msgId={}, delay={}ms, 耗时={}ms", exchangeName, routingKey, msgId, toMilliseconds(time, timeUnit),
+                          System.currentTimeMillis() - start);
             }
         } catch (AmqpException e) {
-            log.error("延迟消息发送失败，exchange={}, routingKey={}, msgId={}, 耗时={}ms",
-                    exchangeName, routingKey, defaultMessage.getId(), System.currentTimeMillis() - start, e);
+            log.error("延迟消息发送失败，exchange={}, routingKey={}, msgId={}, 耗时={}ms", exchangeName, routingKey, defaultMessage.getId(), System.currentTimeMillis() - start, e);
             throw e;
         }
     }

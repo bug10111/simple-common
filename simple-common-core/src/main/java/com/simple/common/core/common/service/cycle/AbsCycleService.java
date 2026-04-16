@@ -37,41 +37,41 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      *
      * @param runBody      参数对象
      * @param sum          总共执行次数
-     * @param num          当前次数
+     * @param num          当前已执行次数（调用前已执行次数，调用时会自动 +1）
      * @param timeInterval 时间间隔
      * @param isAccumulate 是否时间累加
+     * @param parameters   扩展参数
      */
     protected void execution(T runBody, Integer sum, Integer num, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters) {
-        num++;
-        addCounter(runBody, parameters, num);
+        // 【修复】当前执行次数 = 已执行次数 + 1
+        int currentNum = num + 1;
+        addCounter(runBody, parameters, currentNum);
 
-        //重要，复制到临时变量
-        Integer finalNum = num;
-
-        if (num <= sum) {
+        if (currentNum <= sum) {
             if (log.isDebugEnabled()) {
-                log.debug("开始第{}次调度任务，参数：[{}]", num, JsonUtils.toJsonStr(runBody));
+                log.debug("开始第{}次调度任务，参数：[{}]", currentNum, JsonUtils.toJsonStr(runBody));
             }
+
+            // 计算延迟时间
+            int delay = isAccumulate ? timeInterval * currentNum : timeInterval;
+
             threadService.schedule(() -> {
                 try {
+                    boolean success = handler(runBody, parameters);
 
-                    boolean b = handler(runBody, parameters);
-
-                    //没成功继续执行
-                    if (!b) {
-                        execution(runBody, sum, finalNum, timeInterval, isAccumulate, parameters);
-                    }
-
-                    //成功
-                    else {
+                    if (!success) {
+                        // 【修复】递归时传递正确的当前执行次数 currentNum
+                        execution(runBody, sum, currentNum, timeInterval, isAccumulate, parameters);
+                    } else {
                         ok(runBody, parameters);
                     }
-                } catch (Exception e) {
-                    log.error("调度异常：{}", String.valueOf(e));
+                } catch (Throwable e) { // 【修复】捕获 Throwable 防止线程终止
+                    log.error("调度异常：{}", e.getMessage(), e);
                     error(runBody, parameters);
                 }
-            }, isAccumulate ? timeInterval * finalNum : timeInterval, TimeUnit.SECONDS);
+            }, delay, TimeUnit.SECONDS);
         } else {
+            // 已达最大次数
             more(runBody, parameters);
         }
     }

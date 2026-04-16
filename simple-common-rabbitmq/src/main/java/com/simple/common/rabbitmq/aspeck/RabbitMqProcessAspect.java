@@ -164,10 +164,23 @@ public class RabbitMqProcessAspect {
                             new RuntimeException("业务完成校验未通过"), defaultMessage);
                     return null;
                 case PROCESSING:
-                case PROCESSING_WITH_RECOVERED_TTL:
                     log.debug("队列[{}] id[{}] 已在处理中，拒绝并不放回", consumerQueue, correlationId);
                     ackRMQManager.basicNack(channel, deliveryTag, false);
                     return null;
+                case PROCESSING_WITH_RECOVERED_TTL:
+                    // 【修复】僵尸锁恢复：不直接丢弃，而是尝试重新竞争锁
+                    log.info("队列[{}] id[{}] 检测到僵尸锁（TTL异常长），尝试重新竞争锁", consumerQueue, correlationId);
+                    boolean reAcquired = lockManager.tryAcquire(consumerQueue, correlationId, businessTime, timeUnit);
+                    if (reAcquired) {
+                        log.info("队列[{}] id[{}] 重新获取锁成功，继续消费", consumerQueue, correlationId);
+                        // 锁已重新获取，继续往下执行（注意：此处需要跳出 switch 进入业务执行流程）
+                        break; // 跳出 switch，继续执行后续业务逻辑
+                    } else {
+                        // 重新获取失败，说明已有其他消费者接手，放回队列让其他消费者处理
+                        log.warn("队列[{}] id[{}] 重新获取锁失败，可能已被其他消费者处理，放回队列", consumerQueue, correlationId);
+                        ackRMQManager.basicNack(channel, deliveryTag, true);
+                        return null;
+                    }
                 case NOT_EXISTS:
                 default:
                     log.error("队列[{}] id[{}] 锁状态异常，放回队列", consumerQueue, correlationId);
@@ -210,11 +223,18 @@ public class RabbitMqProcessAspect {
                 throw new InterruptedException("业务线程已被锁续期任务中断");
             }
 
-            // 业务方法必须返回非空唯一标识，否则视为消费失败
+            // 处理业务ID：void 方法或返回 null 时，使用 correlationId 作为兜底业务ID
+            String businessId;
             if (businessResult == null || businessResult.toString().trim().isEmpty()) {
-                throw new IllegalStateException("业务方法返回空业务ID，无法标记完成状态");
+                if (method.getReturnType() == void.class || method.getReturnType() == Void.class) {
+                    businessId = correlationId;
+                    log.debug("业务方法返回 void，使用 correlationId[{}] 作为业务ID", correlationId);
+                } else {
+                    throw new IllegalStateException("业务方法返回空业务ID，无法标记完成状态");
+                }
+            } else {
+                businessId = businessResult.toString();
             }
-            String businessId = businessResult.toString();
 
             lockManager.markAsDone(consumerQueue, correlationId, businessId, effectiveSeconds, TimeUnit.SECONDS);
             ackRMQManager.basicAck(channel, deliveryTag);

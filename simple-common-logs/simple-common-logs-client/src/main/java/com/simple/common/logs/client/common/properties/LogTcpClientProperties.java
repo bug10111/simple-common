@@ -115,4 +115,26 @@ public class LogTcpClientProperties {
      * 恢复后是否自动重发降级日志
      */
     private boolean fallbackResendEnabled = true;
+
+    /**
+     * 降级恢复时，每次扫描最多处理的文件数量，避免瞬间重发大量文件造成压力。
+     * 设置为 -1 表示不限制。
+     */
+    @Min(value = -1, message = "降级恢复单次处理文件数最小为 -1")
+    private int fallbackResendMaxFilesPerRound = 5;
+
+    /**
+     * 请求体缓存最大大小（字节），超过此大小的请求体将不会被缓存，避免内存溢出
+     * 默认 1MB
+     */
+    @Min(value = 1024, message = "请求体缓存最大大小最小为 1024 字节")
+    @Max(value = 104857600, message = "请求体缓存最大大小最大为 100MB")
+    private long maxBodyCacheSize = 1024 * 1024; // 1MB
+
+    /**
+     * 降级文件保留天数，超过该天数的降级文件（未成功发送）将被直接删除
+     * 默认 7 天，设为 -1 表示永不过期
+     */
+    @Min(value = -1, message = "降级文件保留天数最小为 -1")
+    private int fallbackFileRetentionDays = 7;
 }

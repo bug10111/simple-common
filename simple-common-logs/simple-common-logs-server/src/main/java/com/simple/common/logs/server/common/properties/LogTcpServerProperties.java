@@ -90,6 +90,13 @@ public class LogTcpServerProperties {
     @Max(value = 300, message = "读空闲超时时间最大为 300 秒")
     private int readerIdleTime = 10;
 
+    /**
+     * 内存队列容量，默认50000
+     */
+    @Min(value = 1000, message = "队列容量最小为 1000")
+    @Max(value = 500000, message = "队列容量最大为 500000")
+    private int queueCapacity = 50000;
+
     // ==================== WAL 配置 ====================
 
     /**

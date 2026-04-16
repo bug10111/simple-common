@@ -12,9 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -107,6 +105,7 @@ public abstract class AbsEventBusService implements EventBusService {
 
     /**
      * 根据事件对象构建EventData
+     * <p>优化：若 targets 中包含广播目标(TARGET_ALL_X)，则忽略其他单播目标，避免本机重复消费</p>
      *
      * @param event 事件对象
      * @return EventData
@@ -132,22 +131,49 @@ public abstract class AbsEventBusService implements EventBusService {
             }
         }
 
-        List<String> targets = new ArrayList<>(annotation.targets().length);
-        for (String string : annotation.targets()) {
-            if (EventConstant.THIS_MACHINE.equals(string)) {
-                string = cachedApplicationName;
-            }
-            targets.add(string);
-        }
+        // 解析并优化目标列表
+        List<String> rawTargets = Arrays.asList(annotation.targets());
+        List<String> optimizedTargets = optimizeTargets(rawTargets, cachedApplicationName);
 
         String jsonData = JsonUtils.toJsonStr(event);
         EventData eventData = new EventData();
         eventData.setEventName(eventName);
         eventData.setApplicationName(cachedApplicationName);
-        eventData.setObjectivesApplication(targets);
+        eventData.setObjectivesApplication(optimizedTargets);
         eventData.setMsgData(jsonData);
 
         log.trace("发送事件消息：[{}]", JsonUtils.toJsonStr(eventData));
         return eventData;
+    }
+
+    /**
+     * 优化事件目标列表：若包含广播目标，则仅保留广播目标（因为广播已覆盖所有服务）
+     * 同时将 THIS_MACHINE 占位符替换为实际应用名
+     *
+     * @param rawTargets     原始目标数组
+     * @param applicationName 当前应用名称
+     * @return 优化后的目标列表（不可变）
+     */
+    private List<String> optimizeTargets(List<String> rawTargets, String applicationName) {
+        Set<String> targetSet = new LinkedHashSet<>(); // 保持顺序，自动去重
+
+        boolean hasAll = false;
+        for (String target : rawTargets) {
+            String resolved = target;
+            if (EventConstant.THIS_MACHINE.equals(target)) {
+                resolved = applicationName;
+            }
+            if (EventConstant.TARGET_ALL_X.equals(resolved)) {
+                hasAll = true;
+            }
+            targetSet.add(resolved);
+        }
+
+        // 若包含广播目标，则仅保留广播目标（因为广播消息会发送到所有绑定队列，包括本机）
+        if (hasAll) {
+            return Collections.singletonList(EventConstant.TARGET_ALL_X);
+        }
+
+        return new ArrayList<>(targetSet);
     }
 }

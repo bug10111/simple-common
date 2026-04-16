@@ -2,6 +2,7 @@ package com.simple.common.logs.client.common.httpservletrequest;
 
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.ContentType;
+import com.simple.common.logs.client.common.properties.LogTcpClientProperties;
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,14 +48,29 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
     private final byte[] body;
 
     /**
+     * 是否已缓存请求体
+     */
+    private final boolean cached;
+
+    /**
      * 原始Content-Type
      */
     private final String originalContentType;
 
-    public CachedBodyHttpServletRequest(HttpServletRequest request) throws IOException {
+    public CachedBodyHttpServletRequest(HttpServletRequest request, LogTcpClientProperties properties) throws IOException {
         super(request);
         this.originalContentType = request.getContentType();
-        this.body = shouldCacheBody(originalContentType) ? StreamUtils.copyToByteArray(request.getInputStream()) : new byte[0];
+        boolean shouldCache = shouldCacheBody(originalContentType);
+        // 检查是否应该缓存，并且请求体大小未超过配置限制
+        if (shouldCache) {
+            long contentLength = request.getContentLengthLong();
+            if (contentLength > properties.getMaxBodyCacheSize()) {
+                log.debug("请求体大小 {} 字节超过缓存限制 {} 字节，跳过缓存", contentLength, properties.getMaxBodyCacheSize());
+                shouldCache = false;
+            }
+        }
+        this.body = shouldCache ? StreamUtils.copyToByteArray(request.getInputStream()) : null;
+        this.cached = shouldCache;
     }
 
     /**
@@ -104,7 +120,7 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
      * @return true-已缓存，false-未缓存
      */
     public boolean isBodyCached() {
-        return body != null && body.length > 0;
+        return cached && body != null && body.length > 0;
     }
 
     /**
@@ -117,17 +133,21 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
     }
 
     @Override
-    public ServletInputStream getInputStream() {
-        return new CachedBodyServletInputStream(body);
+    public ServletInputStream getInputStream() throws IOException {
+        if (cached && body != null) {
+            return new CachedBodyServletInputStream(body);
+        }
+        return super.getInputStream();
     }
 
     @Override
-    public BufferedReader getReader() {
+    public BufferedReader getReader() throws IOException {
         return new BufferedReader(new InputStreamReader(getInputStream()));
     }
 
     private static class CachedBodyServletInputStream extends ServletInputStream {
         private final InputStream bodyStream;
+        private boolean finished = false;
 
         public CachedBodyServletInputStream(byte[] body) {
             this.bodyStream = new ByteArrayInputStream(body);
@@ -135,13 +155,16 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
         @Override
         public int read() throws IOException {
-            return bodyStream.read();
+            int data = bodyStream.read();
+            if (data == -1) {
+                finished = true;
+            }
+            return data;
         }
 
         @Override
-        @SneakyThrows
         public boolean isFinished() {
-            return bodyStream.available() == 0;
+            return finished;
         }
 
         @Override
@@ -151,7 +174,8 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
         @Override
         public void setReadListener(ReadListener readListener) {
-            // 如果需要，可以在此实现读取监听器逻辑
+            // 该包装器不支持异步非阻塞 I/O，若调用则抛出异常
+            throw new UnsupportedOperationException("CachedBodyHttpServletRequest does not support async read listener");
         }
     }
 }

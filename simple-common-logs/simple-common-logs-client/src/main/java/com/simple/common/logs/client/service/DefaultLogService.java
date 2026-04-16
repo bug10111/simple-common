@@ -7,7 +7,7 @@ import com.simple.common.core.common.constant.CoreConstant;
 import com.simple.common.core.utils.IPUtils;
 import com.simple.common.logs.client.common.constant.LogConstant;
 import com.simple.common.logs.client.common.httpservletrequest.CachedBodyHttpServletRequest;
-import com.simple.common.logs.client.common.manager.BufferedLogManager;
+import com.simple.common.logs.client.manager.BufferedLogManager;
 import com.simple.common.logs.client.common.manager.LogUserManager;
 import com.simple.common.logs.client.common.service.LogService;
 import com.simple.common.logs.proto.common.event.LogDataEvent;
@@ -98,10 +98,17 @@ public class DefaultLogService implements LogService {
                 logDataEvent.setErrorMsg("请求成功");
             } else {
                 logDataEvent.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                Object attribute = request.getAttribute(CoreConstant.EXCEPTION);
-                if (attribute instanceof Exception exception) {
-                    logDataEvent.setErrorMsg(exception.getMessage());
-                    logDataEvent.setErrorData(getStackTraceAsString(exception));
+                // 优先使用传入的异常参数 ex，若为 null 再从 request 属性中获取
+                Exception exceptionToLog = ex;
+                if (exceptionToLog == null) {
+                    Object attribute = request.getAttribute(CoreConstant.EXCEPTION);
+                    if (attribute instanceof Exception) {
+                        exceptionToLog = (Exception) attribute;
+                    }
+                }
+                if (exceptionToLog != null) {
+                    logDataEvent.setErrorMsg(exceptionToLog.getMessage());
+                    logDataEvent.setErrorData(getStackTraceAsString(exceptionToLog));
                 } else {
                     logDataEvent.setErrorMsg("未收集到有效异常信息");
                 }
@@ -112,7 +119,7 @@ public class DefaultLogService implements LogService {
             // 使用缓存的时间戳（秒级精度），避免创建 DateTime 对象
             logDataEvent.setCreateTimestamp(timeStampProvider.getCurrentTimestamp());
 
-            // 发送日志（异步入队）
+            // 发送日志（异步入队），BufferedLogManager 内部已处理对象回收
             bufferedLogManager.send(logDataEvent);
         } catch (Exception e) {
             log.error("构建日志事件失败", e);

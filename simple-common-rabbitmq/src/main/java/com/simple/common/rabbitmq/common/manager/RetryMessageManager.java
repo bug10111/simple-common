@@ -6,9 +6,7 @@ import org.springframework.amqp.core.Message;
 
 public interface RetryMessageManager {
 
-    void handleBusinessFailureRetry(String retryKey, Message message, Channel channel,
-                                    int maxRetryCount, Exception cause, DefaultMessage defaultMessage);
+    void handleBusinessFailureRetry(String retryKey, Message message, Channel channel, int maxRetryCount, Exception cause, DefaultMessage defaultMessage);
 
-    void handleVerificationFailureRetry(String verifyRetryKey, Message message, Channel channel,
-                                        int maxRetryCount, Exception cause, DefaultMessage defaultMessage);
+    void handleVerificationFailureRetry(String verifyRetryKey, Message message, Channel channel, int maxRetryCount, Exception cause, DefaultMessage defaultMessage);
 }

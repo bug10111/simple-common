@@ -34,7 +34,7 @@ public class LogProtobufTcpServer {
     @Autowired
     private LogTcpServerProperties properties;
 
-    @Autowired(required = false)
+    @Autowired
     private LogsSaveManager logsSaveManager;
 
     private EventLoopGroup bossGroup;
@@ -54,6 +54,9 @@ public class LogProtobufTcpServer {
      */
     @PostConstruct
     public void start() {
+        if (logsSaveManager == null) {
+            throw new IllegalStateException("未找到 LogsSaveManager 实现，请提供一个 Bean");
+        }
         running.set(true);
         bossGroup = new NioEventLoopGroup(properties.getBossThreads());
         workerGroup = new NioEventLoopGroup(properties.getWorkerThreads());

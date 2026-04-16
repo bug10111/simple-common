@@ -5,8 +5,8 @@ import com.simple.common.core.utils.ThreadUtils;
 import com.simple.common.logs.proto.common.event.LogDataEvent;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import com.simple.common.logs.server.common.properties.LogTcpServerProperties;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.DisposableBean;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.io.*;
@@ -28,33 +28,29 @@ import java.util.concurrent.locks.ReentrantLock;
  * 子类只需实现 {@link #persistence(List)} 方法，定义具体的持久化逻辑（如 ES、向量库等）。
  * 本类负责队列管理、批量调度、异常降级、WAL 恢复和死信处理。
  * </p>
- *
  * <h3>⚠️ 重要：幂等性要求</h3>
  * <p>
  * 由于 WAL 恢复机制可能在进程崩溃后重放已成功持久化的日志，子类实现的 {@link #persistence(List)}
  * 方法<b>必须保证幂等性</b>。即：同一批日志被重复调用时，不应产生重复数据。
  * </p>
+ * <h3>性能优化说明</h3>
  * <p>
- * 实现幂等的常见方式：
- * <ul>
- *     <li>使用数据库唯一键（如 traceId + createTimestamp）进行 INSERT IGNORE 或 ON DUPLICATE KEY UPDATE。</li>
- *     <li>在写入文件前检查目标文件中是否已包含相同 traceId。</li>
- *     <li>使用外部去重存储（如 Redis Set）记录已处理的 traceId。</li>
- * </ul>
- * 若无法保证幂等，建议关闭 WAL 恢复功能（walRecoveryEnabled = false），仅依靠人工介入处理 WAL 文件。
+ * - 队列元素改为 {@code List<LogDataEvent>}，支持批次入队，大幅减少锁竞争。
+ * - WAL 写入改为批量 flush，减少磁盘 I/O 压力。
  * </p>
  *
  * @author qty
  */
 @Slf4j
-public abstract class AbsLogsSaveManager implements LogsSaveManager, InitializingBean {
+public abstract class AbsLogsSaveManager implements LogsSaveManager, InitializingBean, DisposableBean {
 
     protected abstract LogTcpServerProperties getProperties();
 
     /**
-     * 日志数据队列
+     * 日志数据队列，元素为日志批次列表
+     * 使用 volatile 保证多线程下的可见性
      */
-    private final LinkedBlockingQueue<LogDataEvent> logQueue = new LinkedBlockingQueue<>(50000);
+    private volatile LinkedBlockingQueue<List<LogDataEvent>> logQueue;
 
     /**
      * WAL 写入锁
@@ -72,6 +68,16 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
     private File currentWalFile;
 
     /**
+     * WAL 批量写入计数器
+     */
+    private int walBatchCount = 0;
+
+    /**
+     * 上次 WAL flush 时间
+     */
+    private long lastWalFlushTime = System.currentTimeMillis();
+
+    /**
      * 是否正在运行（用于控制后台线程）
      */
     private final AtomicBoolean running = new AtomicBoolean(true);
@@ -86,35 +92,37 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
      */
     private ScheduledFuture<?> walRecoveryFuture;
 
+    /**
+     * WAL 恢复任务是否正在执行（防止并发）
+     */
+    private final AtomicBoolean walRecoveryRunning = new AtomicBoolean(false);
+
+    /**
+     * 获取队列实例（延迟初始化）
+     */
+    private LinkedBlockingQueue<List<LogDataEvent>> getLogQueue() {
+        if (logQueue == null) {
+            synchronized (this) {
+                if (logQueue == null) {
+                    logQueue = new LinkedBlockingQueue<>(getProperties().getQueueCapacity());
+                }
+            }
+        }
+        return logQueue;
+    }
+
     @Override
     public void saveLog(LogDataEvent logDataEvent) {
-        try {
-            boolean success = logQueue.offer(logDataEvent);
-            if (!success) {
-                log.warn("日志队列已满，丢弃日志: {}", logDataEvent.getTraceId());
-                // 写 WAL 兜底
-                writeWAL(logDataEvent);
-            } else {
-                log.debug("添加日志到队列，当前队列大小: {}", logQueue.size());
-            }
-        } catch (Exception e) {
-            log.error("添加日志到队列失败", e);
-        }
+        // 单条日志包装为批次入队
+        List<LogDataEvent> batch = new ArrayList<>(1);
+        batch.add(logDataEvent);
+        saveLogBatch(batch);
     }
 
     /**
      * 批量保存日志
      * <p>
-     * 当前实现为循环调用 {@link #saveLog(LogDataEvent)}，每条日志独立入队。
-     * 之所以未采用"将整个批次作为一个元素入队"的优化，是基于以下权衡：
-     * <ul>
-     *     <li>1. 改动成本：修改队列元素类型会影响消费端 {@link #processLogs()} 逻辑，需引入扁平化处理。</li>
-     *     <li>2. 锁开销可接受：{@link LinkedBlockingQueue#offer(Object)} 内部为短临界区，
-     *         在典型批次大小（100~1000）下，锁竞争开销远小于网络/磁盘 IO。</li>
-     *     <li>3. 故障隔离：逐条入队允许部分成功，队列满时仅将超出部分降级 WAL，而非整个批次失败。</li>
-     * </ul>
-     * 若未来需极致优化，可考虑将队列改为 {@code LinkedBlockingQueue<List<LogDataEvent>>}
-     * 并在消费端使用 {@code drainTo} 批量获取批次列表，再扁平化处理。
+     * 将整个批次作为一个元素入队，消费端扁平化处理，显著减少队列操作次数和锁竞争。
      * </p>
      *
      * @param events 日志数据事件列表
@@ -124,38 +132,56 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
         if (events == null || events.isEmpty()) {
             return;
         }
-        for (LogDataEvent event : events) {
-            saveLog(event);
+        try {
+            boolean success = getLogQueue().offer(events);
+            if (!success) {
+                log.warn("日志队列已满，批次大小: {}, 将写入 WAL", events.size());
+                // 写 WAL 兜底
+                writeWALBatch(events);
+            } else {
+                log.debug("批次日志入队成功，大小: {}, 当前队列大小: {}", events.size(), getLogQueue().size());
+            }
+        } catch (Exception e) {
+            log.error("添加日志批次到队列失败", e);
         }
     }
 
     @Override
     public void processLogs() {
+        // 从队列中批量取出批次列表
+        List<List<LogDataEvent>> batches = new ArrayList<>();
+        getLogQueue().drainTo(batches, getProperties().getBatchSize());
+        if (batches.isEmpty()) {
+            return;
+        }
+
+        // 扁平化所有批次为单个待持久化列表
         List<LogDataEvent> logsToSave = new ArrayList<>();
-        logQueue.drainTo(logsToSave, getProperties().getBatchSize());
-        if (!logsToSave.isEmpty()) {
-            try {
-                persistence(logsToSave);
-            } catch (Exception e) {
-                log.error("持久化失败，将写入 WAL", e);
-                // 持久化失败，写 WAL 兜底
-                for (LogDataEvent event : logsToSave) {
-                    writeWAL(event);
-                }
+        for (List<LogDataEvent> batch : batches) {
+            logsToSave.addAll(batch);
+        }
+
+        try {
+            persistence(logsToSave);
+        } catch (Exception e) {
+            log.error("持久化失败，将写入 WAL", e);
+            // 持久化失败，写 WAL 兜底（将原始批次重新写入）
+            for (List<LogDataEvent> batch : batches) {
+                writeWALBatch(batch);
             }
         }
     }
 
     /**
-     * 写入预写日志（WAL）
+     * 批量写入预写日志（WAL）
      * <p>
-     * 当队列满或持久化失败时，将日志写入本地文件作为最后兜底。
+     * 将批次内所有日志写入 WAL，但不立即 flush，而是累积到一定数量或时间后统一 flush。
      * </p>
      *
-     * @param event 日志事件
+     * @param events 日志事件列表
      */
-    private void writeWAL(LogDataEvent event) {
-        if (!getProperties().isWalEnabled()) {
+    private void writeWALBatch(List<LogDataEvent> events) {
+        if (!getProperties().isWalEnabled() || events.isEmpty()) {
             return;
         }
         walLock.lock();
@@ -163,10 +189,20 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
             if (walWriter == null) {
                 initWalWriter();
             }
-            String json = JSONUtil.toJsonStr(event);
-            walWriter.write(json);
-            walWriter.newLine();
-            walWriter.flush();
+            for (LogDataEvent event : events) {
+                String json = JSONUtil.toJsonStr(event);
+                walWriter.write(json);
+                walWriter.newLine();
+            }
+            walBatchCount += events.size();
+
+            // 达到批量阈值或距离上次 flush 超过 1 秒，则执行 flush
+            boolean shouldFlush = walBatchCount >= 100 || (System.currentTimeMillis() - lastWalFlushTime) > 1000;
+            if (shouldFlush) {
+                walWriter.flush();
+                walBatchCount = 0;
+                lastWalFlushTime = System.currentTimeMillis();
+            }
 
             // 检查文件大小
             if (currentWalFile.length() > getProperties().getWalFileMaxSize()) {
@@ -184,23 +220,31 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
         Files.createDirectories(dir);
         currentWalFile = dir.resolve("wal.log").toFile();
         walWriter = new BufferedWriter(new FileWriter(currentWalFile, true));
+        lastWalFlushTime = System.currentTimeMillis();
+        walBatchCount = 0;
         log.info("WAL 写入器初始化完成: {}", currentWalFile.getAbsolutePath());
     }
 
     private void rotateWalFile() throws IOException {
-        walWriter.close();
+        // 强制 flush 剩余数据
+        if (walWriter != null) {
+            walWriter.flush();
+            walWriter.close();
+        }
         Path dir = Paths.get(getProperties().getWalDir());
         String timestamp = String.valueOf(System.currentTimeMillis());
         Path newFile = dir.resolve("wal-" + timestamp + ".log");
         Files.move(currentWalFile.toPath(), newFile, StandardCopyOption.ATOMIC_MOVE);
         currentWalFile = dir.resolve("wal.log").toFile();
         walWriter = new BufferedWriter(new FileWriter(currentWalFile, true));
+        lastWalFlushTime = System.currentTimeMillis();
+        walBatchCount = 0;
         log.info("WAL 文件已轮转: {}", newFile.getFileName());
     }
 
     @Override
     public int getQueueSize() {
-        return logQueue.size();
+        return getLogQueue().size();
     }
 
     /**
@@ -219,6 +263,9 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
     @Override
     public void afterPropertiesSet() {
+        // 确保队列已初始化
+        getLogQueue();
+
         // 1. 启动定时批量处理任务（处理内存队列中的日志）
         processLogsFuture = ThreadUtils.scheduleWithFixedDelayFuture(() -> {
             try {
@@ -232,10 +279,17 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
         // 2. 启动 WAL 恢复定时任务（扫描并重试已轮转的 WAL 文件）
         if (getProperties().isWalEnabled() && getProperties().isWalRecoveryEnabled()) {
             walRecoveryFuture = ThreadUtils.scheduleWithFixedDelayFuture(() -> {
-                try {
-                    recoverWalFiles();
-                } catch (Exception e) {
-                    log.error("WAL 恢复任务执行失败", e);
+                // 并发控制：仅允许一个恢复任务执行
+                if (walRecoveryRunning.compareAndSet(false, true)) {
+                    try {
+                        recoverWalFiles();
+                    } catch (Exception e) {
+                        log.error("WAL 恢复任务执行失败", e);
+                    } finally {
+                        walRecoveryRunning.set(false);
+                    }
+                } else {
+                    log.debug("上一次 WAL 恢复任务仍在执行，跳过本次调度");
                 }
             }, getProperties().getWalRecoveryInterval(), TimeUnit.MILLISECONDS);
             log.info("WAL 恢复任务已启动，扫描间隔: {} ms", getProperties().getWalRecoveryInterval());
@@ -264,6 +318,7 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
      * <p>
      * 逐行读取 JSON 日志，分批调用持久化方法。
      * 解析失败的行将被移入死信队列，不阻塞正常日志恢复。
+     * 当某批次持久化部分失败时，停止处理该文件并保留，等待下次恢复（依赖幂等）。
      * 只有当文件内所有有效日志都成功持久化后，才删除该文件。
      * </p>
      *
@@ -281,7 +336,6 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
-                // 将 Path 转换为 String
                 LogDataEvent event = parseWalLine(line, file.getFileName().toString(), lineNumber);
                 if (event == null) {
                     deadCount++;
@@ -290,22 +344,31 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
                 totalValidCount++;
                 batch.add(event);
                 if (batch.size() >= getProperties().getBatchSize()) {
-                    successCount += tryPersistBatch(batch);
+                    int sent = tryPersistBatch(batch);
+                    successCount += sent;
+                    if (sent < batch.size()) {
+                        // 部分失败，停止处理该文件，保留未成功部分
+                        log.warn("WAL 批次部分持久化失败，停止处理文件 {} (成功:{}/批次大小:{})", file.getFileName(), sent, batch.size());
+                        return; // 保留文件，下次恢复会重试（依赖幂等）
+                    }
                     batch.clear();
                 }
             }
             if (!batch.isEmpty()) {
-                successCount += tryPersistBatch(batch);
+                int sent = tryPersistBatch(batch);
+                successCount += sent;
+                if (sent < batch.size()) {
+                    log.warn("WAL 最后批次部分持久化失败，保留文件 {}", file.getFileName());
+                    return;
+                }
             }
 
             // 全部有效日志成功则删除文件
             if (successCount == totalValidCount && totalValidCount > 0) {
                 Files.deleteIfExists(file);
-                log.info("WAL 文件恢复完成，已删除: {}, 成功: {}/{}, 死信: {}",
-                        file.getFileName(), successCount, totalValidCount, deadCount);
+                log.info("WAL 文件恢复完成，已删除: {}, 成功: {}/{}, 死信: {}", file.getFileName(), successCount, totalValidCount, deadCount);
             } else {
-                log.warn("WAL 文件部分恢复失败，保留文件: {}, 成功: {}, 有效总数: {}, 死信: {}",
-                        file.getFileName(), successCount, totalValidCount, deadCount);
+                log.warn("WAL 文件部分恢复失败，保留文件: {}, 成功: {}, 有效总数: {}, 死信: {}", file.getFileName(), successCount, totalValidCount, deadCount);
             }
         } catch (IOException e) {
             log.error("读取 WAL 文件失败: {}", file, e);
@@ -314,11 +377,6 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
     /**
      * 解析单行 WAL 日志，失败时写入死信队列
-     *
-     * @param line       JSON 字符串
-     * @param fileName   源文件名（用于日志）
-     * @param lineNumber 行号（用于日志）
-     * @return 解析成功返回 LogDataEvent，失败返回 null
      */
     private LogDataEvent parseWalLine(String line, String fileName, int lineNumber) {
         try {
@@ -332,10 +390,6 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
     /**
      * 将解析失败或无法恢复的日志写入死信队列
-     *
-     * @param originalLine 原始 JSON 行
-     * @param sourceFile   来源文件名
-     * @param lineNumber   行号
      */
     private void writeToDeadLetter(String originalLine, String sourceFile, int lineNumber) {
         if (!getProperties().isDeadLetterEnabled()) {
@@ -344,17 +398,12 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
         try {
             Path dir = Paths.get(getProperties().getDeadLetterDir());
             Files.createDirectories(dir);
-            // 按日期命名死信文件，便于人工排查
             String dateStr = new java.text.SimpleDateFormat("yyyyMMdd").format(new java.util.Date());
             Path deadFile = dir.resolve("deadletter-" + dateStr + ".log");
 
-            // 附加元数据：来源文件、行号、时间戳
-            String record = String.format("{\"timestamp\":\"%s\",\"sourceFile\":\"%s\",\"lineNumber\":%d,\"rawData\":%s}",
-                    new java.util.Date(), sourceFile, lineNumber, originalLine);
+            String record = String.format("{\"timestamp\":\"%s\",\"sourceFile\":\"%s\",\"lineNumber\":%d,\"rawData\":%s}", new java.util.Date(), sourceFile, lineNumber, originalLine);
 
-            Files.write(deadFile, (record + System.lineSeparator()).getBytes(),
-                    java.nio.file.StandardOpenOption.CREATE,
-                    java.nio.file.StandardOpenOption.APPEND);
+            Files.write(deadFile, (record + System.lineSeparator()).getBytes(), java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND);
             log.debug("已将损坏日志写入死信队列: {}", deadFile.getFileName());
         } catch (IOException e) {
             log.error("写入死信队列失败", e);
@@ -363,9 +412,6 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
     /**
      * 尝试持久化一个批次，失败时返回 0
-     *
-     * @param batch 待持久化的日志事件列表
-     * @return 成功持久化的条数
      */
     private int tryPersistBatch(List<LogDataEvent> batch) {
         try {
@@ -379,13 +425,9 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
 
     /**
      * 关闭资源，优雅停止后台线程
-     * <p>
-     * 注意：该方法需要子类在适当的生命周期（如 @PreDestroy）中调用。
-     * 由于本类为抽象类且未直接注册为 Bean，子类应覆盖并调用 super.shutdown()。
-     * </p>
      */
-    @PreDestroy
-    public void shutdown() {
+    @Override
+    public void destroy() throws Exception {
         running.set(false);
 
         // 取消定时任务
@@ -398,10 +440,27 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
             log.debug("WAL 恢复定时任务已取消");
         }
 
-        // 关闭 WAL 写入器
+        // 尝试处理队列中剩余的日志（给予最多5秒窗口）
+        log.info("开始处理停机前队列中剩余的 {} 个批次", getLogQueue().size());
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!getLogQueue().isEmpty() && System.currentTimeMillis() < deadline) {
+            processLogs();
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        if (!getLogQueue().isEmpty()) {
+            log.warn("停机时队列仍有 {} 个批次未处理，将丢失", getLogQueue().size());
+        }
+
+        // 关闭 WAL 写入器（强制 flush）
         walLock.lock();
         try {
             if (walWriter != null) {
+                walWriter.flush();
                 walWriter.close();
                 log.info("WAL 写入器已关闭");
             }

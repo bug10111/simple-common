@@ -25,16 +25,25 @@ public class LogInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
 
+        // OPTIONS 预检请求不记录日志
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            return true;
+        }
+
         // 处理 TraceId：如果请求头中已存在则沿用，否则生成新的
         String traceId = request.getHeader(LogConstant.TRACE_ID_HEADER);
         if (traceId == null || traceId.isEmpty()) {
-            traceId = IdUtils.getSnowflakeNextIdStr();
+            // 使用 fastUUID 生成全局唯一的 TraceId，避免 Snowflake 需配置 workerId 的问题
+            traceId = IdUtils.getFastUUID();
         }
 
         // 将 TraceId 放入请求属性中，供后续使用
         request.setAttribute(LogConstant.TRACE_ID_HEADER, traceId);
 
-        //设置请求时间
+        // 将 TraceId 添加到响应头，方便调用方排查问题
+        response.setHeader(LogConstant.TRACE_ID_HEADER, traceId);
+
+        // 设置请求开始时间
         request.setAttribute(LogConstant.START_TIME, System.currentTimeMillis());
 
         // 放行请求

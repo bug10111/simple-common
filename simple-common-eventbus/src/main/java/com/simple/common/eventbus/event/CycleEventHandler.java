@@ -22,8 +22,8 @@ public class CycleEventHandler {
     public void on(CycleEvent event) {
         AbsEventCycleService<?> cycleService = CycleFactoryUtils.getCycleService(event.getBeanName());
         if (cycleService == null) {
-            log.error("没有找到Cycle有效实现");
-        }else{
+            log.error("没有找到Cycle有效实现，beanName: {}", event.getBeanName());
+        } else {
             cycleService.execution(event);
         }
     }

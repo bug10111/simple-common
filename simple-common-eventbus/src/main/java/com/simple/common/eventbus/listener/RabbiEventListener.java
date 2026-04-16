@@ -27,25 +27,24 @@ public class RabbiEventListener {
     @RabbitListener(queues = "#{T(com.simple.common.eventbus.util.MqNameUtil).queueName(applicationProperties.getName())}", concurrency = "#{eventProperties.getConcurrency()}")
     @RabbitMqConsumption
     public void receiveMessage(Message message, Channel channel) throws Exception {
-        EventData eventData = null;
+        EventData eventData;
         try {
             eventData = SerializeUtils.deserialize(message.getBody(), EventData.class);
             if (eventData == null) {
-                log.error("反序列化事件数据失败，消息体为空，消息将被拒绝且不重新入队");
+                log.error("反序列化事件数据失败，消息体为空");
+                throw new IllegalArgumentException("反序列化事件数据失败，消息体为空");
+            }
+
+            if (eventData.getMsgData() == null) {
+                log.error("事件消息体 msgData 为空，无法执行处理器。事件名称: {}", eventData.getEventName());
                 return;
             }
 
-            EventThreadLocalUtils.put(eventData.getClass().getName(), eventData);
+            // ThreadLocal 设置已移至 EventHandlerManager 内部统一管理
             eventHandlerManager.handler(eventData);
         } catch (Exception e) {
             log.error("处理事件消息失败", e);
             throw e;
-        } finally {
-            try {
-                EventThreadLocalUtils.clear();
-            } catch (Exception e) {
-                log.warn("清理ThreadLocal资源失败", e);
-            }
         }
     }
 }
