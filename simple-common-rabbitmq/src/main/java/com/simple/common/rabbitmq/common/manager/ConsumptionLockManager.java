@@ -1,6 +1,7 @@
 package com.simple.common.rabbitmq.common.manager;
 
 import com.simple.common.rabbitmq.common.entity.DefaultMessage;
+import org.springframework.amqp.core.Message;
 
 import java.util.concurrent.TimeUnit;
 
@@ -39,9 +40,10 @@ public interface ConsumptionLockManager {
      * @param queue          队列名
      * @param correlationId  消息ID
      * @param defaultMessage 消息体
+     * @param message        原始Message对象（供校验策略使用）
      * @return 锁状态及建议操作
      */
-    LockStatus checkLockStatus(String queue, String correlationId, DefaultMessage defaultMessage);
+    LockStatus checkLockStatus(String queue, String correlationId, DefaultMessage defaultMessage, Message message);
 
     /**
      * 删除锁

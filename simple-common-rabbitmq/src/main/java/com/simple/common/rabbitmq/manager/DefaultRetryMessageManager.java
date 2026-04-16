@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.core.MessageProperties;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.util.concurrent.TimeUnit;
 
@@ -66,7 +67,6 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
 
     /**
      * 执行重试核心逻辑：判断次数、计算延迟、发送延迟消息或进入死信
-     * 修复：使用 < maxRetryCount 以确保最大重试次数语义正确
      *
      * @param retryKey           重试计数Key
      * @param message            原始消息
@@ -83,8 +83,13 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
         String routingKey = props.getReceivedRoutingKey();
         String correlationId = props.getCorrelationId();
 
-        // 修复：currentCount 从 1 开始计数，应小于 maxRetryCount 才重试
-        if (currentCount < maxRetryCount) {
+        // 若路由键为空，则使用队列名作为路由键（延迟交换机需正确绑定）
+        if (!StringUtils.hasText(routingKey)) {
+            routingKey = consumerQueue;
+            log.debug("消息无路由键，使用队列名[{}]作为重试路由键", consumerQueue);
+        }
+
+        if (currentCount <= maxRetryCount) {
             long delayMs = Math.min(
                     properties.getRetryDelayBaseMs() * (1L << (currentCount - 1)),
                     properties.getRetryDelayMaxMs());

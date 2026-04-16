@@ -1,7 +1,9 @@
 package com.simple.common.rabbitmq.common.config;
 
+import com.simple.common.rabbitmq.common.entity.EnhancedCorrelationData;
 import com.simple.common.rabbitmq.common.manager.SendFailurePersistenceManager;
 import com.simple.common.rabbitmq.common.properties.RabbitMqProperties;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.CustomExchange;
 import org.springframework.amqp.core.Exchange;
 import org.springframework.amqp.core.Message;
@@ -23,6 +25,7 @@ import java.util.Map;
  *
  * @author qty
  */
+@Slf4j
 @EnableRabbit
 @Configuration
 @ComponentScan(basePackages = { "com.simple.common.rabbitmq" })
@@ -30,6 +33,9 @@ public class RabbitMqConfig {
 
     @Autowired
     private SendFailurePersistenceManager sendFailurePersistenceManager;
+
+    @Autowired
+    private RabbitMqProperties rabbitMqProperties;
 
     @Bean
     public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory) {
@@ -41,22 +47,25 @@ public class RabbitMqConfig {
         // 发布确认回调
         template.setConfirmCallback((correlationData, ack, cause) -> {
             if (!ack) {
-                String id = correlationData != null ? correlationData.getId() : null;
-                // 由于 CorrelationData 未携带原始 Message，此处 message 参数传 null
-                sendFailurePersistenceManager.saveConfirmFailure(id, null, cause);
+                // 尝试从 EnhancedCorrelationData 中提取完整信息
+                if (correlationData instanceof EnhancedCorrelationData enhancedData) {
+                    sendFailurePersistenceManager.saveConfirmFailure(enhancedData.getId(), cause, enhancedData.getExchange(), enhancedData.getRoutingKey(), enhancedData.getDefaultMessage(),
+                                                                     enhancedData.getMessageBody());
+                } else {
+                    // 降级处理：仅记录 ID
+                    String id = correlationData != null ? correlationData.getId() : null;
+                    sendFailurePersistenceManager.saveConfirmFailure(id, cause, null, null, null, null);
+                    if (correlationData == null) {
+                        log.warn("ConfirmCallback 中 correlationData 为 null，无法记录失败消息详情");
+                    }
+                }
             }
         });
 
         // 路由失败回调
         template.setReturnsCallback(returned -> {
             Message message = returned.getMessage();
-            sendFailurePersistenceManager.saveReturnFailure(
-                            message,
-                            returned.getReplyCode(),
-                            returned.getReplyText(),
-                            returned.getExchange(),
-                            returned.getRoutingKey()
-            );
+            sendFailurePersistenceManager.saveReturnFailure(message, returned.getReplyCode(), returned.getReplyText(), returned.getExchange(), returned.getRoutingKey());
         });
 
         // 必须设置为 true，否则 ReturnCallback 不生效
@@ -64,9 +73,6 @@ public class RabbitMqConfig {
 
         return template;
     }
-
-    @Autowired
-    private RabbitMqProperties rabbitMqProperties;
 
     /**
      * 定义延迟交换机，类型为 x-delayed-message
@@ -78,10 +84,4 @@ public class RabbitMqConfig {
         args.put("x-delayed-type", "direct");
         return new CustomExchange(rabbitMqProperties.getDelayedExchange(), "x-delayed-message", true, false, args);
     }
-
-    // 实际使用时，请根据业务需求在各自的配置类中绑定，此处仅作演示。
-    // @Bean
-    // public Binding delayedOrderBinding(Queue orderQueue, Exchange delayedExchange) {
-    //     return BindingBuilder.bind(orderQueue).to(delayedExchange).with("order.routing.key").noargs();
-    // }
 }

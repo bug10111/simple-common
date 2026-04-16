@@ -1,10 +1,10 @@
 package com.simple.common.rabbitmq.service;
 
 import com.simple.common.rabbitmq.common.entity.DefaultMessage;
+import com.simple.common.rabbitmq.common.entity.EnhancedCorrelationData;
 import com.simple.common.rabbitmq.common.service.RabbitMqService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.AmqpException;
-import org.springframework.amqp.rabbit.connection.CorrelationData;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -30,12 +30,18 @@ public class DefaultRabbitMqService implements RabbitMqService {
         try {
             defaultMessage.initialization();
             String msgId = defaultMessage.getId();
-            CorrelationData data = new CorrelationData(msgId);
+            // 构建携带消息详情的 CorrelationData
+            EnhancedCorrelationData data = EnhancedCorrelationData.of(
+                    msgId, defaultMessage, exchangeName, routingKey, null);
+
             rabbitTemplate.convertAndSend(exchangeName, routingKey, defaultMessage, message -> {
                 message.getMessageProperties().setCorrelationId(msgId);
                 message.getMessageProperties().setContentType("application/json");
+                // 保存消息体字节数组供确认回调使用
+                data.setMessageBody(message.getBody());
                 return message;
             }, data);
+
             if (log.isDebugEnabled()) {
                 log.debug("消息发送成功，exchange={}, routingKey={}, msgId={}, 耗时={}ms",
                         exchangeName, routingKey, msgId, System.currentTimeMillis() - start);
@@ -43,7 +49,7 @@ public class DefaultRabbitMqService implements RabbitMqService {
         } catch (AmqpException e) {
             log.error("消息发送失败，exchange={}, routingKey={}, msgId={}, 耗时={}ms",
                     exchangeName, routingKey, defaultMessage.getId(), System.currentTimeMillis() - start, e);
-            throw e; // 抛出异常，由上层调用方处理
+            throw e;
         }
     }
 
@@ -53,13 +59,17 @@ public class DefaultRabbitMqService implements RabbitMqService {
         try {
             defaultMessage.initialization();
             String msgId = defaultMessage.getId();
-            CorrelationData data = new CorrelationData(msgId);
+            EnhancedCorrelationData data = EnhancedCorrelationData.of(
+                    msgId, defaultMessage, exchangeName, routingKey, null);
+
             rabbitTemplate.convertAndSend(exchangeName, routingKey, defaultMessage, message -> {
                 message.getMessageProperties().setCorrelationId(msgId);
                 message.getMessageProperties().setDelayLong(toMilliseconds(time, timeUnit));
                 message.getMessageProperties().setContentType("application/json");
+                data.setMessageBody(message.getBody());
                 return message;
             }, data);
+
             if (log.isDebugEnabled()) {
                 log.debug("延迟消息发送成功，exchange={}, routingKey={}, msgId={}, delay={}ms, 耗时={}ms",
                         exchangeName, routingKey, msgId, toMilliseconds(time, timeUnit),

@@ -19,17 +19,21 @@ import java.util.Collections;
 public class DefaultRetryCountManager implements RetryCountManager {
 
     private final StringRedisTemplate redisTemplate;
-
     private final RabbitMqProperties properties;
 
+    // Lua脚本：INCR并设置过期时间（每次调用都刷新TTL）
     private static final String INCR_WITH_EXPIRE_SCRIPT =
-                    "local current = redis.call('INCR', KEYS[1]) " + "if current == 1 then " + "    redis.call('EXPIRE', KEYS[1], ARGV[1]) " + "end " + "return current";
+            "local current = redis.call('INCR', KEYS[1])\n" +
+            "redis.call('EXPIRE', KEYS[1], ARGV[1])\n" +
+            "return current";
 
     private final DefaultRedisScript<Long> incrScript = new DefaultRedisScript<>(INCR_WITH_EXPIRE_SCRIPT, Long.class);
 
     @Override
     public long incrementAndGet(String retryKey) {
-        Long current = redisTemplate.execute(incrScript, Collections.singletonList(retryKey), String.valueOf(properties.getRetryCountTtlSeconds()));
+        Long current = redisTemplate.execute(incrScript,
+                Collections.singletonList(retryKey),
+                String.valueOf(properties.getRetryCountTtlSeconds()));
         return current != null ? current : 1L;
     }
 

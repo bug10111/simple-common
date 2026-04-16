@@ -14,15 +14,17 @@ import org.springframework.amqp.core.Message;
 public interface SendFailurePersistenceManager {
 
     /**
-     * 保存到交换机失败的信息
+     * 保存到交换机失败的信息（完整版）
      *
-     * @param correlationId      消息唯一ID
+     * @param correlationId      消息唯一ID（可能为 null）
      * @param cause              失败原因
      * @param receivedExchange   目标交换机
      * @param receivedRoutingKey key
-     * @param jsonStr            发送数据
+     * @param defaultMessage     消息体对象（可能为 null）
+     * @param messageBody        原始消息字节数组（兜底）
      */
-    void saveConfirmFailure(String correlationId, String cause, String receivedExchange, String receivedRoutingKey, String jsonStr);
+    void saveConfirmFailure(String correlationId, String cause, String receivedExchange, String receivedRoutingKey,
+                            DefaultMessage defaultMessage, byte[] messageBody);
 
     /**
      * 保存路由失败的消息（ReturnCallback 触发）
@@ -36,15 +38,36 @@ public interface SendFailurePersistenceManager {
     void saveReturnFailure(Message message, int replyCode, String replyText, String exchange, String routingKey);
 
     /**
-     * 保存发送失败的消息（ConfirmCallback 收到 ack=false）
+     * 保存发送失败的消息（ConfirmCallback 收到 ack=false）- 兼容旧调用
      *
      * @param correlationId 消息唯一ID
-     * @param message       原始消息对象
+     * @param message       原始消息对象（可能为 null）
      * @param cause         失败原因
      */
     default void saveConfirmFailure(String correlationId, Message message, String cause) {
-        saveConfirmFailure(correlationId, cause, message.getMessageProperties().getReceivedExchange(), message.getMessageProperties().getReceivedRoutingKey(),
-                           JsonUtils.toJsonStr(SerializeUtils.deserialize(message.getBody(), DefaultMessage.class)));
+        String jsonStr = null;
+        String exchange = null;
+        String routingKey = null;
+        DefaultMessage dm = null;
+        byte[] body = null;
+        if (message != null) {
+            dm = SerializeUtils.deserialize(message.getBody(), DefaultMessage.class);
+            jsonStr = JsonUtils.toJsonStr(dm);
+            exchange = message.getMessageProperties().getReceivedExchange();
+            routingKey = message.getMessageProperties().getReceivedRoutingKey();
+            body = message.getBody();
+        }
+        // 调用完整版方法
+        saveConfirmFailure(correlationId, cause, exchange, routingKey, dm, body);
     }
 
+    /**
+     * 简化版方法（用于回调中无 DefaultMessage 对象时）
+     * 实现类必须 override 此方法，根据实际需求处理
+     */
+    default void saveConfirmFailure(String correlationId, String cause, String exchange, String routingKey,
+                                    String jsonStr) {
+        // 此方法保留用于兼容，但建议实现类使用完整版方法
+        saveConfirmFailure(correlationId, cause, exchange, routingKey, null, null);
+    }
 }

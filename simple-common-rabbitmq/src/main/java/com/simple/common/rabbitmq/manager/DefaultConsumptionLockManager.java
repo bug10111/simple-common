@@ -7,6 +7,7 @@ import com.simple.common.rabbitmq.common.manager.ConsumptionLockManager;
 import com.simple.common.rabbitmq.common.properties.RabbitMqProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.core.Message;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -38,7 +39,6 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
             "    return 0 " +
             "end";
 
-    // 修复：改用 Long 类型避免隐式转换问题
     private final DefaultRedisScript<Long> expireIfValueEqualsScript =
             new DefaultRedisScript<>(EXPIRE_IF_VALUE_EQUALS_SCRIPT, Long.class);
 
@@ -84,11 +84,16 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
     public boolean renewLock(String queue, String correlationId, int businessTime, TimeUnit timeUnit) {
         String lockKey = buildLockKey(queue, correlationId);
         long expireSeconds = timeUnit.toSeconds(businessTime);
-        Long result = redisTemplate.execute(expireIfValueEqualsScript,
-                Collections.singletonList(lockKey),
-                properties.getLockStatusProcessing(),
-                String.valueOf(expireSeconds));
-        return result != null && result == 1L;
+        try {
+            Long result = redisTemplate.execute(expireIfValueEqualsScript,
+                    Collections.singletonList(lockKey),
+                    properties.getLockStatusProcessing(),
+                    String.valueOf(expireSeconds));
+            return result != null && result == 1L;
+        } catch (Exception e) {
+            log.error("Redis续期操作异常，锁[{}]续期失败", lockKey, e);
+            return false;
+        }
     }
 
     /**
@@ -97,41 +102,55 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
      * @param queue          队列名
      * @param correlationId  消息ID
      * @param defaultMessage 消息体
+     * @param message        原始Message（用于校验策略）
      * @return 锁状态及建议操作
      */
     @Override
-    public LockStatus checkLockStatus(String queue, String correlationId, DefaultMessage defaultMessage) {
-        String lockKey = buildLockKey(queue, correlationId);
-        String status = redisTemplate.opsForValue().get(lockKey);
+    public LockStatus checkLockStatus(String queue, String correlationId, DefaultMessage defaultMessage, Message message) {
+        return checkLockStatusWithLoop(queue, correlationId, defaultMessage, message);
+    }
 
-        if (status == null) {
-            return LockStatus.NOT_EXISTS;
-        }
+    /**
+     * 有限循环检查锁状态，避免递归深度过大或状态变化导致的误判
+     */
+    private LockStatus checkLockStatusWithLoop(String queue, String correlationId,
+                                               DefaultMessage defaultMessage, Message message) {
+        int maxAttempts = 2;
+        for (int attempt = 0; attempt < maxAttempts; attempt++) {
+            String lockKey = buildLockKey(queue, correlationId);
+            String status = redisTemplate.opsForValue().get(lockKey);
 
-        if (status.startsWith(properties.getLockStatusDonePrefix())) {
-            String businessId = status.substring(properties.getLockStatusDonePrefix().length());
-            CompletionVerificationStrategyManager strategy = verificationRouterManager.getStrategy(queue);
-            if (strategy != null && !strategy.isCompleted(businessId, defaultMessage)) {
-                return LockStatus.COMPLETED_BUT_VERIFICATION_FAILED;
+            if (status == null) {
+                return LockStatus.NOT_EXISTS;
             }
-            return LockStatus.COMPLETED_AND_VERIFIED;
-        }
 
-        // 修复竞态条件：当缩短TTL失败时，重新检查状态
-        Long ttl = redisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
-        if (ttl != null && ttl > properties.getLockTtlRecoveryThresholdSeconds()) {
-            Long shortened = redisTemplate.execute(expireIfValueEqualsScript,
-                    Collections.singletonList(lockKey),
-                    properties.getLockStatusProcessing(),
-                    String.valueOf(properties.getLockTtlRecoveryThresholdSeconds()));
-            if (shortened != null && shortened == 1L) {
-                return LockStatus.PROCESSING_WITH_RECOVERED_TTL;
-            } else {
-                // 锁值已变化（可能被标记为DONE），递归重新判断状态
-                log.debug("锁[{}]缩短TTL失败，值已变更，重新检查状态", lockKey);
-                return checkLockStatus(queue, correlationId, defaultMessage);
+            if (status.startsWith(properties.getLockStatusDonePrefix())) {
+                String businessId = status.substring(properties.getLockStatusDonePrefix().length());
+                CompletionVerificationStrategyManager strategy = verificationRouterManager.getStrategy(queue);
+                if (strategy != null && !strategy.isCompleted(businessId, defaultMessage, message)) {
+                    return LockStatus.COMPLETED_BUT_VERIFICATION_FAILED;
+                }
+                return LockStatus.COMPLETED_AND_VERIFIED;
             }
+
+            Long ttl = redisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
+            if (ttl != null && ttl > properties.getLockTtlRecoveryThresholdSeconds()) {
+                Long shortened = redisTemplate.execute(expireIfValueEqualsScript,
+                        Collections.singletonList(lockKey),
+                        properties.getLockStatusProcessing(),
+                        String.valueOf(properties.getLockTtlRecoveryThresholdSeconds()));
+                if (shortened != null && shortened == 1L) {
+                    return LockStatus.PROCESSING_WITH_RECOVERED_TTL;
+                } else {
+                    // 缩短失败，说明锁值已变化，重新检查
+                    log.debug("锁[{}]缩短TTL失败，值已变更，重新检查状态 (尝试次数 {})", lockKey, attempt + 1);
+                    continue;
+                }
+            }
+            return LockStatus.PROCESSING;
         }
+        // 多次尝试后仍不稳定，保守返回 PROCESSING
+        log.warn("队列[{}] id[{}] 锁状态多次检查仍不稳定，返回PROCESSING", queue, correlationId);
         return LockStatus.PROCESSING;
     }
 
