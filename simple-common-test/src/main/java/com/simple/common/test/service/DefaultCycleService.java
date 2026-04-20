@@ -1,11 +1,8 @@
 package com.simple.common.test.service;
 
-import com.simple.common.core.common.service.cycle.AbsCycleService;
-import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.eventbus.common.service.AbsEventCycleService;
 import com.simple.common.test.common.entity.cycle.DataDemo;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.Map;
@@ -15,13 +12,13 @@ import java.util.Map;
  *
  * @author qty
  */
+@Slf4j
 @Component
 public class DefaultCycleService extends AbsEventCycleService<DataDemo> {
 
-    private static final Logger log = LoggerFactory.getLogger(DefaultCycleService.class);
-
-    public DefaultCycleService(Class<DataDemo> eventClass) {
-        super(eventClass);
+    @Override
+    public Class<DataDemo> getEventClass() {
+        return DataDemo.class;
     }
 
     @Override

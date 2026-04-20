@@ -18,13 +18,14 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public abstract class AbsCycleService<T> implements CycleService<T> {
 
-    private final Class<T> eventClass;
+    private Class<T> eventClass;
 
     @Autowired
     private ThreadService threadService;
 
-    public AbsCycleService(Class<T> eventClass) {
-        this.eventClass = eventClass;
+    public abstract Class<T> getEventClass();
+    public AbsCycleService() {
+        this.eventClass = getEventClass();
     }
 
     @Override

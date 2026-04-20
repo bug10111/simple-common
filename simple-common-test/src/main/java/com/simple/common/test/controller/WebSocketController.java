@@ -1,17 +1,16 @@
 package com.simple.common.test.controller;
 
-import com.simple.common.annex.common.dto.UploadResponse;
-import com.simple.common.annex.common.enums.ShareType;
-import com.simple.common.annex.common.service.AnnexService;
+import com.alibaba.dashscope.utils.JsonUtils;
 import com.simple.common.core.response.R;
 import com.simple.common.websocket.common.annotation.WebSocketListening;
+import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.utils.WebSocketUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Created by IntelliJ IDEA
@@ -25,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class WebSocketController {
 
     private static final String type = "order";
+
     private static final String cli = "default";
 
     @Operation(summary = "主动发送信息")
@@ -34,14 +34,14 @@ public class WebSocketController {
         return R.ok();
     }
 
-//    @WebSocketListening(type = type)
-//    public void handler(String msg) {
-//        log.info("接收到信息：[{}]",msg);
-//    }
+    //    @WebSocketListening(type = type)
+    //    public void handler(String msg) {
+    //        log.info("接收到信息：[{}]",msg);
+    //    }
 
     @WebSocketListening(type = type)
-    public String handler(String msg) {
-        log.info("接收到信息：[{}]",msg);
+    public String handler(WebSocketRequest request) {
+        log.info("接收到信息：[{}]", JsonUtils.toJson(request));
         return "msg:ok";
     }
 

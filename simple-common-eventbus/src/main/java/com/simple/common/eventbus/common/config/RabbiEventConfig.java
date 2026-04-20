@@ -21,7 +21,7 @@ import java.util.Map;
  */
 @ComponentScan(basePackages = { "com.simple.common.eventbus" })
 @Component
-public class RabbiEventConfig extends RabbitMqConfig {
+public class RabbiEventConfig {
 
     @Autowired
     private ApplicationProperties applicationProperties;

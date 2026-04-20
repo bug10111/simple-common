@@ -26,21 +26,18 @@ import java.util.concurrent.TimeUnit;
 public class DefaultConsumptionLockManager implements ConsumptionLockManager {
 
     private final StringRedisTemplate redisTemplate;
+
     private final RabbitMqProperties properties;
+
     private final CompletionVerificationRouterManager verificationRouterManager;
 
     /**
      * Lua脚本：仅当值等于期望值时设置过期时间
      */
     private static final String EXPIRE_IF_VALUE_EQUALS_SCRIPT =
-            "if redis.call('GET', KEYS[1]) == ARGV[1] then " +
-            "    return redis.call('EXPIRE', KEYS[1], ARGV[2]) " +
-            "else " +
-            "    return 0 " +
-            "end";
+                    "if redis.call('GET', KEYS[1]) == ARGV[1] then " + "    return redis.call('EXPIRE', KEYS[1], ARGV[2]) " + "else " + "    return 0 " + "end";
 
-    private final DefaultRedisScript<Long> expireIfValueEqualsScript =
-            new DefaultRedisScript<>(EXPIRE_IF_VALUE_EQUALS_SCRIPT, Long.class);
+    private final DefaultRedisScript<Long> expireIfValueEqualsScript = new DefaultRedisScript<>(EXPIRE_IF_VALUE_EQUALS_SCRIPT, Long.class);
 
     /**
      * 构建防重锁的 Redis Key
@@ -66,8 +63,7 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
     @Override
     public boolean tryAcquire(String queue, String correlationId, int businessTime, TimeUnit timeUnit) {
         String lockKey = buildLockKey(queue, correlationId);
-        Boolean success = redisTemplate.opsForValue()
-                .setIfAbsent(lockKey, properties.getLockStatusProcessing(), businessTime, timeUnit);
+        Boolean success = redisTemplate.opsForValue().setIfAbsent(lockKey, properties.getLockStatusProcessing(), businessTime, timeUnit);
         return Boolean.TRUE.equals(success);
     }
 
@@ -85,10 +81,7 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
         String lockKey = buildLockKey(queue, correlationId);
         long expireSeconds = timeUnit.toSeconds(businessTime);
         try {
-            Long result = redisTemplate.execute(expireIfValueEqualsScript,
-                    Collections.singletonList(lockKey),
-                    properties.getLockStatusProcessing(),
-                    String.valueOf(expireSeconds));
+            Long result = redisTemplate.execute(expireIfValueEqualsScript, Collections.singletonList(lockKey), properties.getLockStatusProcessing(), String.valueOf(expireSeconds));
             return result != null && result == 1L;
         } catch (Exception e) {
             log.error("Redis续期操作异常，锁[{}]续期失败", lockKey, e);
@@ -113,8 +106,7 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
     /**
      * 有限循环检查锁状态，避免递归深度过大或状态变化导致的误判
      */
-    private LockStatus checkLockStatusWithLoop(String queue, String correlationId,
-                                               DefaultMessage defaultMessage, Message message) {
+    private LockStatus checkLockStatusWithLoop(String queue, String correlationId, DefaultMessage defaultMessage, Message message) {
         int maxAttempts = 2;
         for (int attempt = 0; attempt < maxAttempts; attempt++) {
             String lockKey = buildLockKey(queue, correlationId);
@@ -135,10 +127,8 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
 
             Long ttl = redisTemplate.getExpire(lockKey, TimeUnit.SECONDS);
             if (ttl != null && ttl > properties.getLockTtlRecoveryThresholdSeconds()) {
-                Long shortened = redisTemplate.execute(expireIfValueEqualsScript,
-                        Collections.singletonList(lockKey),
-                        properties.getLockStatusProcessing(),
-                        String.valueOf(properties.getLockTtlRecoveryThresholdSeconds()));
+                Long shortened = redisTemplate.execute(expireIfValueEqualsScript, Collections.singletonList(lockKey), properties.getLockStatusProcessing(),
+                                                       String.valueOf(properties.getLockTtlRecoveryThresholdSeconds()));
                 if (shortened != null && shortened == 1L) {
                     return LockStatus.PROCESSING_WITH_RECOVERED_TTL;
                 } else {
@@ -168,15 +158,14 @@ public class DefaultConsumptionLockManager implements ConsumptionLockManager {
     /**
      * 将锁标记为已完成
      *
-     * @param queue           队列名
-     * @param correlationId   消息ID
-     * @param businessId      业务返回的唯一标识
+     * @param queue            队列名
+     * @param correlationId    消息ID
+     * @param businessId       业务返回的唯一标识
      * @param effectiveSeconds 完成状态有效时长
-     * @param timeUnit        时间单位
+     * @param timeUnit         时间单位
      */
     @Override
-    public void markAsDone(String queue, String correlationId, String businessId, long effectiveSeconds,
-                           TimeUnit timeUnit) {
+    public void markAsDone(String queue, String correlationId, String businessId, long effectiveSeconds, TimeUnit timeUnit) {
         String lockKey = buildLockKey(queue, correlationId);
         String doneStatus = properties.getLockStatusDonePrefix() + businessId;
         redisTemplate.opsForValue().set(lockKey, doneStatus, effectiveSeconds, timeUnit);

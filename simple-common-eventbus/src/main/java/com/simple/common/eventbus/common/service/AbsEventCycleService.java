@@ -34,9 +34,7 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> impleme
      */
     private String beanName;
 
-    public AbsEventCycleService(Class<T> eventClass) {
-        super(eventClass);
-    }
+
 
     /**
      * 启动循环任务

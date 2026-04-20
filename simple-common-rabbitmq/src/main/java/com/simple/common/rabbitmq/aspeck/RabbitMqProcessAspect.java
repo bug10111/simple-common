@@ -80,8 +80,9 @@ public class RabbitMqProcessAspect {
     @PostConstruct
     public void init() {
         sortedProcesses = processList.stream()
-                .sorted(Comparator.comparingInt(p -> p.getProcess().getOrdered()))
-                .collect(Collectors.toList());
+                                     .filter(rabbitMqProcess -> rabbitMqProcess.getProcess().isExecute())
+                                     .sorted(Comparator.comparingInt(p -> p.getProcess().getOrdered()))
+                                     .collect(Collectors.toList());
         log.debug("RabbitMQ前置处理器初始化完成，共{}个", sortedProcesses.size());
     }
 
@@ -119,8 +120,7 @@ public class RabbitMqProcessAspect {
         Method method = signature.getMethod();
         // 使用完整方法签名作为缓存 key，避免 CGLIB 代理与重载混淆
         String methodKey = method.toGenericString();
-        RabbitMqConsumption annotation = annotationCache.computeIfAbsent(methodKey,
-                k -> method.getAnnotation(RabbitMqConsumption.class));
+        RabbitMqConsumption annotation = annotationCache.computeIfAbsent(methodKey, k -> method.getAnnotation(RabbitMqConsumption.class));
 
         Object[] args = joinPoint.getArgs();
         Message message = (Message) args[0];
@@ -150,42 +150,40 @@ public class RabbitMqProcessAspect {
             ConsumptionLockManager.LockStatus status = lockManager.checkLockStatus(consumerQueue, correlationId, defaultMessage, message);
 
             switch (status) {
-                case COMPLETED_AND_VERIFIED:
-                    log.debug("队列[{}] id[{}] 已完成，直接ACK", consumerQueue, correlationId);
-                    ackRMQManager.basicAck(channel, deliveryTag);
-                    return null;
-                case COMPLETED_BUT_VERIFICATION_FAILED:
-                    log.warn("队列[{}] id[{}] 已完成但校验失败，重置锁为处理中并重试", consumerQueue, correlationId);
-                    lockManager.resetToProcessing(consumerQueue, correlationId, businessTime, timeUnit);
-                    ackRMQManager.basicNack(channel, deliveryTag, false);
-                    retryMessageManager.handleVerificationFailureRetry(
-                            retryCountManager.buildVerifyRetryKey(consumerQueue, correlationId),
-                            message, channel, maxRetryCount,
-                            new RuntimeException("业务完成校验未通过"), defaultMessage);
-                    return null;
-                case PROCESSING:
-                    log.debug("队列[{}] id[{}] 已在处理中，拒绝并不放回", consumerQueue, correlationId);
-                    ackRMQManager.basicNack(channel, deliveryTag, false);
-                    return null;
-                case PROCESSING_WITH_RECOVERED_TTL:
-                    // 【修复】僵尸锁恢复：不直接丢弃，而是尝试重新竞争锁
-                    log.info("队列[{}] id[{}] 检测到僵尸锁（TTL异常长），尝试重新竞争锁", consumerQueue, correlationId);
-                    boolean reAcquired = lockManager.tryAcquire(consumerQueue, correlationId, businessTime, timeUnit);
-                    if (reAcquired) {
-                        log.info("队列[{}] id[{}] 重新获取锁成功，继续消费", consumerQueue, correlationId);
-                        // 锁已重新获取，继续往下执行（注意：此处需要跳出 switch 进入业务执行流程）
-                        break; // 跳出 switch，继续执行后续业务逻辑
-                    } else {
-                        // 重新获取失败，说明已有其他消费者接手，放回队列让其他消费者处理
-                        log.warn("队列[{}] id[{}] 重新获取锁失败，可能已被其他消费者处理，放回队列", consumerQueue, correlationId);
-                        ackRMQManager.basicNack(channel, deliveryTag, true);
-                        return null;
-                    }
-                case NOT_EXISTS:
-                default:
-                    log.error("队列[{}] id[{}] 锁状态异常，放回队列", consumerQueue, correlationId);
+            case COMPLETED_AND_VERIFIED:
+                log.debug("队列[{}] id[{}] 已完成，直接ACK", consumerQueue, correlationId);
+                ackRMQManager.basicAck(channel, deliveryTag);
+                return null;
+            case COMPLETED_BUT_VERIFICATION_FAILED:
+                log.warn("队列[{}] id[{}] 已完成但校验失败，重置锁为处理中并重试", consumerQueue, correlationId);
+                lockManager.resetToProcessing(consumerQueue, correlationId, businessTime, timeUnit);
+                ackRMQManager.basicNack(channel, deliveryTag, false);
+                retryMessageManager.handleVerificationFailureRetry(retryCountManager.buildVerifyRetryKey(consumerQueue, correlationId), message, channel, maxRetryCount,
+                                                                   new RuntimeException("业务完成校验未通过"), defaultMessage);
+                return null;
+            case PROCESSING:
+                log.debug("队列[{}] id[{}] 已在处理中，拒绝并不放回", consumerQueue, correlationId);
+                ackRMQManager.basicNack(channel, deliveryTag, false);
+                return null;
+            case PROCESSING_WITH_RECOVERED_TTL:
+                // 【修复】僵尸锁恢复：不直接丢弃，而是尝试重新竞争锁
+                log.info("队列[{}] id[{}] 检测到僵尸锁（TTL异常长），尝试重新竞争锁", consumerQueue, correlationId);
+                boolean reAcquired = lockManager.tryAcquire(consumerQueue, correlationId, businessTime, timeUnit);
+                if (reAcquired) {
+                    log.info("队列[{}] id[{}] 重新获取锁成功，继续消费", consumerQueue, correlationId);
+                    // 锁已重新获取，继续往下执行（注意：此处需要跳出 switch 进入业务执行流程）
+                    break; // 跳出 switch，继续执行后续业务逻辑
+                } else {
+                    // 重新获取失败，说明已有其他消费者接手，放回队列让其他消费者处理
+                    log.warn("队列[{}] id[{}] 重新获取锁失败，可能已被其他消费者处理，放回队列", consumerQueue, correlationId);
                     ackRMQManager.basicNack(channel, deliveryTag, true);
                     return null;
+                }
+            case NOT_EXISTS:
+            default:
+                log.error("队列[{}] id[{}] 锁状态异常，放回队列", consumerQueue, correlationId);
+                ackRMQManager.basicNack(channel, deliveryTag, true);
+                return null;
             }
         }
 
@@ -228,7 +226,7 @@ public class RabbitMqProcessAspect {
             if (businessResult == null || businessResult.toString().trim().isEmpty()) {
                 if (method.getReturnType() == void.class || method.getReturnType() == Void.class) {
                     businessId = correlationId;
-                    log.debug("业务方法返回 void，使用 correlationId[{}] 作为业务ID", correlationId);
+//                    log.debug("业务方法返回 void，使用 correlationId[{}] 作为业务ID", correlationId);
                 } else {
                     throw new IllegalStateException("业务方法返回空业务ID，无法标记完成状态");
                 }
@@ -288,23 +286,21 @@ public class RabbitMqProcessAspect {
      * @param businessThread 业务线程，用于中断
      * @return 续期任务 Future，可用于取消
      */
-    private ScheduledFuture<?> startLockRenewal(String queue, String correlationId, int businessTime,
-                                                TimeUnit timeUnit, Thread businessThread) {
+    private ScheduledFuture<?> startLockRenewal(String queue, String correlationId, int businessTime, TimeUnit timeUnit, Thread businessThread) {
         long businessMillis = timeUnit.toMillis(businessTime);
         long renewInterval = businessMillis / 3;
         if (renewInterval <= 0) {
             renewInterval = 1000;
         }
         final int maxConsecutiveFailures = 3;
-        final int[] failureCount = {0};
+        final int[] failureCount = { 0 };
         return RENEWAL_SCHEDULER.scheduleAtFixedRate(() -> {
             try {
                 boolean renewed = lockManager.renewLock(queue, correlationId, businessTime, timeUnit);
                 if (!renewed) {
                     failureCount[0]++;
                     if (failureCount[0] >= maxConsecutiveFailures) {
-                        log.error("队列[{}] id[{}] 锁续期连续失败{}次，可能锁已丢失，中断业务线程",
-                                queue, correlationId, maxConsecutiveFailures);
+                        log.error("队列[{}] id[{}] 锁续期连续失败{}次，可能锁已丢失，中断业务线程", queue, correlationId, maxConsecutiveFailures);
                         businessThread.interrupt();
                     }
                 } else {

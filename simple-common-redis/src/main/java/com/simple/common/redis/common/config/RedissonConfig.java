@@ -17,7 +17,7 @@ import org.springframework.context.annotation.Configuration;
  * @author qty
  */
 @Configuration
-@ComponentScan(basePackages = { "com.simple.common.redis.**" })
+@ComponentScan(basePackages = { "com.simple.common.redis" })
 @ConditionalOnProperty(prefix = "redisson", name = "open", havingValue = "true", matchIfMissing = true)
 public class RedissonConfig {
 
@@ -40,7 +40,7 @@ public class RedissonConfig {
     private int connectionMinimumIdleSize;
 
     @Bean(destroyMethod = "shutdown")
-    public RedissonClient redisson() {
+    public Redisson redisson() {
         String address = "redis://" + host + ":" + port;
         Config config = new Config();
         SingleServerConfig singleServerConfig = config.useSingleServer()
@@ -51,6 +51,6 @@ public class RedissonConfig {
         if (StrUtil.isNotEmpty(password)) {
             singleServerConfig.setPassword(password);
         }
-        return Redisson.create(config);
+        return (Redisson) Redisson.create(config);
     }
 }
