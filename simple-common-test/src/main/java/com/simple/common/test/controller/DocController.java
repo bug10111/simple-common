@@ -39,7 +39,7 @@ public class DocController {
         builder.addStr("num", "普通文字填充");
         builder.addStrColor("code1", "有颜色的文字填充", "ff0000");
         builder.addStrLink("code2", "有超链接的文字填充", "https://www.baidu.com");
-        builder.addImgInputUrl("code3", "http://minio.dev.joyswon.com/market-web-public/png/cd37c4411cc64f43a7aa4775b0574e4d.png", 50, 50);
+//        builder.addImgInputUrl("code3", "http://minio.dev.joyswon.com/market-web-public/png/cd37c4411cc64f43a7aa4775b0574e4d.png", 50, 50);
 
         List<DocTestEntity> list = new ArrayList<>();
         for (int i = 0; i < 10; i++) {

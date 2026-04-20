@@ -287,46 +287,129 @@ public class LocalCacheFactory {
 
         // ===== 链式配置方法 ===== //
 
+        /**
+         * 设置缓存初始容量
+         * <p>
+         * 建议：根据预期数据量设置合理的初始容量，避免频繁扩容带来的性能开销
+         *
+         * @param initialCapacity 初始容量大小
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> initialCapacity(int initialCapacity) {
             this.initialCapacity = initialCapacity;
             return this;
         }
 
+        /**
+         * 设置缓存最大容量
+         * <p>
+         * 当缓存条目数达到最大值时，Caffeine 会根据 LRU 策略自动淘汰旧条目
+         * <p>
+         * 注意：这是推荐的淘汰策略之一，建议根据实际内存情况合理设置
+         *
+         * @param maximumSize 最大容量
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> maximumSize(long maximumSize) {
             this.maximumSize = maximumSize;
             return this;
         }
 
+        /**
+         * 设置写入后过期时间
+         * <p>
+         * 缓存条目在最后一次写入后经过指定时间会自动过期
+         *
+         * @param seconds 过期时间（秒）
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> expireAfterWrite(long seconds) {
             this.expireAfterWrite = seconds;
             return this;
         }
 
+        /**
+         * 设置访问后过期时间
+         * <p>
+         * 缓存条目在最后一次访问（读或写）后经过指定时间会自动过期
+         *
+         * @param seconds 过期时间（秒）
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> expireAfterAccess(long seconds) {
             this.expireAfterAccess = seconds;
             return this;
         }
 
+        /**
+         * 设置写入后刷新时间
+         * <p>
+         * 缓存条目在最后一次写入后经过指定时间会异步刷新，
+         * 需要配合 LoadingCache 和 CacheLoader 使用
+         * <p>
+         * 注意：仅对 LoadingCache 生效，刷新操作不会阻塞读取
+         *
+         * @param seconds 刷新时间（秒）
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> refreshAfterWrite(long seconds) {
             this.refreshAfterWrite = seconds;
             return this;
         }
 
+        /**
+         * 启用弱引用键
+         * <p>
+         * 使用弱引用存储键，当键没有其他强引用时，缓存条目可被 GC 回收
+         * <p>
+         * 注意：使用弱引用键会导致键比较使用 == 而非 equals()，
+         * 请确保键对象在 JVM 中唯一，否则可能导致缓存无法命中
+         *
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> weakKeys() {
             this.weakKeys = true;
             return this;
         }
 
+        /**
+         * 启用软引用值
+         * <p>
+         * 使用软引用存储值，当 JVM 内存不足时，缓存条目可被 GC 回收
+         * <p>
+         * 注意：强烈建议配合 maximumSize 使用，避免内存无限增长
+         *
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> softValues() {
             this.softValues = true;
             return this;
         }
 
+        /**
+         * 设置移除监听器
+         * <p>
+         * 当缓存条目被移除时（过期、淘汰、手动删除等），会触发监听器回调
+         * <p>
+         * 注意：监听器会在独立线程池中异步执行，不会阻塞缓存操作
+         *
+         * @param listener 移除监听器实例
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> removalListener(RemovalListener<K, V> listener) {
             this.removalListener = listener;
             return this;
         }
 
+        /**
+         * 开启统计信息收集
+         * <p>
+         * 启用后可通过 Cache.stats() 获取命中率、失效率、平均加载时间等统计信息
+         * <p>
+         * 建议：在需要监控缓存性能的场景下开启
+         *
+         * @return 当前配置实例，支持链式调用
+         */
         public CacheSpec<K, V> recordStats() {
             this.recordStats = true;
             return this;

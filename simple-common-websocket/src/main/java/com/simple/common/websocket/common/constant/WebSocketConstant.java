@@ -15,7 +15,7 @@ public class WebSocketConstant {
     /**
      * 客户端标志参数名
      */
-    public static final String CLI_KEY = "cli_key";
+    public static final String CLI_KEY = "cliKey";
 
     /**
      * Token参数名

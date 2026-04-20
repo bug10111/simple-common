@@ -29,7 +29,6 @@ public class DemoAviatorService extends DefAviatorFunction {
         Number first = FunctionUtils.getNumberValue(arg1, env);
         Number second = FunctionUtils.getNumberValue(arg2, env);
         Number third = FunctionUtils.getNumberValue(arg3, env);
-        return AviatorDecimal.valueOf(
-                        new BigDecimal(first.toString()).divide(new BigDecimal(second.toString()), Integer.parseInt(third.toString()), RoundingMode.HALF_UP));
+        return AviatorDecimal.valueOf(new BigDecimal(first.toString()).divide(new BigDecimal(second.toString()), Integer.parseInt(third.toString()), RoundingMode.HALF_UP));
     }
 }

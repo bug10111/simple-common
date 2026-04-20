@@ -94,7 +94,7 @@ public class EasyExcelController {
             list.add(sysAreaEntity);
         }
         ByteArrayInputStream byteArrayInputStream1 = easyExcelWriteService.writeInputStream(EasyExcelDemo.class, list);
-        UploadResponse simple = annexService.upload("区域列表.xlsx", "simple", ShareType.PUBLIC, byteArrayInputStream1);
+        UploadResponse simple = annexService.upload("区域列表.xlsx", "simple", ShareType.PRIVATE, byteArrayInputStream1);
         return R.ok(simple);
     }
 
@@ -113,7 +113,7 @@ public class EasyExcelController {
             list.add(sysAreaEntity);
         }
         ByteArrayInputStream byteArrayInputStream1 = easyExcelWriteService.writeInputStream(EasyExcelDemo.class, list);
-        FileUtils.write(byteArrayInputStream1, "D:/123.xlsx");
+        FileUtils.write(byteArrayInputStream1, "C:/123.xlsx");
         return R.ok();
     }
 }

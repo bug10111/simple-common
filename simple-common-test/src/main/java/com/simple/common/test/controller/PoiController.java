@@ -125,7 +125,7 @@ public class PoiController {
             row.createCell(3).setCellValue(DateTime.now().toString());
         };
         ByteArrayInputStream byteArrayInputStream = poiWriteService.writeInputStream(function, list, head, wi, 1000000);
-        UploadResponse simple = annexService.upload("区域列表.xlsx", "simple", null, ShareType.PUBLIC, byteArrayInputStream);
+        UploadResponse simple = annexService.upload("区域列表.xlsx", "simple", null, ShareType.PRIVATE, byteArrayInputStream);
         return R.ok(simple);
     }
 }

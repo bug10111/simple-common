@@ -75,7 +75,7 @@ public class RedissonLockController {
     @GetMapping("/semaphoreLock")
     @ResponseBody
     public R<Object> semaphoreLock() {
-        lockService.semaphoreLock("123", 10);
+        lockService.semaphoreLock("123", 3);
         return R.ok();
     }
 

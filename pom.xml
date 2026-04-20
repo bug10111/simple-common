@@ -77,6 +77,7 @@
         <bcprov.version>1.70</bcprov.version>
         <netty.version>4.1.100.Final</netty.version>
         <protobuf.version>3.24.0</protobuf.version>
+        <commons-io.version>2.15.1</commons-io.version>
     </properties>
 
     <dependencyManagement>
@@ -283,6 +284,13 @@
                 <groupId>io.netty</groupId>
                 <artifactId>netty-all</artifactId>
                 <version>${netty.version}</version>
+            </dependency>
+
+            <!-- commons-io 解决 POI 5.2.3 兼容性问题 -->
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons-io.version}</version>
             </dependency>
 
             <dependency>

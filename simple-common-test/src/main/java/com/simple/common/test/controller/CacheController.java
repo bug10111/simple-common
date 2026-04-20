@@ -54,15 +54,15 @@ public class CacheController implements InitializingBean {
     @SneakyThrows
     public R<Object> obj() {
 
-        Cache<String, DocTestEntity> cache = CacheUtils.createLocalCache("string", config -> config.expireAfterWrite(10));
+        Cache<String, DocTestEntity> cache = CacheUtils.createLocalCache("string1", config -> config.expireAfterWrite(6));
 
-        cache.put("key", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
-        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
-        log.debug(JsonUtils.toJsonStr(cache.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
+        cache.put("string1", new DocTestEntity().setName("名字").setAge(18).setSex("女"));
+        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("string1")));
+        log.debug(JsonUtils.toJsonStr(cache.get("string1", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
 
-        Thread.sleep(7000);
-        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("key")));
-        log.debug(JsonUtils.toJsonStr(cache.get("key", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
+        Thread.sleep(10000);
+        log.debug(JsonUtils.toJsonStr(cache.getIfPresent("string1")));
+        log.debug(JsonUtils.toJsonStr(cache.get("string1", s -> new DocTestEntity().setName("名字1").setAge(18).setSex("女"))));
 
         return R.ok();
     }

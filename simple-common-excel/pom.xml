@@ -37,6 +37,12 @@
             <artifactId>poi-ooxml</artifactId>
         </dependency>
 
+        <!-- commons-io 解决 POI 5.2.3 兼容性问题 -->
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-core</artifactId>

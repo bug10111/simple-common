@@ -40,7 +40,7 @@ public abstract class RedissonLockService extends AbsLockService {
     public abstract void semaphoreLock(String key, Integer lockSum);
 
     /**
-     * 信号量-减少
+     * 信号量-减少（案例中车离开）
      *
      * @param key     加锁的key
      * @param lockNum 增加的量
@@ -48,7 +48,7 @@ public abstract class RedissonLockService extends AbsLockService {
     public abstract void decreaseSemaphoreLock(String key, Integer lockNum);
 
     /**
-     * 信号量-增加
+     * 信号量-增加（案例中车进入停车场）
      *
      * @param key     加锁的key
      * @param lockNum 增加的量

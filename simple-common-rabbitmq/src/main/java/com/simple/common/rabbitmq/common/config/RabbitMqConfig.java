@@ -65,7 +65,15 @@ public class RabbitMqConfig {
         // 路由失败回调
         template.setReturnsCallback(returned -> {
             Message message = returned.getMessage();
-            sendFailurePersistenceManager.saveReturnFailure(message, returned.getReplyCode(), returned.getReplyText(), returned.getExchange(), returned.getRoutingKey());
+            String exchange = returned.getExchange();
+
+            // 检查是否为延迟交换机（你框架中有多种延迟交换机，建议根据名称模式判断）
+            if (exchange != null && (exchange.equals(rabbitMqProperties.getDelayedExchange()) || exchange.contains("delayed") || exchange.contains("delay"))) {
+                return;
+            }
+
+            // 普通交换机触发 return，是真正的路由异常，必须持久化
+            sendFailurePersistenceManager.saveReturnFailure(message, returned.getReplyCode(), returned.getReplyText(), exchange, returned.getRoutingKey());
         });
 
         // 必须设置为 true，否则 ReturnCallback 不生效
