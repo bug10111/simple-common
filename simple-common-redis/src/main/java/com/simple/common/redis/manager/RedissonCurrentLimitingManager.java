@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Service
-public class RedissonCurrentLimitingManager implements CurrentLimitingManager<CurrentLimiting> {
+public class RedissonCurrentLimitingManager implements CurrentLimitingManager {
 
     @Autowired
     private RedissonClient redisson;

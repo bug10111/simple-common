@@ -19,7 +19,29 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created with IntelliJ IDEA
+ * 短信服务抽象基类。
+ * <p>
+ * 实现 {@link SmsService} 接口，提供短信发送前的校验逻辑和配置属性注入。
+ * 具体的短信平台实现类应继承此基类，实现 {@link #sendTemplateParam(String, String, String)} 方法。
+ * </p>
+ *
+ * <h3>扩展指南：</h3>
+ * <p>
+ * 如需对接新的短信平台，可继承此类并实现 {@code sendTemplateParam} 方法：
+ * </p>
+ * <pre>{@code
+ * public class TencentSmsService extends AbsSmsService {
+ *     @Override
+ *     protected void sendTemplateParam(String mobile, String sendType, String templateParam) {
+ *         // 调用腾讯云短信API发送短信
+ *     }
+ * }
+ * }</pre>
+ *
+ * <h3>框架默认实现：</h3>
+ * <p>
+ * {@link AliSmsService} - 阿里云短信服务实现
+ * </p>
  *
  * @author qty
  */
@@ -34,8 +56,11 @@ public abstract class AbsSmsService implements SmsService {
     @Autowired
     private StringRedisTemplate redisTemplate;
 
+    /**
+     * 短信配置属性，自动注入
+     */
     @Autowired
-    private SmsProperties smsProperties;
+    protected SmsProperties smsProperties;
 
     @Autowired
     private SysSmsCodeView sysSmsCodeView;

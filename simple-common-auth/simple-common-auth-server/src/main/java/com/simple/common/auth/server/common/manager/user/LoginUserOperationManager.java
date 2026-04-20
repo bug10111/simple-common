@@ -5,8 +5,11 @@ import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.auth.server.common.entity.TokenData;
 
 /**
- * Created with IntelliJ IDEA
- * 登录用户数据处理接口
+ * 登录用户操作管理器接口。
+ * <p>
+ * 用于管理登录用户的信息存储和操作记录。
+ * 默认实现 {@link com.simple.common.auth.server.manager.ServerLoginUserOperationManager} 将用户信息存储到Redis缓存。
+ * </p>
  *
  * @author qty
  */

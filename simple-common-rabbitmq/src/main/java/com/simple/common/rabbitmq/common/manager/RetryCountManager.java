@@ -1,7 +1,12 @@
 package com.simple.common.rabbitmq.common.manager;
 
 /**
- * 重试计数管理器接口，提供原子递增与删除功能
+ * 重试次数管理器接口。
+ * <p>
+ * 用于管理消息消费失败后的重试次数，防止无限重试导致系统资源耗尽。
+ * 默认实现 {@link com.simple.common.rabbitmq.manager.DefaultRetryCountManager} 使用Redis
+ * 存储重试次数计数器。
+ * </p>
  *
  * @author qty
  */

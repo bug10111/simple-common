@@ -1,9 +1,15 @@
 package com.simple.common.websocket.common.manager;
 
+import com.simple.common.websocket.common.entity.WebSocketRequest;
+import io.netty.channel.ChannelHandlerContext;
+
 /**
- * WebSocket认证校验接口
+ * WebSocket鉴权校验管理器接口。
  * <p>
- * 实现此接口以自定义Token校验逻辑
+ * 用于在WebSocket连接建立时进行身份验证和权限校验。
+ * 默认实现 {@link com.simple.common.websocket.manager.DefaultCheckWebSocketManager} 不做任何校验，
+ * 如需自定义鉴权逻辑，请继承 {@link com.simple.common.websocket.manager.DefaultCheckWebSocketManager} 并重写 {@link #check} 方法。
+ * </p>
  *
  * @author qty
  */

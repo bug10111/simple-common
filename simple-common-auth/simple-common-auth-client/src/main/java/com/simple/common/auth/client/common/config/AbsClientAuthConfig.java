@@ -1,14 +1,41 @@
 package com.simple.common.auth.client.common.config;
 
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
+import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.core.common.properties.ApplicationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 
 /**
- * Created with IntelliJ IDEA
- * 客户端权限配置基类
+ * 客户端权限配置抽象基类。
+ * <p>
+ * 用于配置客户端的权限信息，包括白名单路径、URL权限映射等。
+ * 业务系统需要继承此类并实现 {@link #configure(ClientAuthInfo)} 方法来定义
+ * 自定义的权限配置。
+ * </p>
+ *
+ * <h3>使用示例：</h3>
+ * <pre>{@code
+ * @Configuration
+ * public class MyAuthConfig extends AbsClientAuthConfig {
+ *     @Override
+ *     protected void configure(ClientAuthInfo clientAuthInfo) {
+ *         // 配置白名单路径（无需鉴权）
+ *         clientAuthInfo.addWhitePath("/api/public/**");
+ *         clientAuthInfo.addWhitePath("/api/login");
+ *
+ *         // 配置URL权限映射
+ *         clientAuthInfo.addUrlOperation("/api/admin/**", "admin");
+ *         clientAuthInfo.addUrlOperation("/api/user/**", "user");
+ *     }
+ * }
+ * }</pre>
+ *
+ * <h3>配置加载时机：</h3>
+ * <p>
+ * 配置在应用启动时通过 {@link com.simple.common.auth.client.init.AuthInit} 初始化类加载。
+ * </p>
  *
  * @author qty
  */

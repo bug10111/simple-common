@@ -6,8 +6,12 @@ import com.simple.common.rabbitmq.common.entity.DefaultMessage;
 import org.springframework.amqp.core.Message;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 消息消费失败的保存方法
+ * 死信队列服务接口。
+ * <p>
+ * 用于处理无法正常消费的消息，将其发送到死信队列进行后续处理或分析。
+ * 默认实现 {@link com.simple.common.rabbitmq.service.DefaultDeadLetterService} 将死信消息
+ * 发送到专门的死信交换机和队列。
+ * </p>
  *
  * @author qty
  */

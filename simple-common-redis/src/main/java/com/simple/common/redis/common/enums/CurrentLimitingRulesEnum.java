@@ -12,7 +12,9 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public enum CurrentLimitingRulesEnum {
-    URL("根据路由限流"), USER_ID("当前登录用户"), IP("IP地址"),
+    URL("根据路由限流"),
+    USER_ID("当前登录用户"),
+    IP("IP地址"),
     ;
 
     //限流方法

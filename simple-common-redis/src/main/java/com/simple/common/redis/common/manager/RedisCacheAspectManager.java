@@ -4,7 +4,12 @@ import com.simple.common.redis.annotation.RedisCache;
 import org.aspectj.lang.ProceedingJoinPoint;
 
 /**
- * Created by IntelliJ IDEA
+ * Redis缓存切面管理器接口。
+ * <p>
+ * 用于管理 {@link RedisCache} 注解的缓存key构建和缓存策略处理。
+ * 默认实现 {@link com.simple.common.redis.manager.DefaultRedisCacheAspectManager} 提供了
+ * 基于方法参数的缓存key生成逻辑。
+ * </p>
  *
  * @author qty
  */

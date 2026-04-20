@@ -2,10 +2,15 @@ package com.simple.common.auth.server.common.manager.login;
 
 import com.simple.common.auth.server.common.entity.AbsUserDetails;
 import com.simple.common.auth.server.common.entity.ClientDetails;
+import com.simple.common.auth.server.common.entity.TokenData;
 
 /**
- * Created with IntelliJ IDEA
- * 登录实现接口
+ * 登录管理器接口。
+ * <p>
+ * 用于处理特定登录类型的用户认证逻辑。
+ * 不同登录方式（如密码登录、微信登录、短信登录等）通过实现此接口来定义各自的认证流程。
+ * 默认抽象实现 {@link AbsLoginManager} 提供了通用的登录流程框架。
+ * </p>
  *
  * @author qty
  */

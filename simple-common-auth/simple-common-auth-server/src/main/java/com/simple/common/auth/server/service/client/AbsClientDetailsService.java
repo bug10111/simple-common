@@ -5,6 +5,7 @@ import com.simple.common.auth.server.common.entity.ClientDetails;
 import com.simple.common.auth.server.common.enums.ClientAttribute;
 import com.simple.common.auth.server.common.manager.client.ClientManager;
 import com.simple.common.auth.server.common.service.client.ClientDetailsService;
+import com.simple.common.auth.server.common.properties.AuthServerProperties;
 import com.simple.common.core.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,7 +13,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA
+ * 客户端详情服务抽象基类。
+ * <p>
+ * 实现 {@link ClientDetailsService} 接口，提供客户端Token获取的标准流程。
+ * 业务系统需要继承此类并实现 {@link #checkClientDetails(String, String)} 方法来
+ * 定义客户端信息的获取逻辑（如从数据库、缓存等获取）。
+ * </p>
+ *
+ * <h3>扩展指南：</h3>
+ * <p>
+ * 如需自定义客户端信息获取方式，可继承此类并实现 {@code getClientDetails} 方法：
+ * </p>
+ * <pre>{@code
+ * public class MyClientDetailsService extends AbsClientDetailsService {
+ *     @Autowired
+ *     private ClientRepository clientRepository;
+ *
+ *     @Override
+ *     protected ClientDetails getClientDetails(String clientId, String clientSecret) {
+ *         SysClientDetails entity = clientRepository.findByClientId(clientId);
+ *         AssertUtils.isTrue(entity != null, "客户端不存在");
+ *         AssertUtils.isTrue(entity.getClientSecret().equals(clientSecret), "客户端密钥错误");
+ *         return convertToClientDetails(entity);
+ *     }
+ * }
+ * }</pre>
  *
  * @author qty
  */

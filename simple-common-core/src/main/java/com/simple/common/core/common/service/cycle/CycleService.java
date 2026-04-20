@@ -4,9 +4,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 循环执行某个方法，执行间隔时间根据累加规则计算
- *
+ * 循环任务服务接口。
+ * <p>
+ * 用于定义循环执行的任务逻辑，如自动重试、定时检查等场景。
+ * 默认抽象实现 {@link AbsCycleService} 提供了任务执行、失败重试、完成回调的完整流程框架。
+ * </p>
+ * @param <T> 任务数据类型
  * @author qty
  */
 public interface CycleService<T> {

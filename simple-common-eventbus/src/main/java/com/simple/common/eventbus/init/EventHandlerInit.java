@@ -13,7 +13,6 @@ import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 import org.springframework.util.ReflectionUtils;
 
-import java.lang.reflect.Method;
 import java.util.stream.Stream;
 
 /**
@@ -37,7 +36,7 @@ public class EventHandlerInit implements ApplicationListener<ApplicationReadyEve
         Stream.of(applicationContext.getBeanDefinitionNames())
               .forEach(beanName -> {
                   Object bean = applicationContext.getBean(beanName);
-                  // 【修复】使用 ReflectionUtils.doWithMethods 遍历类及接口的所有方法，避免 JDK 动态代理遗漏方法
+                  //使用 ReflectionUtils.doWithMethods 遍历类及接口的所有方法，避免 JDK 动态代理遗漏方法
                   Class<?> targetClass = AopUtils.getTargetClass(bean);
                   ReflectionUtils.doWithMethods(targetClass, method -> {
                       if (method.isAnnotationPresent(EventHandler.class)) {

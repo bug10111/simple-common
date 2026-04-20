@@ -1,12 +1,18 @@
 package com.simple.common.auth.client.common.manager.user;
 
+import com.simple.common.auth.client.common.entity.login.UserTemporary;
+
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 登录信息管理器
+ * 登录用户信息管理器接口。
+ * <p>
+ * 用于管理当前登录用户的临时信息和身份标识。
+ * 默认实现 {@link com.simple.common.auth.client.common.manager.user.ClientLoginInfoManager} 基于 ThreadLocal 存储。
+ * 如需自定义用户信息存储方式，可实现此接口并替换默认实现。
+ * </p>
  *
  * @author qty
  */

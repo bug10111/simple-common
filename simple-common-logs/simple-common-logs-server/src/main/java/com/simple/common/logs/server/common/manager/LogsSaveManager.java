@@ -5,7 +5,12 @@ import com.simple.common.logs.proto.common.event.LogDataEvent;
 import java.util.List;
 
 /**
- * 日志保存管理器接口
+ * 日志保存管理器接口。
+ * <p>
+ * 用于管理日志数据的接收、队列存储和持久化处理。
+ * 默认抽象实现 {@link com.simple.common.logs.server.manager.AbsLogsSaveManager} 提供了
+ * 日志队列管理和批量处理的框架，具体持久化逻辑需继承并重写 {@code saveLogsToStorage} 方法。
+ * </p>
  *
  * @author qty
  */

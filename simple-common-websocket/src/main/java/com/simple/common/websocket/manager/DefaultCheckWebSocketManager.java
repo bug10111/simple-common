@@ -5,7 +5,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
- * Created with IntelliJ IDEA
+ * WebSocket鉴权校验管理器默认实现。
+ * <p>
+ * 默认不做任何校验，允许所有WebSocket连接建立。
+ * 如需自定义鉴权逻辑（如校验token、用户权限等），请继承此类并重写 {@link #checkToken} 方法。
+ * </p>
  *
  * @author qty
  */

@@ -27,7 +27,7 @@ import java.lang.reflect.Method;
 public class CurrentLimitingAspect {
 
     @Autowired
-    private CurrentLimitingManager<CurrentLimiting> currentLimitingManager;
+    private CurrentLimitingManager currentLimitingManager;
 
     @Before("@annotation(com.simple.common.redis.annotation.CurrentLimiting)")
     public void before(JoinPoint joinPoint) {

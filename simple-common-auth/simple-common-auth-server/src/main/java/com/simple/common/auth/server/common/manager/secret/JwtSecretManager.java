@@ -1,8 +1,11 @@
 package com.simple.common.auth.server.common.manager.secret;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 秘钥管理器接口
+ * JWT秘钥管理器接口。
+ * <p>
+ * 用于管理JWT令牌的签名秘钥，包括秘钥的初始化、获取和验证。
+ * 默认实现 {@link com.simple.common.auth.server.manager.DefaultJwtSecretManager} 支持秘钥的动态更新。
+ * </p>
  *
  * @author qty
  */

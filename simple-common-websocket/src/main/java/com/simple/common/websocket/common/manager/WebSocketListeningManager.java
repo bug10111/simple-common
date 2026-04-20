@@ -1,14 +1,18 @@
 package com.simple.common.websocket.common.manager;
 
 import com.simple.common.websocket.common.entity.WebSocketRequest;
+import io.netty.channel.ChannelHandlerContext;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
 
 /**
- * WebSocket监听器管理器接口
+ * WebSocket消息监听管理器接口。
  * <p>
- * 负责注册和调用WebSocket消息监听器
+ * 用于管理WebSocket消息的监听注册和分发。
+ * 配合 {@link com.simple.common.websocket.common.annotation.WebSocketListening} 注解使用，
+ * 实现消息的自动监听和处理。
+ * </p>
  *
  * @author qty
  */

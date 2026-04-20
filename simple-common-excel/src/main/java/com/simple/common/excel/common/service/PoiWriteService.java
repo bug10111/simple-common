@@ -4,11 +4,16 @@ import com.simple.common.excel.common.function.PoiExportFunction;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 /**
- * Created with IntelliJ IDEA
- * Description:Poi xlsx excel导出
+ * POI Excel写入服务接口。
+ * <p>
+ * 提供基于Apache POI的Excel文件写入功能，支持将数据列表导出为Excel格式。
+ * 默认实现 {@link com.simple.common.excel.service.DefaultPoiWriteService} 提供了
+ * 标准的Excel写入流程。
+ * </p>
  *
  * @author qty
  */
