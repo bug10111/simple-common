@@ -20,7 +20,11 @@ import org.springframework.stereotype.Component;
 import java.lang.reflect.Method;
 
 /**
- * Created with IntelliJ IDEA
+ * 签名校验切面。
+ * <p>
+ * 修复说明：将 nonce 防重放校验移至签名校验之后，防止攻击者通过错误签名消耗合法 nonce 导致拒绝服务。
+ * <p>
+ * 修复2：若业务参数字符串为空，则直接拒绝请求，防止签名绕过攻击。
  *
  * @author qty
  */
@@ -71,10 +75,6 @@ public class SignAspect {
         if (signAnnotation.checkTimestamp()) {
             signManager.checkTimestamp(timestampHeader);
         }
-        // 防重放校验
-        if (signAnnotation.checkNonce()) {
-            signManager.checkNonce(nonceHeader);
-        }
 
         // 获取当前登录用户
         String userId = LoginUserUtils.getUserTemporary().getUserId();
@@ -88,9 +88,14 @@ public class SignAspect {
         String businessStr = buildBusinessString(joinPoint, signAnnotation);
         String message = businessStr + "&" + signProperties.getTimestamp() + "=" + timestampHeader + "&" + signProperties.getNonce() + "=" + nonceHeader;
 
-        // 验证签名
+        // 验证签名（必须先验签，再防重放，防止攻击者用错误签名消耗 nonce）
         boolean isValid = SignUtils.verifyWeb(message, signHeader, secretKey);
         AssertUtils.isTrue(isValid, "签名校验失败");
+
+        // 签名校验通过后，再进行防重放校验
+        if (signAnnotation.checkNonce()) {
+            signManager.checkNonce(nonceHeader);
+        }
 
         // 执行请求
         return joinPoint.proceed(args);
@@ -102,6 +107,7 @@ public class SignAspect {
      * @param joinPoint      切点
      * @param signAnnotation 签名注解
      * @return 业务参数签名串（已排序并 URL 编码）
+     * @throws IllegalArgumentException 若未找到有效业务参数对象
      */
     private String buildBusinessString(ProceedingJoinPoint joinPoint, Sign signAnnotation) {
         Object[] args = joinPoint.getArgs();
@@ -111,7 +117,7 @@ public class SignAspect {
                 return SignUtils.generateSignStr(arg, excludeFields);
             }
         }
-        // 若没有业务对象，则返回空字符串
-        return "";
+        // 若没有有效的业务对象，则拒绝请求，防止签名绕过（空字符串会导致签名与业务数据无关）
+        throw new IllegalArgumentException("签名校验失败：未找到有效的业务参数对象，请确保方法参数为非 HttpServletRequest 类型且不为 null");
     }
 }

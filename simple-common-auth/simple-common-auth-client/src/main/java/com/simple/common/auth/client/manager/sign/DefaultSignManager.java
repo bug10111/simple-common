@@ -63,9 +63,10 @@ public class DefaultSignManager implements SignManager, InitializingBean {
     }
 
     /**
-     * 生成新的签名密钥。
+     * 生成新的签名密钥（降级方案）。
      * <p>
-     * 当前实现为本地 UUID 生成，生产环境建议对接配置中心或授权服务。
+     * 当前实现为本地 UUID 生成，仅适用于单机或开发环境。
+     * 生产环境建议重写从配置文件、nacos、授权中心获取。
      */
     @Override
     public void generated() {

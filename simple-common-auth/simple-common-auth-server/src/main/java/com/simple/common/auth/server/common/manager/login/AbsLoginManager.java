@@ -9,13 +9,10 @@ import com.simple.common.core.utils.IPUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created with IntelliJ IDEA
@@ -37,7 +34,11 @@ public abstract class AbsLoginManager implements LoginManager {
     protected void checkErrorNum(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
         
-        // 按顺序执行所有处理器
+        // 判空处理，避免无处理器时 NPE
+        if (loginErrorProcesses == null || loginErrorProcesses.isEmpty()) {
+            return;
+        }
+        
         loginErrorProcesses.stream()
                 .filter(p -> p.getProcess().isExecute())
                 .forEach(process -> {
@@ -56,10 +57,18 @@ public abstract class AbsLoginManager implements LoginManager {
     protected void loginError(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
         
-        // 按顺序执行所有处理器
-        loginErrorProcesses.stream()
-                .filter(p -> p.getProcess().isExecute())
-                .forEach(process -> process.recordError(clientDetails, adapter, ip));
+        // 记录失败日志，区分不同情况
+        if (adapter != null) {
+            log.warn("登录失败，账号凭证：[{}]，IP：[{}]", adapter.toString(), ip);
+        } else {
+            log.warn("登录失败，未提供账号凭证，IP：[{}]", ip);
+        }
+        
+        if (loginErrorProcesses != null && !loginErrorProcesses.isEmpty()) {
+            loginErrorProcesses.stream()
+                    .filter(p -> p.getProcess().isExecute())
+                    .forEach(process -> process.recordError(clientDetails, adapter, ip));
+        }
         
         AssertUtils.error("账号或者密码错误");
     }
@@ -73,10 +82,11 @@ public abstract class AbsLoginManager implements LoginManager {
     protected void loginSuccess(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
         
-        // 清除所有失败记录
-        loginErrorProcesses.stream()
-                .filter(p -> p.getProcess().isExecute())
-                .forEach(process -> process.clearError(clientDetails, adapter, ip));
+        if (loginErrorProcesses != null && !loginErrorProcesses.isEmpty()) {
+            loginErrorProcesses.stream()
+                    .filter(p -> p.getProcess().isExecute())
+                    .forEach(process -> process.clearError(clientDetails, adapter, ip));
+        }
     }
 
     /**
@@ -92,6 +102,4 @@ public abstract class AbsLoginManager implements LoginManager {
         }
         return IPUtils.UNKNOWN;
     }
-
-
 }

@@ -25,7 +25,19 @@ import java.util.Base64;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA
+ * Token 合法性校验处理器。
+ * <p>
+ * <b>【重要安全提醒】</b>：此处理器包含一个内部服务间用户信息透传的机制。
+ * 当请求来自可信网关（如Spring Cloud Gateway）时，允许通过请求头 {@code X-User-Context} 和 {@code X-User-Signature}
+ * 直接传递用户信息，从而绕过JWT解析，提升性能。
+ * <p>
+ * 此机制的启用与否以及信任来源的判断逻辑，<b>必须由集成方根据自身部署架构来实现</b>。
+ * 当前代码中的内部头校验部分是开放的，集成方需：
+ * <ol>
+ *   <li>重写 {@code isRequestFromTrustedSource()} 方法，添加IP白名单或内部标识校验。</li>
+ *   <li>替换 {@code SignManager} 为共享密钥实现，确保网关与微服务使用同一密钥。</li>
+ * </ol>
+ * 若未正确实施安全策略而直接使用，存在认证绕过风险。
  *
  * @author qty
  */
@@ -48,11 +60,12 @@ public class CheckTokenAuthProcess implements AuthProcess {
 
     @Override
     public void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr) {
-        // 检查内部传递头
+        // 检查内部传递头（服务间透传用户信息）
         String encoded = request.getHeader(TokenConstant.userHead);
         String sign = request.getHeader(TokenConstant.userSignHead);
         String key = signManager.getKey();
 
+        // 此处为框架预留扩展点，集成方应重写 isRequestFromTrustedSource 方法以限制来源
         if (ObjUtil.isNotEmpty(encoded) && ObjUtil.isNotEmpty(sign)) {
             String signNew = SignUtils.signWeb(encoded, key);
             if (sign.equals(signNew)) {

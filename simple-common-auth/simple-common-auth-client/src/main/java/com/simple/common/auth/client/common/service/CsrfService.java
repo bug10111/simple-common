@@ -1,8 +1,9 @@
 package com.simple.common.auth.client.common.service;
 
 /**
- * Created with IntelliJ IDEA
- * Description: CSRF 服务接口
+ * CSRF 服务接口。
+ * <p>
+ * 修复说明：增加 consume 参数，用于控制校验后是否删除 token。
  *
  * @author qty
  */
@@ -31,7 +32,8 @@ public interface CsrfService {
      * @param userId 用户id
      * @param path   路径
      * @param token  token
+     * @param consume 是否在校验后立即删除token
      */
-    void checkToken(String userId, String path, String token);
+    void checkToken(String userId, String path, String token, boolean consume);
 
 }

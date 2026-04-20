@@ -18,7 +18,6 @@ import com.simple.common.auth.server.common.service.client.ClientDetailsService;
 import com.simple.common.auth.server.common.service.login.LoginService;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.HttpServletUtils;
-import com.simple.common.eventbus.common.service.EventBusService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,7 +31,7 @@ import java.util.Objects;
 /**
  * 默认登录服务实现。
  *
- * @author qty (修复 refresh bug 版本)
+ * @author qty
  */
 @Slf4j
 @Service
@@ -106,7 +105,6 @@ public class DefaultLoginService implements LoginService {
         // 校验客户端
         HttpServletRequest request = HttpServletUtils.getRequest();
         ClientDetails clientDetails = clientDetailsService.getClientDetails(request);
-        // 修复：aud 在 payload 中存储为字符串，不是 HashSet
         Object audObj = payload.get(TokenConstant.audKey);
         AssertUtils.notEmpty(audObj, LoginException.RE_LOGIN_EXPIRED, "token中缺少aud信息");
         String clientIdFromToken = audObj.toString();

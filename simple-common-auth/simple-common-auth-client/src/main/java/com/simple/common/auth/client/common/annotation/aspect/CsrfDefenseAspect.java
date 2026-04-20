@@ -1,21 +1,29 @@
 package com.simple.common.auth.client.common.annotation.aspect;
 
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
+import com.simple.common.auth.client.common.annotation.CsrfDefense;
+import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.properties.CsrfProperties;
 import com.simple.common.auth.client.common.service.CsrfService;
 import com.simple.common.auth.client.util.LoginUserUtils;
-import com.simple.common.core.common.service.lock.LockService;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.HttpServletUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Method;
+
 /**
- * Created with IntelliJ IDEA
+ * CSRF 防御切面。
+ * <p>
+ * 修复说明：适配注解新增的 consume 属性，灵活控制 token 消费行为。
+ * <p>
+ * 修复2：增加 UserTemporary 的非空判断，防止切面早于认证拦截器执行时出现 NPE。
  *
  * @author qty
  */
@@ -31,17 +39,27 @@ public class CsrfDefenseAspect {
     private CsrfService csrfService;
 
     @Before("@annotation(com.simple.common.auth.client.common.annotation.CsrfDefense)")
-    public void before() {
+    public void before(JoinPoint joinPoint) {
         if (csrfProperties.isCsrfDefense()) {
-            String userId = LoginUserUtils.getUserTemporary().getUserId();
-            String path = LoginUserUtils.getUserTemporary().getPath();
-            AssertUtils.notEmpty(userId, "用户未登录，无法进行 CSRF 校验");
+            // 获取注解实例
+            MethodSignature signature = (MethodSignature) joinPoint.getSignature();
+            Method method = signature.getMethod();
+            CsrfDefense csrfDefense = method.getAnnotation(CsrfDefense.class);
+
+            // 修复：增加 UserTemporary 的非空断言，防止 NPE
+            UserTemporary userTemporary = LoginUserUtils.getUserTemporary();
+            AssertUtils.notNull(userTemporary, "用户未登录，无法进行 CSRF 校验");
+            String userId = userTemporary.getUserId();
+            String path = userTemporary.getPath();
+            AssertUtils.notEmpty(userId, "用户ID为空，无法进行 CSRF 校验");
             AssertUtils.notEmpty(path, "请求路径不能为空");
 
             HttpServletRequest request = HttpServletUtils.getRequest();
             String token = request.getHeader(csrfProperties.getCsrfHeader());
             AssertUtils.notEmpty(token, "请求失败", "用户[{}]==>[{}] CSRF token不存在", userId, path);
-            csrfService.checkToken(userId, path, token);
+            
+            // 传入 consume 参数
+            csrfService.checkToken(userId, path, token, csrfDefense.consume());
         }
     }
 }

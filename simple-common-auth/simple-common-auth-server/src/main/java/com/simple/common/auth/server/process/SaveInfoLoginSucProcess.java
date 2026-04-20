@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Created with IntelliJ IDEA
- * Description: 登陆成功日志记录
+ * Description: 保存用户登录信息
  *
  * @author qty
  */

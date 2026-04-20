@@ -4,8 +4,10 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.auth.server.common.entity.TokenData;
 import com.simple.common.auth.server.common.manager.user.LoginUserOperationManager;
+import com.simple.common.core.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
  * 优化：
  * 1. 增加本地权限缓存（permissionCache），按 jti 缓存用户权限集合，减少 Redis 查询。
  * 2. 实现 getAuthorities 方法，从缓存或 Redis 加载角色权限。
+ * 3. hasAuth 方法优先使用本地缓存，提升性能。
  *
  * @author Admin (优化版本)
  */
@@ -36,7 +39,10 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
      * 本地权限缓存：Key = jti，Value = 权限标识 Set。
      * 使用 Caffeine，过期时间默认 30 分钟，与 Token 刷新时间对齐。
      */
-    private final Cache<String, Set<String>> permissionCache = Caffeine.newBuilder().maximumSize(10000).expireAfterWrite(30, TimeUnit.MINUTES).build();
+    private final Cache<String, Set<String>> permissionCache = Caffeine.newBuilder()
+            .maximumSize(10000)
+            .expireAfterWrite(30, TimeUnit.MINUTES)
+            .build();
 
     /**
      * 保存用户登录信息（包括用户详情、权限关联等）。
@@ -58,8 +64,10 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         cacheManager.setAdd(userTokenKey, jti);
         cacheManager.expire(userTokenKey, timeOut, TimeUnit.SECONDS);
 
-        // 如果是登录或刷新，重建权限缓存
-        rebuildPermissionCache(jti, tokenData.getSaveInfoMap());
+        // 仅在新登录时重建权限缓存，刷新时不重建（权限未变，避免重复 Redis 查询）
+        if (isLogin) {
+            rebuildPermissionCache(jti, tokenData.getSaveInfoMap());
+        }
     }
 
     /**
@@ -74,7 +82,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
 
         Set<String> allPermissions = new HashSet<>();
         try {
-            List<String> roles = com.simple.common.core.utils.JsonUtils.toList(loginRoleObj.toString(), String.class);
+            List<String> roles = JsonUtils.toList(loginRoleObj.toString(), String.class);
             for (String role : roles) {
                 Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
                 if (perms != null) {
@@ -144,7 +152,16 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         for (String role : loginRole) {
             Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
             if (perms != null && !perms.isEmpty()) {
-                result.put(role, perms);
+                // 类型安全转换：确保 Map 的值都是 Map 类型
+                Map<Object, Object> safePerms = new HashMap<>();
+                perms.forEach((k, v) -> {
+                    if (v instanceof Map) {
+                        safePerms.put(k, (Map<?, ?>) v);
+                    } else {
+                        safePerms.put(k, v);
+                    }
+                });
+                result.put(role, safePerms);
             }
         }
         return result;
@@ -163,6 +180,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
 
     /**
      * 判断用户是否拥有指定权限（服务端实现，供客户端远程调用）。
+     * 优化：优先从本地权限缓存读取，若未命中则降级查询 Redis。
      *
      * @param loginRole 用户角色
      * @param authority 权限标识数组
@@ -173,6 +191,17 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         if (authority == null || authority.length == 0) return true;
         if (loginRole == null || loginRole.isEmpty()) return false;
 
+        // 尝试从当前线程获取 jti，利用本地缓存加速
+        try {
+            String jti = LoginUserUtils.getUserTemporary().getJti();
+            if (jti != null) {
+                return hasAuthByJti(jti, authority);
+            }
+        } catch (Exception e) {
+            // 忽略，降级到普通查询
+        }
+
+        // 降级：直接查询 Redis
         for (String role : loginRole) {
             Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
             if (perms != null) {
@@ -208,7 +237,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         if (loginRoleObj == null) return false;
 
         try {
-            List<String> roles = com.simple.common.core.utils.JsonUtils.toList(loginRoleObj.toString(), String.class);
+            List<String> roles = JsonUtils.toList(loginRoleObj.toString(), String.class);
             for (String role : roles) {
                 Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
                 if (perms != null) {
