@@ -8,7 +8,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 字典缓存接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface DictCacheManager {
 

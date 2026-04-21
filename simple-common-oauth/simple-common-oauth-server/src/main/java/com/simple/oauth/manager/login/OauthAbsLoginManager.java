@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public abstract class OauthAbsLoginManager extends AbsLoginManager {
 

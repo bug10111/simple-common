@@ -17,8 +17,6 @@ import java.util.HashSet;
 
 /**
  * 授权范围校验处理器。
- * <p>
- * 修复：移除重复的 HashSet 导入。
  *
  * @author qty
  */

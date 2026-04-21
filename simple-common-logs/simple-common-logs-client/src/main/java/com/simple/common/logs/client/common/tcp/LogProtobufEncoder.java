@@ -10,7 +10,7 @@ import io.netty.handler.codec.MessageToByteEncoder;
  * Protobuf 批量日志编码器
  * 将 LogBatch Protobuf 消息编码为字节数组进行传输
  *
- * @author Admin
+ * @author qty
  */
 public class LogProtobufEncoder extends MessageToByteEncoder<LogBatch> {
 

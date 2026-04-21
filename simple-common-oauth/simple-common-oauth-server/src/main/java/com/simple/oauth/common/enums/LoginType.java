@@ -11,7 +11,7 @@ import lombok.Getter;
  * Created with IntelliJ IDEA
  * Description: 登录类型
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @AllArgsConstructor

@@ -7,7 +7,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 角色权限缓存
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface RoleAuthCacheManager {
 

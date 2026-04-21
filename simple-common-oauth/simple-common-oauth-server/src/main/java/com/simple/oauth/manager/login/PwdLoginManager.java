@@ -15,7 +15,7 @@ import org.springframework.stereotype.Component;
  * Created with IntelliJ IDEA
  * Description: 账号密码登录实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class PwdLoginManager extends OauthAbsLoginManager {

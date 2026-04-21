@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * 角色信息(sys_role)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "角色信息")

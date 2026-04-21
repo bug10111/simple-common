@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 默认 JWT 密钥管理器。
  *
- * @author Admin (修复版本)
+ * @author qty
  */
 @Component
 public class DefaultJwtSecretManager implements JwtSecretManager {

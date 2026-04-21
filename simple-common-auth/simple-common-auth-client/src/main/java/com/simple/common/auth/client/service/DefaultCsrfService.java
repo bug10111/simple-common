@@ -9,8 +9,6 @@ import org.springframework.stereotype.Service;
 
 /**
  * 默认 CSRF 服务实现。
- * <p>
- * 修复说明：实现 consume 参数逻辑，允许不删除 token 的校验模式。
  *
  * @author qty
  */

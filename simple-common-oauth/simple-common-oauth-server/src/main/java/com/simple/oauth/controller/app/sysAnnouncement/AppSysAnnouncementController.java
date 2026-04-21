@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 系统公告(sys_announcement)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "系统公告")

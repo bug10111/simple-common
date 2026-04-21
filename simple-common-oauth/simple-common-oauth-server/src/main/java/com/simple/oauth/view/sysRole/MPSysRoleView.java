@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * 角色信息(sys_role)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysRoleView implements SysRoleView {

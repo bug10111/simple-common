@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * 修改说明：增加发送失败回调机制，解决原 sendBatch 返回值无法准确反映发送结果的问题。
  * </p>
  *
- * @author Admin
+ * @author qty
  */
 @Slf4j
 @Component

@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 系统公告(sys_announcement)默认接口实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Transactional

@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 用户和角色关联(sys_user_role)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysUserRoleView implements SysUserRoleView {

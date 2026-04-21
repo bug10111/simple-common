@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 广告表(sys_advertisement)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysAdvertisementRepository extends BaseMapper<SysAdvertisement> {

@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 客户端信息(sys_client_details)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysClientDetailsView implements SysClientDetailsView {

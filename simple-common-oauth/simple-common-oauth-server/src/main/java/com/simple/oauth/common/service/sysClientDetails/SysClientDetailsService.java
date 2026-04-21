@@ -10,7 +10,7 @@ import java.util.Map;
 /**
  * 客户端信息(sys_client_details)接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysClientDetailsService {
 

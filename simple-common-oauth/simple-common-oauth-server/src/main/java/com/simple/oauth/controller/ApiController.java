@@ -32,7 +32,7 @@ import java.util.Map;
 /**
  * 对外部服务端提供的Api
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "对外部服务端提供的Api")

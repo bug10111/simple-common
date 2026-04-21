@@ -16,7 +16,7 @@ import java.security.KeyPair;
  * Created with IntelliJ IDEA
  * Description: 客户端事件实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

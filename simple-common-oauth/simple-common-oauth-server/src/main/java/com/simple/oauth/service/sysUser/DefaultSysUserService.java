@@ -37,7 +37,7 @@ import java.util.Objects;
 /**
  * 用户(sys_user)默认接口实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Transactional

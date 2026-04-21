@@ -29,13 +29,8 @@ import java.util.stream.Collectors;
 
 /**
  * 客户端登录信息管理器。
- * <p>
- * 优化内容：
- * 1. 增加本地权限缓存（permissionCache），减少 CacheManager 调用。
- * 2. hasAuth 方法优先从本地 Set 判断，性能 O(1)。
- * 3. 保持与 Redis/Local CacheManager 的兼容。
  *
- * @author qty (优化版本)
+ * @author qty
  */
 @Slf4j
 @Component(value = LoginInfoManager.client_manager_name)

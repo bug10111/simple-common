@@ -4,9 +4,6 @@ import java.lang.annotation.*;
 
 /**
  * CSRF防御注解，同时也能防重复提交。
- * <p>
- * 修复说明：增加 consume 属性，允许控制是否在验证后立即删除 token，
- * 解决表单校验失败后无法复用 token 的问题。
  *
  * @author qty
  */

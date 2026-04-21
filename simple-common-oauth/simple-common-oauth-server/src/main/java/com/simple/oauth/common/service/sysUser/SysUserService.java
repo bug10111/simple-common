@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 用户(sys_user)接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysUserService {
 

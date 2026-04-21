@@ -16,12 +16,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * 默认签名管理器实现。
- * <p>
- * 修复内容：
- * 1. 移除错误的 LocalCacheFactory 泛型用法，改用正确 API 创建 nonce 缓存。
- * 2. 通过 @Qualifier 注入正确的 CacheManager。
  *
- * @author qty (修复版本)
+ * @author qty
  */
 @Slf4j
 @Component

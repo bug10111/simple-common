@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * 为追求极致性能，本服务端不发送任何响应给客户端。
  * </p>
  *
- * @author Admin
+ * @author qty
  */
 @Slf4j
 @Configuration

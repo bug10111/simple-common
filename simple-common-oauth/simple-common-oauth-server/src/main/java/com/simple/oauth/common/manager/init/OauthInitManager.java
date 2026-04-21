@@ -4,7 +4,7 @@ package com.simple.oauth.common.manager.init;
  * Created with IntelliJ IDEA
  * Description: OauthInit接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface OauthInitManager {
 

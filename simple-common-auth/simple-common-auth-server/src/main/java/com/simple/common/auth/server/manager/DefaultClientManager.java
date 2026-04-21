@@ -14,9 +14,9 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
- * 默认客户端管理器，增加本地缓存优化。
+ * 默认客户端管理器。
  *
- * @author Admin (优化版本)
+ * @author qty
  */
 @Component
 public class DefaultClientManager implements ClientManager {

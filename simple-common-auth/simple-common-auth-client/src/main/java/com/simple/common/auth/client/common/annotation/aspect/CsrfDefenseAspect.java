@@ -20,10 +20,6 @@ import java.lang.reflect.Method;
 
 /**
  * CSRF 防御切面。
- * <p>
- * 修复说明：适配注解新增的 consume 属性，灵活控制 token 消费行为。
- * <p>
- * 修复2：增加 UserTemporary 的非空判断，防止切面早于认证拦截器执行时出现 NPE。
  *
  * @author qty
  */
@@ -46,7 +42,7 @@ public class CsrfDefenseAspect {
             Method method = signature.getMethod();
             CsrfDefense csrfDefense = method.getAnnotation(CsrfDefense.class);
 
-            // 修复：增加 UserTemporary 的非空断言，防止 NPE
+            // 获取当前登录用户
             UserTemporary userTemporary = LoginUserUtils.getUserTemporary();
             AssertUtils.notNull(userTemporary, "用户未登录，无法进行 CSRF 校验");
             String userId = userTemporary.getUserId();

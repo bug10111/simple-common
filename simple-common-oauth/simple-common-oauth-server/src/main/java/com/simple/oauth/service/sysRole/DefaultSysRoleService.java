@@ -30,7 +30,7 @@ import java.util.List;
 /**
  * 角色信息(sys_role)默认接口实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Transactional

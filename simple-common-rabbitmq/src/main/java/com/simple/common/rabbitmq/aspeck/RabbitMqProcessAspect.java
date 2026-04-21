@@ -166,7 +166,7 @@ public class RabbitMqProcessAspect {
                 ackRMQManager.basicNack(channel, deliveryTag, false);
                 return null;
             case PROCESSING_WITH_RECOVERED_TTL:
-                // 【修复】僵尸锁恢复：不直接丢弃，而是尝试重新竞争锁
+                // 僵尸锁恢复：不直接丢弃，而是尝试重新竞争锁
                 log.info("队列[{}] id[{}] 检测到僵尸锁（TTL异常长），尝试重新竞争锁", consumerQueue, correlationId);
                 boolean reAcquired = lockManager.tryAcquire(consumerQueue, correlationId, businessTime, timeUnit);
                 if (reAcquired) {

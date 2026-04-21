@@ -25,7 +25,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: Aviator初始化自定义计算规则
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

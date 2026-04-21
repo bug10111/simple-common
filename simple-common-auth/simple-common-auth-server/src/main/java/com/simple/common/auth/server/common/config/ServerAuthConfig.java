@@ -16,7 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * <p>
  * 通过 AuthServerProperties 统一管理缓存类型，支持按模块独立配置。
  *
- * @author qty (优化版本)
+ * @author qty
  */
 @ComponentScan(basePackages = "com.simple.common.auth.server")
 @Configuration

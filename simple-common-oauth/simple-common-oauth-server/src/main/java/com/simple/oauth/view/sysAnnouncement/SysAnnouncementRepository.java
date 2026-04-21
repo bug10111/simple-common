@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 系统公告(sys_announcement)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysAnnouncementRepository extends BaseMapper<SysAnnouncement> {

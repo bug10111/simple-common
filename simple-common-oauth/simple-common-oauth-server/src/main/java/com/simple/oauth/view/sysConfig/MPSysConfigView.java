@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * 系统配置(sys_config)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysConfigView implements SysConfigView {

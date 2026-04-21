@@ -19,7 +19,7 @@ import java.util.Map;
 /**
  * 字典类型(sys_dict_type)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "字典")

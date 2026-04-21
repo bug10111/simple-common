@@ -3,7 +3,7 @@ package com.simple.common.auth.client.common.enums;
 /**
  * 缓存类型枚举
  *
- * @author Admin
+ * @author qty
  */
 public enum CacheTypeEnum {
 

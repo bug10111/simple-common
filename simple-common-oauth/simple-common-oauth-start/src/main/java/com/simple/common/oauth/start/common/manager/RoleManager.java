@@ -6,7 +6,7 @@ import com.simple.common.oauth.start.common.dto.SysRoleInfoResponse;
  * Created with IntelliJ IDEA
  * Description: 角色远程调用相关
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface RoleManager {
 

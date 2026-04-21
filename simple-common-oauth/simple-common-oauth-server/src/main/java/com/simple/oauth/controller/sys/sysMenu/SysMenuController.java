@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * 菜单权限(sys_menu)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "菜单权限")

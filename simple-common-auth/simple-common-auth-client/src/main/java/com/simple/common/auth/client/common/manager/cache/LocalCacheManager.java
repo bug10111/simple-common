@@ -12,13 +12,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * 基于 Caffeine 的本地缓存实现，通过 LocalCacheFactory 管理缓存实例。
  * <p>
- * 优化：使用 Caffeine 的原子加载方法 {@code get(key, Function)} 替代显式的 {@code compute}，
- * 减少锁竞争，充分利用 Caffeine 的并发特性。
- * <p>
  * 注意：Caffeine 不支持单条记录的独立过期时间，因此带有过期时间的 set 方法将忽略 seconds 参数，
  * 统一使用缓存实例的默认过期策略。如需精细控制过期时间，建议使用 RedisCacheManager。
  *
- * @author qty (优化版本)
+ * @author qty
  */
 @Slf4j
 public class LocalCacheManager implements CacheManager {
@@ -128,7 +125,7 @@ public class LocalCacheManager implements CacheManager {
         return increment(key, -delta);
     }
 
-    // ==================== Hash 操作（优化版） ====================
+    // ==================== Hash 操作 ====================
 
     @Override
     public Map<Object, Object> hashGetAll(String key) {
@@ -178,7 +175,7 @@ public class LocalCacheManager implements CacheManager {
         return count;
     }
 
-    // ==================== Set 操作（优化版） ====================
+    // ==================== Set 操作 ====================
 
     @Override
     public Long setAdd(String key, String... values) {

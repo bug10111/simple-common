@@ -4,7 +4,7 @@ package com.simple.oauth.common.manager.username;
  * Created with IntelliJ IDEA
  * Description: 用户名称缓存接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysUserNameCacheManager {
 

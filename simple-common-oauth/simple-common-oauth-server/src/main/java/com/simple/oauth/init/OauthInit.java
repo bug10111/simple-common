@@ -14,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Created with IntelliJ IDEA
  * Description: 初始化客户端密钥信息
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Component

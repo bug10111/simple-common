@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 字典数据(sys_dict_data)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysDictDataRepository extends BaseMapper<SysDictData> {

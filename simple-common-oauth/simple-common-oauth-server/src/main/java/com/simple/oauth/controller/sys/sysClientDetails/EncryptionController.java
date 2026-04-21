@@ -24,7 +24,7 @@ import java.util.Map;
  * 加密工具控制器
  * 提供RSA和AES加密解密功能，以及公钥获取
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "加密工具")

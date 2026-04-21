@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA
  * Description: 用户操作
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface UserService {
 

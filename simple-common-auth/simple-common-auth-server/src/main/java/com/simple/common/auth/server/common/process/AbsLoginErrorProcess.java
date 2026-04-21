@@ -11,7 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 /**
  * 登录异常处理抽象基类。
  *
- * @author qty (修复版本)
+ * @author qty
  */
 @Slf4j
 public abstract class AbsLoginErrorProcess implements LoginErrorProcess {

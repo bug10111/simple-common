@@ -15,7 +15,7 @@ import lombok.experimental.Accessors;
 /**
  * 客户端信息(sys_client_details)创建事件
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Event(targets = EventConstant.TARGET_ALL_X)

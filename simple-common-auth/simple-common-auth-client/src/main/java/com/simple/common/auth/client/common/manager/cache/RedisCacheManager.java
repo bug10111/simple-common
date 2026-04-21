@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Redis 缓存管理器实现。
  *
- * @author Admin (优化版本)
+ * @author qty
  */
 public class RedisCacheManager implements CacheManager {
 

@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 字典数据(sys_dict_data)数据库视图接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysDictDataView {
 

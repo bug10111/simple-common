@@ -8,7 +8,7 @@ import java.util.List;
  * Created with IntelliJ IDEA
  * Description: 客户端秘钥远程获取工具
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface ClientDetailsManager {
 

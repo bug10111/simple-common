@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * 字典数据(sys_dict_data)接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysDictDataService {
 

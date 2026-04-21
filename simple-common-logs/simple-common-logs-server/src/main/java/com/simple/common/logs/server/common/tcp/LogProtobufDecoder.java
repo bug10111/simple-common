@@ -13,7 +13,7 @@ import java.util.List;
  * 将接收到的字节数组解码为 LogBatch Protobuf 消息
  * 解码格式：[长度(4字节)] + [消息体]
  *
- * @author Admin
+ * @author qty
  */
 @Slf4j
 public class LogProtobufDecoder extends ByteToMessageDecoder {

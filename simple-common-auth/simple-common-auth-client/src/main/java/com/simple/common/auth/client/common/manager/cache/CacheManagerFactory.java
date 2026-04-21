@@ -6,7 +6,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 /**
  * 缓存管理器工厂。
  *
- * @author Admin (优化版本)
+ * @author qty
  */
 public class CacheManagerFactory {
 

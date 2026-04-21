@@ -19,13 +19,8 @@ import java.util.stream.Collectors;
 
 /**
  * 服务端登录用户操作管理器。
- * <p>
- * 优化：
- * 1. 增加本地权限缓存（permissionCache），按 jti 缓存用户权限集合，减少 Redis 查询。
- * 2. 实现 getAuthorities 方法，从缓存或 Redis 加载角色权限。
- * 3. hasAuth 方法优先使用本地缓存，提升性能。
  *
- * @author Admin (优化版本)
+ * @author qty
  */
 @Slf4j
 @Component
@@ -180,7 +175,6 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
 
     /**
      * 判断用户是否拥有指定权限（服务端实现，供客户端远程调用）。
-     * 优化：优先从本地权限缓存读取，若未命中则降级查询 Redis。
      *
      * @param loginRole 用户角色
      * @param authority 权限标识数组
@@ -214,7 +208,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     }
 
     /**
-     * 根据 jti 判断用户是否拥有指定权限（优化后的方法，供内部使用）。
+     * 根据 jti 判断用户是否拥有指定权限。
      *
      * @param jti       登录唯一标识
      * @param authority 权限标识数组

@@ -20,10 +20,8 @@ import java.util.Base64;
 
 /**
  * CSRF Token 生成控制器。
- * <p>
- * 修复：将 csrfService.createToken(...) 改为 saveToken(...)，与接口定义一致。
  *
- * @author qty (修复版本)
+ * @author qty
  */
 @Slf4j
 @Tag(name = "CSRF")

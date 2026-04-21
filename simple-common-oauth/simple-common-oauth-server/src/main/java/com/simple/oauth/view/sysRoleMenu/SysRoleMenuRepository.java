@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 角色和菜单关联(sys_role_menu)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysRoleMenuRepository extends BaseMapper<SysRoleMenu> {

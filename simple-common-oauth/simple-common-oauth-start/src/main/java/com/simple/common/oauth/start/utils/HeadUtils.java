@@ -9,7 +9,7 @@ import java.util.Map;
  * Created with IntelliJ IDEA
  * Description: 请求头帮助类
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public class HeadUtils {
 

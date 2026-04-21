@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * 字典类型(sys_dict_type)默认接口实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Transactional

@@ -10,7 +10,7 @@ import lombok.experimental.Accessors;
 /**
  * 菜单权限(sys_menu)删除事件
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Event(targets = EventConstant.TARGET_ALL_X)

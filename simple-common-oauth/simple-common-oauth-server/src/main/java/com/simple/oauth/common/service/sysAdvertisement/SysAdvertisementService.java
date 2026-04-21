@@ -14,7 +14,7 @@ import com.simple.oauth.common.dto.sysAdvertisement.FindAllSysAdvertisementReque
 /**
  * 广告表(sys_advertisement)接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysAdvertisementService {
 

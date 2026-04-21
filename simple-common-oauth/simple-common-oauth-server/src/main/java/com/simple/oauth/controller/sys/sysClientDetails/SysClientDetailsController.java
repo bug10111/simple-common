@@ -15,7 +15,7 @@ import java.util.Map;
 /**
  * 客户端信息(sys_client_details)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "客户端管理")

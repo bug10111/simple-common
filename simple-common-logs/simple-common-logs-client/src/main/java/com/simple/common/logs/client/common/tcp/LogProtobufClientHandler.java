@@ -13,7 +13,7 @@ import lombok.extern.slf4j.Slf4j;
  * 为提升性能，已移除响应编解码和业务处理逻辑。
  * </p>
  *
- * @author Admin
+ * @author qty
  */
 @Slf4j
 public class LogProtobufClientHandler extends ChannelInboundHandlerAdapter {

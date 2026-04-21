@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 /**
  * Created with IntelliJ IDEA
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 public class RedisDictCacheManager implements DictCacheManager {

@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * 菜单权限(sys_menu)接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysMenuService {
 

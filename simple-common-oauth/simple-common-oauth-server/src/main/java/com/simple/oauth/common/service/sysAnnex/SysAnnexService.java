@@ -11,7 +11,7 @@ import java.util.Map;
 /**
  * 附件(sys_annex)接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysAnnexService {
 

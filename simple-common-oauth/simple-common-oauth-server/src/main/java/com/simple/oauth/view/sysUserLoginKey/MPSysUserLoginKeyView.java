@@ -15,7 +15,7 @@ import java.util.List;
 /**
  * 用户登录标志(sys_user_login_key)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysUserLoginKeyView implements SysUserLoginKeyView {

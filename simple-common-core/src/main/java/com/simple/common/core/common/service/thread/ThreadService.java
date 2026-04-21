@@ -6,21 +6,41 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 线程池任务调度接口
+ * 线程池任务调度服务接口。
+ * <p>
+ * 提供统一的线程池管理和任务调度功能,包括延迟任务、定时任务、异步执行等。
+ * 默认实现 {@link com.simple.common.core.service.thread.DefaultThreadService} 
+ * 基于 ScheduledThreadPoolExecutor 和 ThreadPoolExecutor 实现高性能线程池管理。
+ * </p>
+ *
+ * <h3>使用场景：</h3>
+ * <ul>
+ *   <li>延迟任务：订单超时取消、定时提醒等</li>
+ *   <li>定时任务：数据同步、缓存刷新等</li>
+ *   <li>异步执行：日志记录、消息发送等非阻塞操作</li>
+ * </ul>
  *
  * @author qty
  */
 public interface ThreadService {
 
     /**
-     * 获取轻量级线程池执行对象，用于延迟任务
-     * @return 执行对象
+     * 获取轻量级线程池执行器(用于延迟任务)
+     * <p>
+     * 返回 ScheduledThreadPoolExecutor,适用于少量并发和延迟任务场景。
+     * </p>
+     *
+     * @return 定时调度线程池执行器
      */
     ScheduledThreadPoolExecutor getExecutor();
 
     /**
-     * 获取高并发线程池
+     * 获取高并发异步线程池
+     * <p>
+     * 返回 ExecutorService,适用于高并发、高性能场景。
+     * </p>
+     *
+     * @return 异步线程池执行器
      */
     ExecutorService getAsyncExecutor();
 

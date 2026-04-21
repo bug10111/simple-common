@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * Created with IntelliJ IDEA
  * Description: 用户操作远程调用接口
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface UserManager {
 

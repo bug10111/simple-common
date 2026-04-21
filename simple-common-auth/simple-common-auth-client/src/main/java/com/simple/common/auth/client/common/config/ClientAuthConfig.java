@@ -17,10 +17,8 @@ import org.springframework.data.redis.core.StringRedisTemplate;
  * <p>
  * 为不同类型缓存创建独立的 CacheManager Bean，并通过 @Qualifier 区分，
  * 避免因类型相同导致的注入歧义。
- * <p>
- * 修复：StringRedisTemplate 注入改为 required = false，允许纯本地缓存模式下不引入 Redis 依赖。
  *
- * @author qty (修复版本)
+ * @author qty
  */
 @Configuration
 @ComponentScan(basePackages = "com.simple.common.auth.client")

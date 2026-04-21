@@ -44,7 +44,7 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
      * @param parameters   扩展参数
      */
     protected void execution(T runBody, Integer sum, Integer num, Integer timeInterval, Boolean isAccumulate, Map<String, Object> parameters) {
-        // 【修复】当前执行次数 = 已执行次数 + 1
+        // 当前执行次数 = 已执行次数 + 1
         int currentNum = num + 1;
         addCounter(runBody, parameters, currentNum);
 
@@ -61,12 +61,12 @@ public abstract class AbsCycleService<T> implements CycleService<T> {
                     boolean success = handler(runBody, parameters);
 
                     if (!success) {
-                        // 【修复】递归时传递正确的当前执行次数 currentNum
+                        // 递归时传递正确的当前执行次数 currentNum
                         execution(runBody, sum, currentNum, timeInterval, isAccumulate, parameters);
                     } else {
                         ok(runBody, parameters);
                     }
-                } catch (Throwable e) { // 【修复】捕获 Throwable 防止线程终止
+                } catch (Throwable e) { // 捕获 Throwable 防止线程终止
                     log.error("调度异常：{}", e.getMessage(), e);
                     error(runBody, parameters);
                 }

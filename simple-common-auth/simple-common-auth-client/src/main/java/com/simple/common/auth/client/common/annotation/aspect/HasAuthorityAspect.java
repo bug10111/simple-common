@@ -19,8 +19,6 @@ import java.lang.reflect.Method;
 
 /**
  * 权限注解切面。
- * <p>
- * 调用 LoginInfoManager.hasAuth 进行权限校验，内部已优化为本地缓存优先。
  *
  * @author qty
  */

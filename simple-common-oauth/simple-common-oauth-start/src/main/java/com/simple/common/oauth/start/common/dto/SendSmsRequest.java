@@ -9,7 +9,7 @@ import lombok.experimental.Accessors;
  * Created with IntelliJ IDEA
  * Description: 发送短信验证码请求对象
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Data
 @Accessors(chain = true)

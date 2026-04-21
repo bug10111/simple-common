@@ -20,7 +20,7 @@ import java.util.List;
 /**
  * 系统公告(sys_announcement)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysAnnouncementView implements SysAnnouncementView {

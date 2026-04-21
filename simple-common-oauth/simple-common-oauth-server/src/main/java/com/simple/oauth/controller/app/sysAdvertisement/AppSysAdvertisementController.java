@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * 广告表(sys_advertisement)控制层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Slf4j
 @Tag(name = "广告表")

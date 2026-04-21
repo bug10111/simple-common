@@ -7,7 +7,7 @@ import com.simple.common.oauth.start.common.dto.SendSmsRequest;
  * Created with IntelliJ IDEA
  * Description: 短信验证码接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SmsService {
 

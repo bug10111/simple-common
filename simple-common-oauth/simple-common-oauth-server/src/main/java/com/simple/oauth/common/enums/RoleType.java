@@ -8,7 +8,7 @@ import lombok.Getter;
  * Created with IntelliJ IDEA
  * Description: 角色类型
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Getter
 @AllArgsConstructor

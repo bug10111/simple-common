@@ -25,7 +25,7 @@ import com.simple.common.core.utils.JsonUtils;
 /**
  * 广告表(sys_advertisement)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysAdvertisementView implements SysAdvertisementView {

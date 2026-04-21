@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 系统公告(sys_announcement)数据库视图接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysAnnouncementView {
 

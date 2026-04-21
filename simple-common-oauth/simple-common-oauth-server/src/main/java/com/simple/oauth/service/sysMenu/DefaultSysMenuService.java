@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 /**
  * 菜单权限(sys_menu)默认接口实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Service
 @Transactional

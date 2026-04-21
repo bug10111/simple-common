@@ -17,7 +17,7 @@ import java.util.List;
 /**
  * 附件(sys_annex)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysAnnexView implements SysAnnexView {

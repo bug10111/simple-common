@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 用户和角色关联(sys_user_role)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysUserRoleRepository extends BaseMapper<SysUserRole> {

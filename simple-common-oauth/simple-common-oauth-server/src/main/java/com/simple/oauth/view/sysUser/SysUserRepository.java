@@ -10,7 +10,7 @@ import java.util.List;
 /**
  * 用户(sys_user)数据库访问层
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Mapper
 public interface SysUserRepository extends BaseMapper<SysUser> {

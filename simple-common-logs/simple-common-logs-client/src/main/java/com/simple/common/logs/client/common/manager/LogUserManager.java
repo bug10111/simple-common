@@ -14,12 +14,16 @@ public interface LogUserManager {
 
 
     /**
-     * 获取用户名称
+     * 获取用户昵称
+     *
+     * @return 用户昵称,未登录时返回默认值
      */
     String loginNickName();
 
     /**
      * 获取登录用户ID
+     *
+     * @return 用户ID,未登录时返回默认值
      */
     String loginUserId();
 

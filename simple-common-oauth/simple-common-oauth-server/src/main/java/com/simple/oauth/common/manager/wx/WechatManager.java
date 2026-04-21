@@ -8,7 +8,7 @@ import com.simple.oauth.common.dto.wxLogin.WechatInfoDTO;
  * Created with IntelliJ IDEA
  * Description: 微信登录实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface WechatManager {
 

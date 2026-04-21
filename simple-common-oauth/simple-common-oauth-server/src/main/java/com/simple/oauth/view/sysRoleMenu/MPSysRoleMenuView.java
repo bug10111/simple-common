@@ -12,7 +12,7 @@ import java.util.List;
 /**
  * 角色和菜单关联(sys_role_menu)数据库视图实现
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 @Component
 class MPSysRoleMenuView implements SysRoleMenuView {

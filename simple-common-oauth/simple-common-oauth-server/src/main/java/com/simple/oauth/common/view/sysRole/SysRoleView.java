@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 角色信息(sys_role)数据库视图接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysRoleView {
 

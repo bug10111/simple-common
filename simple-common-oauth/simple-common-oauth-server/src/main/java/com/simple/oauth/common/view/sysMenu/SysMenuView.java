@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * 菜单权限(sys_menu)数据库视图接口
  *
- * @author 兄台丶请冷静
+ * @author qty
  */
 public interface SysMenuView {
 

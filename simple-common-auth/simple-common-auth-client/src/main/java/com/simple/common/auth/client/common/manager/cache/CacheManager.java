@@ -6,10 +6,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 统一缓存管理器接口。
- * <p>
- * 优化：与客户端/服务端缓存接口保持一致，增加 decrement 和带时间单位的 expire 方法。
  *
- * @author Admin (优化版本)
+ * @author qty
  */
 public interface CacheManager {
 
