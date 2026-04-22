@@ -1,9 +1,9 @@
 package com.simple.common.logs.proto.common.event;
 
 import cn.hutool.core.date.DateTime;
-import com.simple.common.logs.proto.common.time.DateTimeCache;
 import com.simple.common.logs.proto.LogBatch;
 import com.simple.common.logs.proto.LogData;
+import com.simple.common.logs.proto.common.time.DateTimeCache;
 import lombok.Data;
 
 import java.io.Serial;
@@ -63,11 +63,6 @@ public class LogDataEvent implements Serializable {
      * 用户名
      */
     private String nickname;
-
-    /**
-     * 操作名称
-     */
-    private String operName;
 
     /**
      * 请求参数
@@ -167,7 +162,6 @@ public class LogDataEvent implements Serializable {
                                          .setOperLocation(operLocation != null ? operLocation : "")
                                          .setUserId(userId != null ? userId : "")
                                          .setNickname(nickname != null ? nickname : "")
-                                         .setOperName(operName != null ? operName : "")
                                          .setOperParam(operParam != null ? operParam : "")
                                          .setStatus(status)
                                          .setErrorMsg(errorMsg != null ? errorMsg : "")
@@ -194,7 +188,6 @@ public class LogDataEvent implements Serializable {
         event.setOperLocation(logData.getOperLocation());
         event.setUserId(logData.getUserId());
         event.setNickname(logData.getNickname());
-        event.setOperName(logData.getOperName());
         event.setOperParam(logData.getOperParam());
         event.setStatus(logData.getStatus());
         event.setErrorMsg(logData.getErrorMsg());
@@ -219,7 +212,6 @@ public class LogDataEvent implements Serializable {
         this.operLocation = null;
         this.userId = null;
         this.nickname = null;
-        this.operName = null;
         this.operParam = null;
         this.status = 0;
         this.errorMsg = null;
