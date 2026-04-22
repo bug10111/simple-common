@@ -18,10 +18,10 @@ import org.springframework.stereotype.Component;
 public class AiAliProperties {
 
     //秘钥
-    private String apiKey = "sk-f07924faa49e475ab791ab3399cb1bee";
+    private String apiKey = "";
 
     //appid
-    private String appId = "685ac22036b44005ad25e44f00ae61bd";
+    private String appId = "";
 
     //是否开启深入思考
     private boolean enableThinking = false;
