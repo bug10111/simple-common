@@ -3,8 +3,6 @@ package com.simple.common.auth.client.common.manager.user;
 import cn.hutool.core.util.ObjUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
-import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
@@ -24,8 +22,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 /**
  * 客户端登录信息管理器。
@@ -45,15 +41,6 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
 
     @Autowired
     private LockService lockService;
-
-    /**
-     * 本地权限缓存：Key = jti，Value = 权限标识 Set。
-     */
-    private final Cache<String, Set<String>> permissionCache;
-
-    public ClientLoginInfoManager() {
-        this.permissionCache = Caffeine.newBuilder().maximumSize(10000).expireAfterWrite(30, TimeUnit.MINUTES).build();
-    }
 
     @Override
     public Map<Object, Object> getUserInfo(String key) {
@@ -89,16 +76,13 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 cacheManager.expire(userTokenKey, times);
 
                 Map<?, ?> authMap = JsonUtils.toJsonObj(response.get(TokenConstant.userAuthName).toString(), Map.class);
-                Set<String> allPermissions = new HashSet<>();
                 for (Object obj : authMap.keySet()) {
                     String roleKey = obj.toString();
                     Map<Object, Object> auth = JsonUtils.toJsonObj(authMap.get(roleKey).toString(), Map.class);
-                    cacheManager.hashPutAll(roleKey, auth);
-                    cacheManager.expire(roleKey, times);
-                    allPermissions.addAll(auth.keySet().stream().map(Object::toString).collect(Collectors.toSet()));
+                    String authKey = TokenConstant.getAuthKey(roleKey);
+                    cacheManager.hashPutAll(authKey, auth);
+                    cacheManager.expire(authKey, times);
                 }
-
-                permissionCache.put(key, allPermissions);
             }
             return userInfo;
         };
@@ -107,7 +91,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     }
 
     protected HttpResponse getRemoteHttpResponse() {
-        return HttpRequest.get(authProperties.getServerUrl() + "/api/user")
+        return HttpRequest.get(authProperties.getServerUrl() + "/auth/api/user")
                           .header(TokenConstant.Authorization, HttpServletUtils.getRequest().getHeader(TokenConstant.Authorization))
                           .execute();
     }
@@ -142,25 +126,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
             return true;
         }
 
-        String jti = LoginUserUtils.getUserTemporary().getJti();
-        if (jti == null) {
-            log.warn("当前线程未绑定用户 jti，无法进行权限校验");
-            return false;
-        }
-
-        // 优先从本地缓存获取
-        Set<String> permissions = permissionCache.getIfPresent(jti);
-        if (permissions != null) {
-            for (String perm : authority) {
-                if (permissions.contains(perm)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // 降级查询 CacheManager
-        log.debug("本地权限缓存未命中 jti={}，降级查询 CacheManager", jti);
+        // 直接通过 CacheManager 查询权限（由配置决定使用 Redis 或 Local）
         if (loginRole != null) {
             for (String role : loginRole) {
                 for (String perm : authority) {

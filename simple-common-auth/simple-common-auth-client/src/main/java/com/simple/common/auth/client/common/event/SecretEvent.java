@@ -1,7 +1,9 @@
 package com.simple.common.auth.client.common.event;
 
-import lombok.Getter;
-import lombok.Setter;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.simple.common.eventbus.common.annotation.Event;
+import lombok.Data;
+import lombok.experimental.Accessors;
 
 /**
  * Created with IntelliJ IDEA
@@ -9,8 +11,10 @@ import lombok.Setter;
  *
  * @author qty
  */
-@Getter
-@Setter
+@Data
+@Event
+@JsonIgnoreProperties(ignoreUnknown = true)
+@Accessors(chain = true)
 public class SecretEvent {
 
     //客户端ID（可选，用于客户端级别的秘钥管理）

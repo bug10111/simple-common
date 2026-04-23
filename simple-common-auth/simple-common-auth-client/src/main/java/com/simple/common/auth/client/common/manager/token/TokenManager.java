@@ -88,4 +88,75 @@ public interface TokenManager {
         return create(null, payload);
     }
 
+    /**
+     * 添加JWT签名密钥
+     * <p>
+     * 将新的JWT签名密钥添加到本地缓存，并发布事件通知所有客户端同步更新密钥。
+     * 此方法用于密钥轮换(Key Rotation)场景，确保新旧密钥平滑过渡。
+     * </p>
+     *
+     * <h3>重要提示：</h3>
+     * <ul>
+     *   <li><strong>定期轮换密钥</strong>：建议集成方每30天轮换一次密钥，提高系统安全性</li>
+     *   <li><strong>保留旧密钥</strong>：新密钥添加后，旧密钥仍会保留一段时间以验证已签发的Token</li>
+     *   <li><strong>客户端同步</strong>：调用此方法会自动通过EventBus广播事件，所有客户端会同步更新密钥</li>
+     *   <li><strong>密钥强度</strong>：建议使用至少64位的强随机字符串作为密钥</li>
+     * </ul>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * // 定时任务：每月轮换密钥
+     * @Scheduled(cron = "0 0 0 1 * ?") // 每月1号零点执行
+     * public void rotateJwtSecret() {
+     *     // 生成新密钥
+     *     String newSecret = tokenManager.generateSecret();
+     *     
+     *     // 添加新密钥并广播到所有客户端
+     *     tokenManager.addSecret(newSecret);
+     *     
+     *     log.info("JWT密钥已轮换，新密钥: {}", newSecret.substring(0, 8) + "...");
+     * }
+     * 
+     * // 或者手动触发轮换
+     * public void manualRotate() {
+     *     String secret = JJwtUtils.createSecret(); // 生成64位随机密钥
+     *     tokenManager.addSecret(secret);
+     * }
+     * }</pre>
+     *
+     * <h3>密钥轮换最佳实践：</h3>
+     * <ol>
+     *   <li>生成新密钥（至少64位随机字符串）</li>
+     *   <li>调用 addSecret() 添加新密钥并广播</li>
+     *   <li>等待一段时间（如7天），确保所有旧Token过期</li>
+     *   <li>可选：清理过期的旧密钥</li>
+     * </ol>
+     *
+     * @param secret JWT签名密钥，建议使用强随机字符串（至少64字符）
+     * @throws IllegalArgumentException 当密钥为空或长度不足时抛出异常
+     * @see com.simple.common.auth.client.util.JJwtUtils#createSecret() 生成JJWT密钥
+     * @see com.simple.common.auth.client.util.JwtUtils#createJWTSignerStr() 生成Hutool JWT密钥
+     */
+    void addSecret(String secret);
+
+    /**
+     * 生成新的JWT签名密钥
+     * <p>
+     * 便捷方法，自动生成符合安全要求的随机密钥字符串。
+     * 不同实现可能生成不同长度的密钥（JJWT需要64位，Hutool需要32位）。
+     * </p>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * // 生成新密钥
+     * String secret = tokenManager.generateSecret();
+     * 
+     * // 添加并广播
+     * tokenManager.addSecret(secret);
+     * }</pre>
+     *
+     * @return 生成的随机密钥字符串
+     */
+    String generateSecret();
+
 }

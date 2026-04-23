@@ -472,6 +472,7 @@ Object extension = user.getExtension();
 | 登录错误处理 | `LoginErrorProcess` | 登录失败次数限制 |
 | 登录成功处理 | `LoginSucProcess` | 登录成功后处理 |
 | JWT密钥管理 | `JwtSecretManager` | JWT密钥生成和管理 |
+| **权限管理** | **`PermissionManageService`** | **角色权限管理，支持事件驱动实时同步** |
 
 ##### 责任链模式
 
@@ -556,6 +557,116 @@ public class CustomLoginSucProcess implements LoginSucProcess {
         log.info("用户 {} 登录成功", tokenData.getUserId());
     }
 }
+```
+
+#### 🌟 亮点特性：权限管理服务与事件同步
+
+**PermissionManageService 提供完整的权限管理能力！**支持角色权限的增删改查，并通过事件总线实时同步到所有客户端。
+
+**核心优势：**
+- ✅ **事件携带完整数据** - 零HTTP请求，直接同步
+- ✅ **避免并发雪崩** - 不产生额外的服务端压力
+- ✅ **实时性高** - 事件到达即完成同步
+- ✅ **职责清晰** - 独立的权限管理服务
+
+**使用示例：**
+
+```java
+@Service
+public class UserRoleService {
+    
+    @Autowired
+    private PermissionManageService permissionManageService;
+    
+    /**
+     * 更新角色权限
+     * 自动完成：更新缓存 + 发布事件 + 所有客户端同步
+     */
+    public void updateAdminPermissions() {
+        Map<String, String> permissions = new HashMap<>();
+        permissions.put("user:create", "创建用户");
+        permissions.put("user:delete", "删除用户");
+        permissions.put("user:update", "更新用户");
+        
+        // 一行代码，自动触发全流程
+        permissionManageService.updateRolePermission("admin", permissions);
+    }
+    
+    /**
+     * 删除角色的某个权限
+     */
+    public void removePermission() {
+        permissionManageService.deletePermission("admin", "user:delete");
+    }
+    
+    /**
+     * 批量刷新多个角色的权限
+     */
+    public void batchRefresh() {
+        List<String> roles = List.of("admin", "editor", "viewer");
+        permissionManageService.batchRefreshPermissions(roles);
+    }
+}
+```
+
+**工作流程：**
+
+```
+1. 管理员调用 PermissionManageService.updateRolePermission()
+   ↓
+2. 服务端更新 Redis 缓存
+   ↓
+3. 发布 PermissionChangeEvent 事件（携带完整权限数据）
+   ↓
+4. 所有客户端接收事件
+   ↓
+5. 客户端直接从事件中获取权限数据并更新 CacheManager 缓存
+   ↓
+6. ✅ 同步完成（零HTTP请求）
+```
+
+**事件类定义：**
+
+```java
+@Data
+public class PermissionChangeEvent {
+    private String roleKey;                    // 角色标识
+    private Map<String, String> permissions;   // 完整权限数据
+    private String changeType;                 // UPDATE/DELETE
+    private Long timestamp;                    // 时间戳
+}
+```
+
+**客户端监听器（自动处理）：**
+
+```java
+@Component
+public class PermissionChangeEventHandler {
+    
+    @Autowired
+    private CacheManager cacheManager;
+    
+    @EventHandler
+    public void onPermissionChange(PermissionChangeEvent event) {
+        String roleKey = event.getRoleKey();
+        Map<String, String> permissions = event.getPermissions();
+        
+        // 直接更新缓存，无需HTTP请求
+        String authKey = TokenConstant.getAuthKey(roleKey);
+        cacheManager.hashPutAll(authKey, new HashMap<>(permissions));
+        cacheManager.expire(authKey, 30 * 60);
+    }
+}
+```
+
+**配置要求：**
+
+确保项目中已引入事件总线模块：
+
+```yaml
+simple:
+  event:
+    type: mq  # 或 sync，使用 RabbitMQ 或同步事件
 ```
 
 ---
