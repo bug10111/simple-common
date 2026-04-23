@@ -1,8 +1,8 @@
 package com.simple.common.auth.server.service.permission;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
+import com.simple.common.auth.client.common.event.PermissionChangeEvent;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
-import com.simple.common.auth.client.event.PermissionChangeEvent;
 import com.simple.common.auth.server.common.service.permission.PermissionManageService;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.eventbus.common.service.EventBusService;

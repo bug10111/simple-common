@@ -604,6 +604,23 @@ simple:
     type: mq  # 或 sync，使用 RabbitMQ 或同步事件
 ```
 
+**客户端启动行为：**
+
+- ✅ **强制获取** - 客户端模式下，应用启动时必须从授权中心获取签名密钥
+- ⚠️ **启动失败** - 如果获取失败（网络错误、返回空密钥、组件未加载等），应用将**终止启动**并抛出 `IllegalStateException`
+- 🔒 **安全保证** - 确保所有客户端在启动时都拥有有效的签名密钥，避免接口签名验证失败
+- 💡 **开发建议** - 本地开发时可暂时关闭客户端模式，或确保授权中心可用
+
+**错误示例：**
+
+```
+2024-04-24 02:00:00 [main] ERROR c.s.c.a.c.i.SignSecretInitializer - 从授权中心获取签名密钥失败: 连接超时
+2024-04-24 02:00:00 [main] ERROR o.s.boot.SpringApplication - Application run failed
+java.lang.IllegalStateException: 从授权中心获取签名密钥失败: 连接超时
+    at com.simple.common.auth.client.init.SignSecretInitializer.run(SignSecretInitializer.java:68)
+    ...
+```
+
 **注意事项：**
 
 - ⚠️ 密钥更新后，旧的签名将立即失效，需要客户端重新签名
@@ -731,6 +748,25 @@ simple:
   event:
     type: mq  # 或 sync，使用 RabbitMQ 或同步事件
 ```
+
+**客户端启动行为：**
+
+- ✅ **强制获取** - 客户端模式下，应用启动时必须从授权中心获取 JWT 密钥
+- ⚠️ **启动失败** - 如果获取失败（网络错误、返回空密钥等），应用将**终止启动**并抛出 `IllegalStateException`
+- 🔒 **安全保证** - 确保所有客户端在启动时都拥有有效的 JWT 密钥，避免运行时认证失败
+- 💡 **开发建议** - 本地开发时可暂时关闭客户端模式，或确保授权中心可用
+
+**错误示例：**
+
+```
+2024-04-24 02:00:00 [main] ERROR c.s.c.a.c.i.JwtSecretInitializer - 从授权中心获取JWT密钥失败: 连接超时
+2024-04-24 02:00:00 [main] ERROR o.s.boot.SpringApplication - Application run failed
+java.lang.IllegalStateException: 从授权中心获取JWT密钥失败: 连接超时
+    at com.simple.common.auth.client.init.JwtSecretInitializer.run(JwtSecretInitializer.java:63)
+    ...
+```
+
+---
 
 ---
 

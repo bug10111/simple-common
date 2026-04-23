@@ -1,4 +1,4 @@
-package com.simple.common.auth.client.event;
+package com.simple.common.auth.client.common.event;
 
 import com.simple.common.eventbus.common.annotation.Event;
 import com.simple.common.eventbus.common.constants.EventConstant;

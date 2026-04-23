@@ -51,8 +51,9 @@ public class SignSecretInitializer implements ApplicationRunner {
         }
 
         if (signManager == null || authCenterHttpClient == null) {
-            log.debug("签名管理器或HTTP客户端未加载，跳过初始化");
-            return;
+            String errorMsg = "签名管理器或HTTP客户端未加载，无法初始化签名密钥";
+            log.error(errorMsg);
+            throw new IllegalStateException(errorMsg);
         }
 
         try {
@@ -63,21 +64,30 @@ public class SignSecretInitializer implements ApplicationRunner {
             
             R<?> r = JsonUtils.toJsonObj(body, R.class);
             if (!DefaultExceptionEnum.OK.getCode().equals(r.getCode())) {
-                log.error("从授权中心获取签名密钥失败: {}", r.getMessage());
-                return;
+                String errorMsg = String.format("从授权中心获取签名密钥失败: %s", r.getMessage());
+                log.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
             }
             
             Map<String, String> data = JsonUtils.toJsonObj(r.getData().toString(), Map.class);
             String secret = data.get("secret");
             
-            if (secret != null && !secret.isEmpty()) {
-                signManager.addSecret(secret);
-                log.info("签名密钥初始化成功");
-            } else {
-                log.warn("授权中心返回的签名为空");
+            if (secret == null || secret.isEmpty()) {
+                String errorMsg = "授权中心返回的签名密钥为空";
+                log.error(errorMsg);
+                throw new IllegalStateException(errorMsg);
             }
+            
+            signManager.addSecret(secret);
+            log.info("签名密钥初始化成功");
+            
+        } catch (IllegalStateException e) {
+            // 重新抛出业务异常，终止应用启动
+            throw e;
         } catch (Exception e) {
-            log.error("签名密钥初始化失败", e);
+            String errorMsg = "签名密钥初始化失败，无法连接授权中心";
+            log.error(errorMsg, e);
+            throw new IllegalStateException(errorMsg, e);
         }
     }
 }

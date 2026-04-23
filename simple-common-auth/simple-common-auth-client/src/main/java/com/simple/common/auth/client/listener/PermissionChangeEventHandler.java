@@ -1,8 +1,8 @@
 package com.simple.common.auth.client.listener;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
+import com.simple.common.auth.client.common.event.PermissionChangeEvent;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
-import com.simple.common.auth.client.event.PermissionChangeEvent;
 import com.simple.common.eventbus.common.annotation.EventHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,9 +68,6 @@ public class PermissionChangeEventHandler {
             // 将 Map<String, String> 转换为 Map<Object, Object>
             Map<Object, Object> permissionMap = new HashMap<>(permissions);
             cacheManager.hashPutAll(authKey, permissionMap);
-
-            // 设置过期时间（与用户信息保持一致，例如 30 分钟）
-            cacheManager.expire(authKey, 30 * 60);
 
             log.info("角色 [{}] 的权限缓存已同步更新，共 {} 个权限", roleKey, permissions.size());
         } catch (Exception e) {
