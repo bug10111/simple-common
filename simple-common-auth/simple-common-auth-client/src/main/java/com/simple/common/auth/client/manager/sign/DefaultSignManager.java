@@ -3,14 +3,17 @@ package com.simple.common.auth.client.manager.sign;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjUtil;
 import com.github.benmanes.caffeine.cache.Cache;
+import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
+import com.simple.common.auth.client.common.event.SecretEvent;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.SignUtils;
+import com.simple.common.eventbus.common.service.EventBusService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
@@ -21,11 +24,20 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class DefaultSignManager implements SignManager, InitializingBean {
+public class DefaultSignManager implements SignManager {
 
-    private final CacheManager cacheManager;
+    @Autowired
+    @Qualifier("signCacheManager")
+    private CacheManager cacheManager;
 
-    private final SignProperties signProperties;
+    @Autowired
+    private SignProperties signProperties;
+
+    @Autowired(required = false)
+    private ClientAuthInfo clientAuthInfo;
+
+    @Autowired(required = false)
+    private EventBusService eventBusService;
 
     /**
      * 专门用于 nonce 防重放的本地缓存（与业务缓存分离，确保高性能）。
@@ -33,66 +45,16 @@ public class DefaultSignManager implements SignManager, InitializingBean {
     private final Cache<String, String> nonceCache;
 
     /**
-     * 当前签名密钥（内存存储，重启后重新生成）。
+     * 签名密钥缓存 Key
      */
-    private String currentKey;
+    private static final String SIGN_SECRET_KEY = "auth:sign:secret:current";
 
     /**
      * 构造器注入，使用 @Qualifier 指定签名专用的 CacheManager。
-     *
-     * @param cacheManager   签名缓存管理器（由 ClientAuthConfig 创建）
-     * @param signProperties 签名配置
      */
-    public DefaultSignManager(@Qualifier("signCacheManager") CacheManager cacheManager, SignProperties signProperties) {
-        this.cacheManager = cacheManager;
-        this.signProperties = signProperties;
+    public DefaultSignManager() {
         // 初始化 nonce 缓存，容量和过期时间从配置读取
         this.nonceCache = LocalCacheFactory.getInstance().createCache("sign:nonce", spec -> spec.maximumSize(10000).expireAfterWrite(signProperties.getCacheTime()));
-    }
-
-    /**
-     * Bean 初始化后自动生成密钥。
-     */
-    @Override
-    public void afterPropertiesSet() {
-        generated();
-    }
-
-    /**
-     * 生成新的签名密钥（降级方案）。
-     * <p>
-     * 当前实现为本地 UUID 生成，仅适用于单机或开发环境。
-     * 生产环境建议重写从配置文件、nacos、授权中心获取。
-     */
-    @Override
-    public void generated() {
-        String newKey = IdUtil.fastSimpleUUID();
-        putKey(newKey);
-        log.debug("HMAC-SHA256 签名密钥生成成功。");
-    }
-
-    /**
-     * 设置当前使用的签名密钥。
-     *
-     * @param key 密钥字符串（不能为空）
-     */
-    @Override
-    public void putKey(String key) {
-        AssertUtils.notEmpty(key, "密钥不能为空");
-        this.currentKey = key;
-    }
-
-    /**
-     * 获取当前签名密钥。
-     *
-     * @return 密钥字符串，若未初始化则自动生成
-     */
-    @Override
-    public String getKey() {
-        if (currentKey == null) {
-            generated();
-        }
-        return currentKey;
     }
 
     /**
@@ -139,7 +101,9 @@ public class DefaultSignManager implements SignManager, InitializingBean {
     @Override
     public String signWeb(String message) {
         AssertUtils.notEmpty(message, "签名内容不能为空");
-        return SignUtils.signWeb(message, currentKey);
+        String key = getCurrentSecret();
+        AssertUtils.notEmpty(key, "签名密钥未初始化");
+        return SignUtils.signWeb(message, key);
     }
 
     /**
@@ -154,6 +118,67 @@ public class DefaultSignManager implements SignManager, InitializingBean {
         if (ObjUtil.isEmpty(message) || ObjUtil.isEmpty(signature)) {
             return false;
         }
-        return SignUtils.verifyWeb(message, signature, currentKey);
+        String key = getCurrentSecret();
+        if (key == null) {
+            log.warn("签名密钥未初始化，验证失败");
+            return false;
+        }
+        return SignUtils.verifyWeb(message, signature, key);
+    }
+
+    /**
+     * 获取当前签名密钥
+     *
+     * @return 签名密钥
+     */
+    private String getCurrentSecret() {
+        return cacheManager.get(SIGN_SECRET_KEY);
+    }
+
+    /**
+     * 添加签名密钥并发布事件
+     *
+     * @param secret 签名密钥
+     */
+    @Override
+    public void addSecret(String secret) {
+        AssertUtils.notEmpty(secret, "签名密钥不能为空");
+
+        // 缓存到本地
+        cacheManager.set(SIGN_SECRET_KEY, secret);
+
+        // 发布事件，通知所有客户端同步（仅服务端执行）
+        if (clientAuthInfo != null && !clientAuthInfo.getClient() && eventBusService != null) {
+            SecretEvent event = new SecretEvent();
+            event.setSecret(secret);
+            event.setOperation(SecretEvent.Operation.ADD);
+            eventBusService.push(event);
+            log.info("签名密钥已添加并发布事件");
+        } else {
+            log.debug("签名密钥已添加到本地缓存");
+        }
+    }
+
+    /**
+     * 生成新的签名密钥
+     *
+     * @return 随机密钥字符串
+     */
+    @Override
+    public String generateSecret() {
+        return IdUtil.fastSimpleUUID();
+    }
+
+    /**
+     * 获取当前签名密钥
+     *
+     * @return 签名密钥
+     * @throws IllegalStateException 当密钥未初始化时抛出异常
+     */
+    @Override
+    public String getKey() {
+        String key = getCurrentSecret();
+        AssertUtils.notEmpty(key, "签名密钥未初始化");
+        return key;
     }
 }

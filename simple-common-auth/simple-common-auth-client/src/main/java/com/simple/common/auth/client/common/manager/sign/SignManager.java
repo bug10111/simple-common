@@ -14,34 +14,15 @@ package com.simple.common.auth.client.common.manager.sign;
  *   <li>时效性校验,防止过期请求被执行</li>
  * </ul>
  *
+ * <h3>密钥管理：</h3>
+ * <p>
+ * 签名密钥由 {@link com.simple.common.auth.client.common.manager.secret.SignSecretManager} 统一管理，
+ * 支持通过 CacheManager 配置切换 Redis/Local 缓存，应用启动时自动生成初始密钥。
+ * </p>
+ *
  * @author qty
  */
 public interface SignManager {
-
-    /**
-     * 生成签名秘钥
-     * <p>
-     * 生成用于签名的秘钥,通常只调用一次,在应用启动时执行。
-     * </p>
-     */
-    void generated();
-
-    /**
-     * 更新签名秘钥
-     * <p>
-     * 动态更新签名秘钥,用于秘钥轮换场景。
-     * </p>
-     *
-     * @param key 新的签名秘钥
-     */
-    void putKey(String key);
-
-    /**
-     * 获取当前签名秘钥
-     *
-     * @return 当前使用的签名秘钥
-     */
-    String getKey();
 
     /**
      * 校验请求时效性
@@ -110,5 +91,69 @@ public interface SignManager {
      * @return true 表示签名验证通过,false 表示验证失败
      */
     boolean verifyWeb(String message, String signature);
+
+    /**
+     * 添加签名密钥
+     * <p>
+     * 将新的签名密钥添加到本地缓存，并发布事件通知所有客户端同步更新密钥。
+     * 此方法用于密钥轮换(Key Rotation)场景。
+     * </p>
+     *
+     * <h3>重要提示：</h3>
+     * <ul>
+     *   <li><strong>定期轮换密钥</strong>：建议集成方每30天轮换一次密钥，提高系统安全性</li>
+     *   <li><strong>客户端同步</strong>：调用此方法会自动通过EventBus广播事件，所有客户端会同步更新密钥</li>
+     *   <li><strong>密钥强度</strong>：建议使用至少32位的强随机字符串作为密钥</li>
+     * </ul>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * // 定时任务：每月轮换密钥
+     * @Scheduled(cron = "0 0 0 1 * ?") // 每月1号零点执行
+     * public void rotateSignSecret() {
+     *     // 生成新密钥
+     *     String newSecret = signManager.generateSecret();
+     *     
+     *     // 添加新密钥并广播到所有客户端
+     *     signManager.addSecret(newSecret);
+     *     
+     *     log.info("签名密钥已轮换");
+     * }
+     * }</pre>
+     *
+     * @param secret 签名密钥，建议使用强随机字符串（至少32字符）
+     * @throws IllegalArgumentException 当密钥为空时抛出异常
+     */
+    void addSecret(String secret);
+
+    /**
+     * 生成新的签名密钥
+     * <p>
+     * 便捷方法，自动生成符合安全要求的随机密钥字符串。
+     * </p>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * // 生成新密钥
+     * String secret = signManager.generateSecret();
+     * 
+     * // 添加并广播
+     * signManager.addSecret(secret);
+     * }</pre>
+     *
+     * @return 生成的随机密钥字符串
+     */
+    String generateSecret();
+
+    /**
+     * 获取当前签名密钥
+     * <p>
+     * 用于签名验证时获取当前有效的密钥。
+     * </p>
+     *
+     * @return 当前签名密钥
+     * @throws IllegalStateException 当密钥未初始化时抛出异常
+     */
+    String getKey();
 
 }

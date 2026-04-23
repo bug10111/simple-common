@@ -262,6 +262,7 @@ return R.error("操作失败");
 | 白名单管理 | `WhiteManager` | URL白名单配置 |
 | 登录信息管理 | `LoginInfoManager` | 获取当前登录用户信息 |
 | 签名校验 | `SignManager` | 接口签名校验 |
+| **签名密钥管理** | **`SignSecretManager`** | **签名密钥统一管理，支持动态更新** |
 | 缓存管理 | `CacheManager` | 认证相关缓存管理 |
 | CSRF防御 | `CsrfService` | CSRF Token生成和验证 |
 | 责任链处理 | `AuthProcess` | 认证拦截责任链处理接口 |
@@ -458,7 +459,438 @@ Set<String> scopes = user.getScopes();
 Object extension = user.getExtension();
 ```
 
-#### 2.2 simple-common-auth-server（服务端模块）
+#### 🌟 亮点特性：签名密钥统一管理
+
+**SignSecretManager 提供签名密钥的统一管理！**与 JWT 密钥管理保持一致的设计模式。
+
+**核心优势：**
+- ✅ **统一存储** - 密钥存储在 CacheManager 中，支持 Redis/Local 切换
+- ✅ **自动初始化** - 应用启动时自动生成初始密钥
+- ✅ **动态更新** - 运行时可动态更新密钥，无需重启
+- ✅ **职责分离** - 密钥管理与签名逻辑分离
+
+**服务端使用示例：**
+
+```java
+@RestController
+@RequestMapping("/admin/security")
+public class SignSecurityAdminController {
+    
+    @Autowired
+    private SignSecretManager signSecretManager;
+    
+    /**
+     * 生成新的签名密钥
+     * POST /admin/security/sign/generate
+     */
+    @PostMapping("/sign/generate")
+    public R<String> generateSignSecret() {
+        // 生成新密钥（建议使用 UUID 或随机字符串）
+        String newSecret = UUID.randomUUID().toString().replace("-", "");
+        
+        // 添加并广播到所有客户端
+        signSecretManager.addSecret(newSecret);
+        
+        log.info("签名密钥已生成并同步到所有客户端");
+        return R.ok(newSecret);
+    }
+    
+    /**
+     * 手动更新签名密钥
+     * POST /admin/security/sign/update
+     */
+    @PostMapping("/sign/update")
+    public R<Void> updateSignSecret(@RequestBody String newSecret) {
+        // 校验密钥非空
+        if (newSecret == null || newSecret.isEmpty()) {
+            return R.error("密钥不能为空");
+        }
+        
+        // 更新密钥并广播
+        signSecretManager.addSecret(newSecret);
+        
+        log.info("签名密钥已手动更新");
+        return R.ok();
+    }
+    
+    /**
+     * 获取当前签名密钥（用于调试）
+     * GET /admin/security/sign/current
+     */
+    @GetMapping("/sign/current")
+    public R<String> getCurrentSignSecret() {
+        String currentSecret = signSecretManager.getCurrentSecret();
+        return R.ok(currentSecret);
+    }
+}
+```
+
+**客户端使用示例：**
+
+```java
+@Service
+public class ApiSecurityService {
+    
+    @Autowired
+    private SignManager signManager;
+    
+    /**
+     * 对请求参数进行签名
+     */
+    public String signRequest(Object requestData) {
+        // 从 SignManager 自动获取当前密钥
+        String key = signManager.getKey();
+        String message = SignUtils.generateSignStr(requestData, new String[]{});
+        return SignUtils.signWeb(message, key);
+    }
+    
+    /**
+     * 验证请求签名
+     */
+    public boolean verifyRequest(Object requestData, String signature) {
+        String key = signManager.getKey();
+        String message = SignUtils.generateSignStr(requestData, new String[]{});
+        return SignUtils.verifyWeb(message, signature, key);
+    }
+}
+```
+
+**工作流程：**
+
+```
+1. 应用启动
+   ↓
+2. DefaultSignSecretManager.afterPropertiesSet()
+   ↓
+3. 检查密钥是否存在 → 不存在则自动生成
+   ↓
+4. 密钥存储到 CacheManager (auth:sign:secret:current)
+   ↓
+5. SignManager 签名/验证时从 SignSecretManager 获取密钥
+   ↓
+6. 管理员调用 addSecret() 更新密钥
+   ↓
+7. 发布 SecretEvent 事件（如果配置了 EventBus）
+   ↓
+8. 所有客户端接收事件并更新本地密钥缓存
+```
+
+**架构对比：**
+
+| 组件 | 旧方案 | 新方案 |
+|------|--------|--------|
+| **密钥存储** | 内存变量 (currentKey) | CacheManager (Redis/Local) |
+| **密钥生成** | DefaultSignManager.generated() | SignSecretManager 自动初始化 |
+| **密钥更新** | putKey() 方法 | addSecret() 方法 |
+| **密钥获取** | getKey() 方法 | getCurrentSecret() 方法 |
+| **持久化** | ❌ 重启丢失 | ✅ 根据配置持久化 |
+| **分布式同步** | ❌ 不支持 | ✅ 通过事件总线同步 |
+
+**安全建议：**
+
+- 🔒 **定期轮换**：建议每 90 天轮换一次签名密钥
+- 🔒 **密钥长度**：推荐使用至少 32 位的随机字符串
+- 🔒 **传输加密**：生产环境确保事件总线通信加密
+- 🔒 **访问控制**：密钥更新接口需要管理员权限
+- 🔒 **密钥格式**：避免使用特殊字符，建议使用 Base64 或十六进制字符串
+
+**配置要求：**
+
+如需实现密钥自动同步，确保项目中已引入事件总线模块：
+
+```yaml
+simple:
+  event:
+    type: mq  # 或 sync，使用 RabbitMQ 或同步事件
+```
+
+**注意事项：**
+
+- ⚠️ 密钥更新后，旧的签名将立即失效，需要客户端重新签名
+- ⚠️ 建议在低峰期进行密钥轮换，避免影响业务
+- ⚠️ 如果没有配置事件总线，需要重启所有客户端才能生效
+- ⚠️ 签名密钥与 JWT 密钥是独立的，可以分别管理
+
+---
+
+#### 🌟 亮点特性：JWT 密钥管理
+
+**JwtSecretManager 提供 JWT 密钥的统一管理！**支持服务端集中管理，客户端自动同步。
+
+**核心优势：**
+- ✅ **集中管理** - 服务端统一生成和管理 JWT 密钥
+- ✅ **自动同步** - 通过事件总线自动同步到所有客户端
+- ✅ **安全更新** - 支持运行时密钥轮换，无需重启服务
+- ✅ **长度校验** - 强制要求密钥长度至少 64 位，保证安全性
+
+**服务端使用示例：**
+
+```java
+@RestController
+@RequestMapping("/admin/security")
+public class SecurityAdminController {
+    
+    @Autowired
+    private JwtSecretManager jwtSecretManager;
+    
+    /**
+     * 生成新的 JWT 密钥
+     * POST /admin/security/jwt/generate
+     */
+    @PostMapping("/jwt/generate")
+    public R<String> generateJwtSecret() {
+        // 生成符合安全要求的密钥（至少 64 位）
+        String newSecret = jwtSecretManager.generateSecret();
+        
+        // 添加并广播到所有客户端
+        jwtSecretManager.addSecret(newSecret);
+        
+        log.info("JWT 密钥已生成并同步到所有客户端");
+        return R.ok(newSecret);
+    }
+    
+    /**
+     * 手动更新 JWT 密钥
+     * POST /admin/security/jwt/update
+     */
+    @PostMapping("/jwt/update")
+    public R<Void> updateJwtSecret(@RequestBody String newSecret) {
+        // 校验密钥长度
+        if (newSecret.length() < 64) {
+            return R.error("密钥长度至少为 64 位");
+        }
+        
+        // 更新密钥并广播
+        jwtSecretManager.addSecret(newSecret);
+        
+        log.info("JWT 密钥已手动更新");
+        return R.ok();
+    }
+}
+```
+
+**客户端自动同步机制：**
+
+客户端通过监听 `SecretEvent` 事件自动接收密钥更新：
+
+```java
+@Component
+public class SecretEventHandler {
+    
+    @Autowired
+    private ClientAuthInfo clientAuthInfo;
+    
+    @EventListener
+    public void onSecretChange(SecretEvent event) {
+        String secret = event.getSecret();
+        switch (event.getOperation()) {
+            case ADD, UPDATE -> {
+                if (clientAuthInfo.getClient()) {
+                    // 更新 JWT 密钥
+                    JJwtUtils.saveSecret(secret);
+                    JwtUtils.saveSecret(secret);
+                    log.debug("全局 JWT 密钥已更新");
+                }
+            }
+        }
+    }
+}
+```
+
+**密钥更新流程：**
+
+```
+1. 管理员调用服务端 JwtSecretManager.addSecret()
+   ↓
+2. 服务端验证密钥长度（≥64 位）
+   ↓
+3. 服务端缓存密钥到本地
+   ↓
+4. 发布 SecretEvent 事件（携带新密钥）
+   ↓
+5. 所有客户端接收事件
+   ↓
+6. 客户端更新本地 JWT 密钥缓存
+   ↓
+7. ✅ 所有服务使用新密钥签发/验证 Token
+```
+
+**安全建议：**
+
+- 🔒 **定期轮换**：建议每 90 天轮换一次 JWT 密钥
+- 🔒 **密钥长度**：强制要求至少 64 位，推荐使用 128 位
+- 🔒 **传输加密**：生产环境确保事件总线通信加密
+- 🔒 **访问控制**：密钥更新接口需要管理员权限
+
+**配置要求：**
+
+确保项目中已引入事件总线模块以实现密钥同步：
+
+```yaml
+simple:
+  event:
+    type: mq  # 或 sync，使用 RabbitMQ 或同步事件
+```
+
+---
+
+#### 🌟 亮点特性：Token 刷新并发优化
+
+**DefaultLoginService 采用优化的 Token 刷新策略！**避免并发场景下的认证失败问题。
+
+**核心优势：**
+- ✅ **先加后删** - 先生成新 Token 并保存，再删除旧 Token
+- ✅ **无时间窗口** - 消除旧 Token 删除与新 Token 保存之间的竞态条件
+- ✅ **平滑过渡** - 确保用户在刷新过程中不会遇到认证失败
+
+**Token 刷新流程（优化后）：**
+
+```
+1. 客户端携带 RefreshToken 请求刷新
+   ↓
+2. 服务端校验 RefreshToken 合法性
+   ↓
+3. 从缓存获取用户内省数据
+   ↓
+4. 构建新的 TokenData（生成新 jti/ati）
+   ↓
+5. 生成新的 AccessToken 和 RefreshToken
+   ↓
+6. 【关键】先保存新 Token 信息到缓存
+   ↓
+7. 【关键】再删除旧 Token 信息
+   ↓
+8. 返回新 Token 给客户端
+   ↓
+9. ✅ 刷新完成，无并发风险
+```
+
+**代码实现：**
+
+```java
+@Override
+public Map<String, String> refresh(String refreshTokenStr) {
+    // 1. 校验 RefreshToken
+    Map<String, Object> payload = tokenManager.check(refreshTokenStr, true);
+    
+    // 2. 获取用户内省数据
+    Map<Object, Object> userInfo = loginUserOperationManager.getUserInfo(jti);
+    
+    // 3. 构建新 Token 数据
+    TokenData tokenData = new TokenData();
+    tokenData.refresh(userInfo, jti, ati);
+    
+    // 4. 生成新 Token
+    String accessToken = tokenManager.create(tokenData.getAccessTokenMap());
+    String refreshToken = tokenManager.create(tokenData.getRefreshTokenMap());
+    
+    // 5. 【优化点】先保存新 Token，再删除旧 Token
+    loginUserOperationManager.saveUserInfo(tokenData, false);  // 先保存
+    loginUserOperationManager.loginOut(userId, jti);           // 后删除
+    
+    // 6. 返回新 Token
+    return loginReturn;
+}
+```
+
+**并发场景对比：**
+
+| 场景 | 旧方案（先删后加） | 新方案（先加后删） |
+|------|------------------|------------------|
+| **刷新期间访问** | ❌ 可能认证失败 | ✅ 正常访问 |
+| **多设备同时刷新** | ⚠️ 可能冲突 | ✅ 安全处理 |
+| **网络延迟场景** | ❌ 高风险 | ✅ 低风险 |
+| **用户体验** | ⚠️ 偶发失败 | ✅ 流畅无感 |
+
+---
+
+#### 🌟 亮点特性：Cookie 安全增强
+
+**CookieProcessingHandlerInterceptor 采用响应头方式设置 Cookie 属性！**确保跨容器兼容性和安全性。
+
+**核心优势：**
+- ✅ **标准兼容** - 使用 Set-Cookie 响应头，符合 HTTP 标准
+- ✅ **SameSite 支持** - 正确设置 SameSite=Strict，防止 CSRF 攻击
+- ✅ **环境自适应** - 生产环境自动启用 Secure 标志
+- ✅ **HttpOnly 保护** - 防止 JavaScript 访问 Cookie，抵御 XSS 攻击
+
+**Cookie 安全配置：**
+
+```java
+@Component
+public class CookieProcessingHandlerInterceptor implements HandlerInterceptor {
+    
+    @Autowired
+    private ClientAuthInfo clientAuthInfo;
+    
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        handleCookie(request, response);
+        return true;
+    }
+    
+    protected void handleCookie(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                // 通过响应头设置 Cookie 属性
+                StringBuilder cookieHeader = new StringBuilder();
+                cookieHeader.append(cookie.getName()).append("=").append(cookie.getValue());
+                cookieHeader.append("; Path=").append(cookie.getPath() != null ? cookie.getPath() : "/");
+                
+                if (cookie.getMaxAge() >= 0) {
+                    cookieHeader.append("; Max-Age=").append(cookie.getMaxAge());
+                }
+                
+                cookieHeader.append("; HttpOnly");  // 防止 XSS
+                
+                if ("produce".equals(clientAuthInfo.getProduce())) {
+                    cookieHeader.append("; Secure");  // 仅 HTTPS
+                }
+                
+                cookieHeader.append("; SameSite=Strict");  // 防止 CSRF
+                
+                response.addHeader("Set-Cookie", cookieHeader.toString());
+            }
+        }
+    }
+}
+```
+
+**Cookie 安全属性说明：**
+
+| 属性 | 值 | 作用 | 适用环境 |
+|------|-----|------|----------|
+| **HttpOnly** | - | 禁止 JavaScript 访问，防止 XSS 窃取 Cookie | 所有环境 |
+| **Secure** | - | 仅通过 HTTPS 传输，防止中间人攻击 | 生产环境 |
+| **SameSite** | Strict | 严格模式，禁止第三方网站携带 Cookie | 所有环境 |
+| **Path** | / | Cookie 生效路径 | 所有环境 |
+| **Max-Age** | 动态 | Cookie 有效期（秒） | 所有环境 |
+
+**安全防护效果：**
+
+```
+攻击场景                      防护机制                     结果
+─────────────────────────────────────────────────────────────
+XSS 窃取 Cookie          →  HttpOnly                  →  ✅ 阻止
+CSRF 跨站请求伪造         →  SameSite=Strict           →  ✅ 阻止
+中间人窃听               →  Secure (生产环境)          →  ✅ 阻止
+Cookie 劫持              →  三重防护                   →  ✅ 阻止
+```
+
+**配置建议：**
+
+```yaml
+# application.yaml
+simple:
+  auth:
+    # 标记当前环境，生产环境自动启用 Secure
+    produce: produce  # 或 dev/test
+```
+
+---
+
+---#### 2.2 simple-common-auth-server（服务端模块）
 
 认证服务器模块，负责用户认证、Token颁发、OAuth2授权。
 

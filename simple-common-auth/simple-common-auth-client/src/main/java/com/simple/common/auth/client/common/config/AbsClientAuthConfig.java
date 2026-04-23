@@ -1,7 +1,6 @@
 package com.simple.common.auth.client.common.config;
 
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
-import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.core.common.properties.ApplicationProperties;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -47,13 +46,11 @@ public abstract class AbsClientAuthConfig {
     @Autowired
     private ApplicationProperties applicationProperties;
 
-    @Autowired
-    private AbsClientAuthConfig absClientAuthConfig;
 
     @Bean
     public ClientAuthInfo configure() {
         ClientAuthInfo clientAuthInfo = new ClientAuthInfo();
-        absClientAuthConfig.configure(clientAuthInfo);
+        configure(clientAuthInfo);
         clientAuthInfo.setDocument(produce);
         clientAuthInfo.addScope("all",applicationProperties.getName());
 

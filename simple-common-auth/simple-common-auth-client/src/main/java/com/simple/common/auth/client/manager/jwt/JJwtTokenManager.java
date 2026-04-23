@@ -1,5 +1,6 @@
 package com.simple.common.auth.client.manager.jwt;
 
+import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.event.SecretEvent;
 import com.simple.common.auth.client.common.manager.token.AbsTokenManager;
@@ -26,6 +27,9 @@ public class JJwtTokenManager extends AbsTokenManager {
 
     @Autowired(required = false)
     private EventBusService eventBusService;
+
+    @Autowired
+    private ClientAuthInfo clientAuthInfo;
 
     @Override
     public String create(Map<String, Object> headers, Map<String, Object> payload) {
@@ -55,7 +59,7 @@ public class JJwtTokenManager extends AbsTokenManager {
         JJwtUtils.saveSecret(secret);
 
         // 发布事件，通知所有客户端同步
-        if (eventBusService != null) {
+        if (!clientAuthInfo.getClient() && eventBusService != null) {
             SecretEvent event = new SecretEvent();
             event.setSecret(secret);
             event.setOperation(SecretEvent.Operation.ADD);

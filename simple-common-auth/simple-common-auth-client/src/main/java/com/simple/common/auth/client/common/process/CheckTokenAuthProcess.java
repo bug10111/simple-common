@@ -34,7 +34,6 @@ import java.util.Map;
  * 此机制的启用与否以及信任来源的判断逻辑，<b>必须由集成方根据自身部署架构来实现</b>。
  * 当前代码中的内部头校验部分是开放的，集成方需：
  * <ol>
- *   <li>重写 {@code isRequestFromTrustedSource()} 方法，添加IP白名单或内部标识校验。</li>
  *   <li>替换 {@code SignManager} 为共享密钥实现，确保网关与微服务使用同一密钥。</li>
  * </ol>
  * 若未正确实施安全策略而直接使用，存在认证绕过风险。
@@ -65,7 +64,6 @@ public class CheckTokenAuthProcess implements AuthProcess {
         String sign = request.getHeader(TokenConstant.userSignHead);
         String key = signManager.getKey();
 
-        // 此处为框架预留扩展点，集成方应重写 isRequestFromTrustedSource 方法以限制来源
         if (ObjUtil.isNotEmpty(encoded) && ObjUtil.isNotEmpty(sign)) {
             String signNew = SignUtils.signWeb(encoded, key);
             if (sign.equals(signNew)) {

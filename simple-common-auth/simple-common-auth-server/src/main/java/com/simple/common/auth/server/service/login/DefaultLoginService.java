@@ -118,12 +118,15 @@ public class DefaultLoginService implements LoginService {
         TokenData tokenData = new TokenData();
         tokenData.refresh(userInfo, jti, ati);
 
-        // 清除旧的信息
-        loginUserOperationManager.loginOut(userInfo.get(TokenConstant.userIdKey).toString(), jti);
-
         // 生成新的token
         String accessToken = tokenManager.create(tokenData.getAccessTokenMap());
         String refreshToken = tokenManager.create(tokenData.getRefreshTokenMap());
+
+        // 先保存新token信息，再删除旧token，避免并发问题
+        loginUserOperationManager.saveUserInfo(tokenData, false);
+        
+        // 清除旧的信息
+        loginUserOperationManager.loginOut(userInfo.get(TokenConstant.userIdKey).toString(), jti);
 
         // 添加返回数据
         Map<String, String> loginReturn = new LinkedHashMap<>();
@@ -132,9 +135,6 @@ public class DefaultLoginService implements LoginService {
         loginReturn.put(TokenConstant.refreshTokenKey, refreshToken);
         loginReturn.put(TokenConstant.expKey, tokenData.getAccessTokenMap().get(TokenConstant.expKey).toString());
         loginReturn.put(TokenConstant.scopesKey, tokenData.getSaveInfoMap().get(TokenConstant.scopesKey).toString());
-
-        // 更新用户信息
-        loginUserOperationManager.saveUserInfo(tokenData, false);
         return loginReturn;
     }
 

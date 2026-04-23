@@ -28,7 +28,7 @@ import java.util.concurrent.locks.ReentrantLock;
  * 子类只需实现 {@link #persistence(List)} 方法，定义具体的持久化逻辑（如 ES、向量库等）。
  * 本类负责队列管理、批量调度、异常降级、WAL 恢复和死信处理。
  * </p>
- * <h3>⚠️ 重要：幂等性要求</h3>
+ * <h3>重要：幂等性要求</h3>
  * <p>
  * 由于 WAL 恢复机制可能在进程崩溃后重放已成功持久化的日志，子类实现的 {@link #persistence(List)}
  * 方法<b>必须保证幂等性</b>。即：同一批日志被重复调用时，不应产生重复数据。
@@ -254,7 +254,7 @@ public abstract class AbsLogsSaveManager implements LogsSaveManager, Initializin
      * 该方法在定时调度线程中被调用，传入的是当前批次待持久化的日志列表。
      * </p>
      * <p>
-     * <b>⚠️ 幂等性要求</b>：此方法可能被 WAL 恢复机制重复调用，必须保证幂等。
+     * <b>幂等性要求</b>：此方法可能被 WAL 恢复机制重复调用，必须保证幂等。
      * </p>
      *
      * @param logsToSave 待持久化的日志事件列表

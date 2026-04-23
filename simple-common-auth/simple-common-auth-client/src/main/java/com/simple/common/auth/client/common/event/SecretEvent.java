@@ -17,9 +17,6 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class SecretEvent {
 
-    //客户端ID（可选，用于客户端级别的秘钥管理）
-    private String clientId;
-
     //秘钥
     private String secret;
 
@@ -32,7 +29,6 @@ public class SecretEvent {
     public enum Operation {
         ADD, //添加
         UPDATE, //更新
-        DELETE //删除
     }
 
 }

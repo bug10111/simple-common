@@ -25,10 +25,10 @@ public class JwtUtils {
     /**
      * 获取新的JWTSigner秘钥
      *
-     * @return 32位随机字符串作为密钥
+     * @return 64位随机字符串作为密钥
      */
     public static String createJWTSignerStr() {
-        return RandomUtil.randomString(32);
+        return RandomUtil.randomString(64);
     }
 
     /**

@@ -1,12 +1,11 @@
 package com.simple.common.auth.client.common.manager.user;
 
 import cn.hutool.core.util.ObjUtil;
-import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
-import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.client.exchange.AuthCenterHttpClient;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.common.service.jwt.CoreLoginUserService;
 import com.simple.common.core.common.service.lock.LockService;
@@ -14,7 +13,6 @@ import com.simple.common.core.exception.DefaultExceptionEnum;
 import com.simple.common.core.function.ReturnValueFunction;
 import com.simple.common.core.response.R;
 import com.simple.common.core.utils.AssertUtils;
-import com.simple.common.core.utils.HttpServletUtils;
 import com.simple.common.core.utils.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,10 +35,10 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     private CacheManager cacheManager;
 
     @Autowired
-    private AuthProperties authProperties;
+    private LockService lockService;
 
     @Autowired
-    private LockService lockService;
+    private AuthCenterHttpClient authCenterHttpClient;
 
     @Override
     public Map<Object, Object> getUserInfo(String key) {
@@ -52,7 +50,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         ReturnValueFunction lockFunction = () -> {
             Map<Object, Object> userInfo = cacheManager.hashGetAll(TokenConstant.getUserInfoKey(key));
             if (userInfo.isEmpty()) {
-                HttpResponse execute = getRemoteHttpResponse();
+                HttpResponse execute = authCenterHttpClient.getUserInfo();
                 String body = execute.body();
                 AssertUtils.notEmpty(body, LoginException.LOGIN_EXPIRED);
 
@@ -88,12 +86,6 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         };
 
         return (Map<Object, Object>) lockService.lockHaveValue(key, lockFunction);
-    }
-
-    protected HttpResponse getRemoteHttpResponse() {
-        return HttpRequest.get(authProperties.getServerUrl() + "/auth/api/user")
-                          .header(TokenConstant.Authorization, HttpServletUtils.getRequest().getHeader(TokenConstant.Authorization))
-                          .execute();
     }
 
     @Override

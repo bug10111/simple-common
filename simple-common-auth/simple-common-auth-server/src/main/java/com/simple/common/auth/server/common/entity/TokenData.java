@@ -45,12 +45,12 @@ public class TokenData {
 
         //构建生成accessToken的数据
         accessTokenMap.put(TokenConstant.jtiKey, jti);
-        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, clientDetails.getAccessTokenValidity()).getTime() + "");
+        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, clientDetails.getAccessTokenValidity()).getTime());
         accessTokenMap.put(TokenConstant.audKey, clientDetails.getClientId());
 
         //构建生成refreshToken的数据
         refreshTokenMap.put(TokenConstant.atiKey, ati);
-        refreshTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, clientDetails.getRefreshTokenValidity()).getTime() + "");
+        refreshTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, clientDetails.getRefreshTokenValidity()).getTime());
         refreshTokenMap.put(TokenConstant.jtiKey, jti);
         refreshTokenMap.put(TokenConstant.audKey, clientDetails.getClientId());
 
@@ -66,8 +66,8 @@ public class TokenData {
         saveInfoMap.put(TokenConstant.userIdKey, absUserDetails.getUserId());
         saveInfoMap.put(TokenConstant.nicknameKey, absUserDetails.getNickname());
         saveInfoMap.put(TokenConstant.loginKey, absUserDetails.getLoginKey());
-        saveInfoMap.put(TokenConstant.rEtKey, clientDetails.getRefreshTokenValidity() + "");
-        saveInfoMap.put(TokenConstant.etKey, clientDetails.getAccessTokenValidity() + "");
+        saveInfoMap.put(TokenConstant.rEtKey, clientDetails.getRefreshTokenValidity());
+        saveInfoMap.put(TokenConstant.etKey, clientDetails.getAccessTokenValidity());
         saveInfoMap.put(TokenConstant.extensionKey, JsonUtils.toJsonStr(absUserDetails.getExtension()));
     }
 
@@ -87,11 +87,11 @@ public class TokenData {
         String ati = IdUtils.getFastUUID();
 
         accessTokenMap.put(TokenConstant.jtiKey, jti);
-        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.etKey).toString())).getTime() + "");
+        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.etKey).toString())).getTime());
         accessTokenMap.put(TokenConstant.audKey, saveInfoMap.get(TokenConstant.clientIdKey));
 
         refreshTokenMap.put(TokenConstant.atiKey, ati);
-        refreshTokenMap.put(TokenConstant.expKey,DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.rEtKey).toString())).getTime() + "");
+        refreshTokenMap.put(TokenConstant.expKey,DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.rEtKey).toString())).getTime());
         refreshTokenMap.put(TokenConstant.jtiKey, jti);
         refreshTokenMap.put(TokenConstant.audKey, saveInfoMap.get(TokenConstant.clientIdKey));
 
