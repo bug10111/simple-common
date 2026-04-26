@@ -4492,7 +4492,12 @@ public class FileUploadService {
 
 ## 开源协议
 
-本项目采用 [MIT License](LICENSE) 开源协议。
+本项目采用 [Apache License 2.0](LICENSE) 开源协议。
+
+您可以自由使用、修改和分发本项目，但需要：
+- 保留原始版权声明和许可证文件
+- 在修改的文件中说明修改内容
+- 衍生作品必须继续使用 Apache License 2.0 协议
 
 ---
 
