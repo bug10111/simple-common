@@ -8,44 +8,44 @@
 >
 > **项目性质**：这是一个完全开源的通用技术框架，适用于各类 Java 项目开发。
 
-## 🚀 项目简介
+## 项目简介
 
 **Simple-Common** 是一个基于 **Spring Boot 3.3 + Java 17** 构建的模块化企业级开发框架，提供认证授权、分布式缓存、消息队列、事件总线、实时通信等完整的企业级能力。
 
-### ✨ 核心特性
+### 核心特性
 
-#### 🔐 安全与认证
+#### 安全与认证
 - **统一加密工具 CryptoUtil** - 枚举切换AES/SM4/RSA/SM2等国密算法，自动安全提示，BCrypt密码哈希
 - **OAuth2认证授权** - 完整的OAuth2协议实现，支持JWT Token、角色权限、白名单机制
 - **灵活缓存策略** - Auth模块Redis/Local一键切换，零代码修改适配不同部署环境
 
-#### 💾 缓存与性能
+#### 缓存与性能
 - **两级缓存架构** - Caffeine(本地) + Redis(分布式)，智能读写策略优化
 - **分布式锁服务** - Redisson实现可重入锁/公平锁/闭锁/信号量，支持锁续期
 - **线程池管理** - 异步执行、定时任务、延迟调度，统一线程资源管理
 
-#### 📨 消息与事件
+#### 消息与事件
 - **消息队列防重消费** - RabbitMQ + Redisson分布式锁，支持锁续期、僵尸锁恢复、完成校验
 - **事件总线双模式** - 同步(立即执行) / 异步(RabbitMQ分发)，支持跨系统事件、延迟事件
 - **责任链模式实践** - Auth/RabbitMQ/SMS/Logs多模块采用，轻松扩展自定义逻辑
 
-#### 🌐 通信与集成
+#### 通信与集成
 - **WebSocket实时通信** - 静态工具类WebSocketUtils，支持点对点/广播消息推送
 - **日志中心** - TCP + Protobuf高性能传输，client/proto/server三模块架构，Fire-and-Forget模式，追求极致的性能
 - **短信服务** - 阿里云SMS集成，多层防刷机制(IP限流+频次控制+黑名单)
 
-#### 📊 数据与文档
+#### 数据与文档
 - **Excel处理** - EasyExcel + Apache POI双引擎，支持大数据量导出、模板填充
 - **Word文档生成** - poi-tl引擎，支持动态模板替换、表格生成
 - **附件管理** - MinIO/AWS S3对象存储，S3协议兼容
 - **API文档** - SpringDoc OpenAPI 3.0，自动生成Swagger UI
 
-#### ⚙️ 运维与监控
+#### 运维与监控
 - **定时任务** - XXL-JOB集成，支持分布式任务调度、失败重试
 - **AI集成** - Spring AI Alibaba，支持通义千问等大模型接入
 - **MyBatis-Plus增强** - 通用CRUD、分页插件、自动填充
 
-### 🛠️ 技术栈
+### 技术栈
 
 | 类别 | 技术选型 |
 |------|----------|
@@ -64,7 +64,7 @@
 | AI集成 | Spring AI Alibaba 1.0.0.2 |
 | 工具类库 | Hutool 5.8.27 |
 
-### 🎯 设计理念
+### 设计理念
 
 - **模块化设计** - 各功能模块独立封装，按需引入，减少依赖冗余
 - **高度可扩展** - 继承/接口/责任链轻松扩展，默认实现前缀`Default`
@@ -72,7 +72,7 @@
 - **统一规范** - 命名/service/manager/Process后缀标准化，异常/响应统一封装
 - **性能优化** - 本地缓存/线程池/异步处理/防重消费等多维度优化
 
-### 📦 适用场景
+### 适用场景
 
 - **新项目快速启动** - 直接使用框架提供的功能模块，快速搭建项目
 - **旧项目功能增强** - 按需引入特定模块，无侵入式增强项目功能
@@ -86,179 +86,409 @@
 框架遵循统一的命名规范，便于理解和使用：
 
 - **service后缀**：表示为本模块对外提供的核心功能接口。默认实现前缀加 `Default`。
-  - 示例：`LoginService` → `DefaultLoginService`、`SmsService` → `AliSmsService`
-  
+    - 示例：`LoginService` → `DefaultLoginService`、`SmsService` → `AliSmsService`
+
 - **manager后缀**：表示为本模块内部提供支撑的接口。默认实现前缀加 `Default`。
-  - 示例：`TokenManager` → `DefaultTokenManager`、`WhiteManager` → `DefaultWhiteManager`
-  
+    - 示例：`TokenManager` → `DefaultTokenManager`、`WhiteManager` → `DefaultWhiteManager`
+
 - **Process后缀**：责任链处理接口，配合枚举使用。
-  - 示例：`AuthProcess`、`LoginErrorProcess`、`CheckSmsProcess`
-  
+    - 示例：`AuthProcess`、`LoginErrorProcess`、`CheckSmsProcess`
+
 - **Abs前缀**：抽象基类，提供通用实现逻辑。
-  - 示例：`AbsLoginManager`、`AbsSmsService`、`AbsLogsSaveManager`
+    - 示例：`AbsLoginManager`、`AbsSmsService`、`AbsLogsSaveManager`
 
 ---
 
-## 模块功能介绍
+## 目录
 
-### 1. simple-common-core（核心模块）
+- [1. simple-common-core](#1-simple-common-core)
+- [2. simple-common-auth](#2-simple-common-auth)
+    - [2.1 simple-common-auth-client](#21-simple-common-auth-client客户端模块)
+    - [2.2 simple-common-auth-server](#22-simple-common-auth-server服务端模块)
+- [3. simple-common-cache](#3-simple-common-cache)
+- [4. simple-common-redis](#4-simple-common-redis)
+- [5. simple-common-mp](#5-simple-common-mp)
+- [6. simple-common-rabbitmq](#6-simple-common-rabbitmq)
+- [7. simple-common-eventbus](#7-simple-common-eventbus)
+- [8. simple-common-websocket](#8-simple-common-websocket)
+- [9. simple-common-excel](#9-simple-common-excel)
+- [10. simple-common-sms](#10-simple-common-sms)
+- [11. simple-common-doc](#11-simple-common-doc)
+- [12. simple-common-xxljob](#12-simple-common-xxljob)
+- [13. simple-common-logs](#13-simple-common-logs)
 
-核心基础模块，提供工具类、异常处理、响应封装等基础功能，是所有其他模块的基础依赖。
+---
 
-#### 核心功能
+## 1. simple-common-core
 
-| 功能分类 | 工具类/组件 | 说明 |
-|---------|-----------|------|
-| 线程管理 | `ThreadUtils` | 线程池管理、异步执行、定时任务 |
-| JSON处理 | `JsonUtils` | JSON序列化/反序列化 |
-| 对象转换 | `BeanUtils` | 对象属性复制、转换 |
-| 日期处理 | `DateUtils` | 日期格式化、计算 |
-| ID生成 | `IdUtils` | UUID、雪花算法ID生成 |
-| 断言工具 | `AssertUtils` | 参数校验、业务断言 |
-| 表达式引擎 | `AviatorUtils` | Aviator表达式引擎封装 |
-| **加密工具** | **`CryptoUtil`** | **统一加密工具，支持多种算法枚举切换** |
-| 异常处理 | `DefaultException`、`DefaultExceptionHandler` | 统一异常体系 |
-| 响应封装 | `R` | 统一响应对象 |
-| 分布式锁 | `LockService`、`AbsLockService` | 分布式锁服务接口 |
-| 循环任务 | `CycleService`、`AbsCycleService` | 循环任务处理服务 |
-| 责任链基础 | `BasProcessService`、`DefaultKindProcess` | 责任链模式基础接口 |
+### 模块介绍
 
-#### 🌟 亮点特性：统一加密工具 CryptoUtil
+核心工具模块，提供通用工具类、异常处理、响应封装等基础功能。
 
-**CryptoUtil 是框架的核心亮点之一！**通过枚举直接切换加密方式，无需修改代码逻辑。
+### 核心功能
 
-**支持的加密算法：**
+| 功能分类 | 类/接口 | 说明 |
+|---------|--------|------|
+| 断言工具 | `AssertUtils` | 参数校验和异常抛出 |
+| HTTP工具 | `HttpServletUtils` | HttpServletRequest 获取 |
+| 加密工具 | `CryptoUtil` | 通过枚举自动切换加密方式（AES/SM4/RSA/SM2/国密） |
+| Base64工具 | `Base64Utils` | Base64编码解码 |
+| IP工具 | `IPUtils` | IP地址获取和处理 |
+| JSON工具 | `JsonUtils` | JSON序列化/反序列化 |
+| 响应封装 | `R<T>` | 统一响应格式 |
+| 异常定义 | `DefaultException` | 默认业务异常 |
+| 线程池工具 | `ThreadUtils` | 异步任务执行、延迟调度、定时任务 |
+| 循环调度服务 | `CycleService` | 基于事件的循环任务调度（均匀/累加延迟） |
 
-| 算法类型 | 枚举值 | 安全性 | 适用场景 |
-|---------|--------|--------|----------|
-| **对称加密** | `AES_GCM` | ✅ 安全 | **推荐使用**，GCM模式自带认证 |
-| | `SM4_GCM` | ✅ 安全 | **国密标准**，政府项目推荐 |
-| | `AES_CBC` | ⚠️ 不安全 | 仅旧系统兼容，会打印警告 |
-| | `DES_CBC` | ⚠️ 不安全 | 已废弃，不建议使用 |
-| | `SM4_CBC` | ⚠️ 不安全 | 仅旧系统兼容 |
-| **非对称加密** | `RSA_OAEP` | ✅ 安全 | **推荐使用**，OAEP填充更安全 |
-| | `SM2` | ✅ 安全 | **国密标准**，政府项目推荐 |
-| | `RSA_PKCS1` | ⚠️ 不安全 | 仅旧系统兼容 |
-| **哈希算法** | `SHA256` | ✅ 安全 | 通用哈希 |
-| | `SHA512` | ✅ 安全 | 更高安全性 |
-| | `SM3` | ✅ 安全 | **国密标准** |
-| | `MD5` | ⚠️ 不安全 | 仅用于校验，不用于安全场景 |
-| **密码哈希** | `BCrypt` | ✅ 安全 | **专门用于密码存储**，自带盐值 |
+### 集成方式
+
+**步骤1：添加依赖**
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-core</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+**重要说明：**
+- core模块是所有其他模块的基础依赖，会自动引入
+- 提供统一的异常处理、响应封装、工具类等基础功能
+- CryptoUtil支持AES/SM4/RSA/SM2等国密算法，通过枚举切换
+
+### 使用示例
+
+**1. 断言工具**
+
+```java
+@Service
+public class UserService {
+    
+    public User findById(String id) {
+        // 参数校验
+        AssertUtils.notBlank(id, "用户ID不能为空");
+        
+        User user = userMapper.selectById(id);
+        AssertUtils.notNull(user, "用户不存在");
+        
+        return user;
+    }
+}
+```
+
+**2. 加密工具（通过枚举自动切换加密方式）**
+
+CryptoUtil支持通过枚举参数自动切换加密算法，包括对称加密、非对称加密和哈希算法。
+
+**支持的加密算法枚举：**
+
+| 枚举类型 | 枚举值 | 说明 | 安全性 |
+|---------|--------|------|--------|
+| **对称加密** | `AES_GCM` | AES-GCM模式（推荐） | ✅ 安全 |
+| | `SM4_GCM` | SM4-GCM模式（国密推荐） | ✅ 安全 |
+| | `AES_CBC` | AES-CBC模式（旧系统兼容） | ⚠️ 不安全 |
+| | `SM4_CBC` | SM4-CBC模式（旧系统兼容） | ⚠️ 不安全 |
+| | `DES_CBC` | DES-CBC模式（旧系统兼容） | ⚠️ 不安全 |
+| **非对称加密** | `RSA_OAEP` | RSA-OAEP模式（推荐） | ✅ 安全 |
+| | `SM2` | SM2国密算法 | ✅ 安全 |
+| | `RSA_PKCS1` | RSA-PKCS1模式（旧系统兼容） | ⚠️ 不安全 |
+| **哈希算法** | `SHA256` | SHA-256哈希 | ✅ 安全 |
+| | `SM3` | SM3国密哈希 | ✅ 安全 |
+| | `MD5` | MD5哈希（旧系统兼容） | ⚠️ 不安全 |
 
 **使用示例：**
 
 ```java
-// 1. 对称加密（通过枚举切换算法）
-SymmetricAlgorithmType algorithm = SymmetricAlgorithmType.AES_GCM; // 或 SM4_GCM
-
-// 生成密钥
-byte[] key = CryptoUtil.generateSymmetricKey(algorithm);
-String keyStr = CryptoUtil.generateSymmetricKeyStr(algorithm); // Base64编码
-
-// 加密
-String plainText = "Hello, World!";
-String encrypted = CryptoUtil.encryptStr(algorithm, keyStr, plainText);
-
-// 解密
-String decrypted = CryptoUtil.decryptStr(algorithm, keyStr, encrypted);
-
-// 2. 非对称加密（RSA/SM2）
-AsymmetricAlgorithmType asymAlgo = AsymmetricAlgorithmType.RSA_OAEP; // 或 SM2
-
-// 生成密钥对
-KeyPair keyPair = CryptoUtil.generateKeyPair(asymAlgo);
-PublicKey publicKey = keyPair.getPublic();
-PrivateKey privateKey = keyPair.getPrivate();
-
-// 公钥加密
-String encrypted = CryptoUtil.encryptStr(asymAlgo, publicKeyPem, plainText);
-
-// 私钥解密
-String decrypted = CryptoUtil.decryptStr(asymAlgo, privateKeyPem, encrypted);
-
-// 3. 哈希计算
-HashAlgorithmType hashAlgo = HashAlgorithmType.SHA256; // 或 SM3、SHA512
-byte[] hash = CryptoUtil.hash(hashAlgo, data.getBytes());
-
-// 4. 密码哈希（BCrypt - 推荐）
-String password = "user_password";
-String hashedPassword = CryptoUtil.hashPassword(password); // 自动加盐
-boolean matches = CryptoUtil.checkPassword(password, hashedPassword); // 验证
+@Service
+public class CryptoService {
+    
+    /**
+     * 对称加密示例（通过枚举切换算法）
+     */
+    public String symmetricEncryptExample() {
+        // 1. 使用AES-GCM（推荐）
+        SymmetricAlgorithmType algo1 = SymmetricAlgorithmType.AES_GCM;
+        String key1 = CryptoUtil.generateSymmetricKeyStr(algo1);
+        String encrypted1 = CryptoUtil.encryptStr(algo1, key1, "敏感数据");
+        String decrypted1 = CryptoUtil.decryptStr(algo1, key1, encrypted1);
+        
+        // 2. 使用SM4-GCM（国密标准）
+        SymmetricAlgorithmType algo2 = SymmetricAlgorithmType.SM4_GCM;
+        String key2 = CryptoUtil.generateSymmetricKeyStr(algo2);
+        String encrypted2 = CryptoUtil.encryptStr(algo2, key2, "敏感数据");
+        String decrypted2 = CryptoUtil.decryptStr(algo2, key2, encrypted2);
+        
+        return decrypted1; // "敏感数据"
+    }
+    
+    /**
+     * 非对称加密示例（通过枚举切换算法）
+     */
+    public String asymmetricEncryptExample() {
+        // 1. 使用RSA-OAEP（推荐）
+        AsymmetricAlgorithmType algo1 = AsymmetricAlgorithmType.RSA_OAEP;
+        KeyPair keyPair1 = CryptoUtil.generateKeyPair(algo1);
+        String publicKey1 = CryptoUtil.getPublicKeyPem(keyPair1.getPublic());
+        String privateKey1 = CryptoUtil.getPrivateKeyPem(keyPair1.getPrivate());
+        
+        String encrypted1 = CryptoUtil.encryptStr(algo1, publicKey1, "机密信息");
+        String decrypted1 = CryptoUtil.decryptStr(algo1, privateKey1, encrypted1);
+        
+        // 2. 使用SM2（国密标准）
+        AsymmetricAlgorithmType algo2 = AsymmetricAlgorithmType.SM2;
+        KeyPair keyPair2 = CryptoUtil.generateKeyPair(algo2);
+        String publicKey2 = CryptoUtil.getPublicKeyPem(keyPair2.getPublic());
+        String privateKey2 = CryptoUtil.getPrivateKeyPem(keyPair2.getPrivate());
+        
+        String encrypted2 = CryptoUtil.encryptStr(algo2, publicKey2, "机密信息");
+        String decrypted2 = CryptoUtil.decryptStr(algo2, privateKey2, encrypted2);
+        
+        return decrypted1; // "机密信息"
+    }
+    
+    /**
+     * 哈希算法示例（通过枚举切换算法）
+     */
+    public String hashExample() {
+        String data = "需要哈希的数据";
+        
+        // 1. 使用SHA256（推荐）
+        String hash1 = CryptoUtil.hashStr(HashAlgorithmType.SHA256, data);
+        
+        // 2. 使用SM3（国密标准）
+        String hash2 = CryptoUtil.hashStr(HashAlgorithmType.SM3, data);
+        
+        // 3. 使用MD5（不推荐，仅用于旧系统兼容）
+        String hash3 = CryptoUtil.hashStr(HashAlgorithmType.MD5, data);
+        
+        return hash1;
+    }
+    
+    /**
+     * 密码哈希示例（推荐使用BCrypt）
+     */
+    public void passwordHashExample() {
+        String password = "user_password_123";
+        
+        // 哈希密码（自动生成盐值）
+        String hashedPassword = CryptoUtil.hashPassword(password);
+        
+        // 验证密码
+        boolean isMatch = CryptoUtil.checkPassword(password, hashedPassword);
+        
+        log.info("密码验证结果: {}", isMatch); // true
+    }
+}
 ```
 
-**优势：**
+**重要说明：**
+- **推荐使用**：`AES_GCM`、`SM4_GCM`（对称加密），`RSA_OAEP`、`SM2`（非对称加密），`SHA256`、`SM3`（哈希）
+- **旧系统兼容**：`AES_CBC`、`DES_CBC`、`SM4_CBC`、`RSA_PKCS1`、`MD5`会打印警告日志，建议尽快迁移
+- **自动切换**：只需更改枚举参数即可切换加密算法，无需修改其他代码
+- **密钥管理**：对称加密密钥建议使用Base64编码存储，非对称加密密钥建议使用PEM格式
 
-- ✅ **枚举切换**：只需更改枚举值即可切换算法，无需修改业务代码
-- ✅ **安全提示**：使用不安全算法时自动打印警告日志，提醒迁移
-- ✅ **国密支持**：完整支持SM2、SM3、SM4国密算法
-- ✅ **统一API**：所有算法使用统一的接口，降低学习成本
-- ✅ **旧系统兼容**：保留不安全算法但标记警告，平滑迁移
-
-#### ThreadUtils 使用示例
+**3. 统一响应格式**
 
 ```java
-// 异步执行任务(无返回值)
-ThreadUtils.runAsync(() -> {
-    // 业务逻辑
-});
-
-// 异步执行任务(有返回值)
-CompletableFuture<String> future = ThreadUtils.supplyAsync(() -> {
-    // 业务逻辑
-    return "result";
-});
-
-// 延迟执行任务（5秒后执行）
-ThreadUtils.schedule(() -> {
-    // 业务逻辑
-}, 5, TimeUnit.SECONDS);
-
-// 定时执行任务（每60秒执行一次，固定延迟）
-ThreadUtils.scheduleWithFixedDelay(() -> {
-    // 业务逻辑
-}, 0, 60, TimeUnit.SECONDS);
-
-// 定时执行任务（安全版，自动捕获异常）
-ThreadUtils.scheduleWithFixedDelaySafe(() -> {
-    // 业务逻辑，即使抛出异常也不会中断后续调度
-}, 0, 60, TimeUnit.SECONDS);
+@RestController
+@RequestMapping("/api")
+public class ApiController {
+    
+    @GetMapping("/data")
+    public R<List<Data>> getData() {
+        List<Data> data = dataService.list();
+        return R.ok(data);
+    }
+    
+    @PostMapping("/create")
+    public R<Void> create(@RequestBody CreateRequest request) {
+        dataService.create(request);
+        return R.ok();
+    }
+    
+    @GetMapping("/error")
+    public R<Void> error() {
+        return R.error("操作失败");
+    }
+}
 ```
 
-#### AssertUtils 使用示例
+**4. 线程池工具（异步任务）**
 
 ```java
-// 参数校验
-AssertUtils.isTrue(user != null, "用户不存在");
-AssertUtils.isTrue(password.equals(dbPassword), LoginException.PASSWORD_ERROR);
-
-// 带参数的异常信息
-AssertUtils.isTrue(hasPermission, LoginException.INSUFFICIENT_PERMISSIONS, "用户ID: {}", userId);
+@Service
+public class AsyncService {
+    
+    /**
+     * 异步执行有返回值的任务
+     */
+    public CompletableFuture<String> asyncTask() {
+        return ThreadUtils.supplyAsync(() -> {
+            // 模拟耗时操作
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "异步任务完成";
+        });
+    }
+    
+    /**
+     * 异步执行无返回值的任务
+     */
+    public void asyncRun() {
+        ThreadUtils.runAsync(() -> {
+            // 异步执行，不阻塞主线程
+            log.info("异步任务执行中...");
+            doSomething();
+        });
+    }
+    
+    /**
+     * 延迟执行任务
+     */
+    public void scheduleTask() {
+        ThreadUtils.schedule(() -> {
+            log.info("延迟5秒后执行");
+        }, 5, TimeUnit.SECONDS);
+    }
+    
+    /**
+     * 定时执行任务（固定频率）
+     */
+    public void scheduleAtFixedRate() {
+        ThreadUtils.scheduleAtFixedRate(() -> {
+            log.info("每10秒执行一次");
+        }, 0, 10, TimeUnit.SECONDS);
+    }
+    
+    /**
+     * 等待异步任务完成
+     */
+    public String waitForResult() throws Exception {
+        CompletableFuture<String> future = asyncTask();
+        // join()：阻塞等待，异常以CompletionException抛出
+        return future.join();
+        
+        // 或者使用get()：阻塞等待，声明式抛出checked异常
+        // return future.get();
+    }
+}
 ```
 
-#### R 响应封装使用示例
+**5. 循环调度服务（均匀延迟）**
 
 ```java
-// 成功响应（带数据）
-return R.ok(data);
+@Service
+public class OrderQueryService extends AbsCycleService<OrderQuery> {
+    
+    @Autowired
+    private OrderMapper orderMapper;
+    
+    @Override
+    public Class<OrderQuery> getEventClass() {
+        return OrderQuery.class;
+    }
+    
+    @Override
+    protected boolean execute(OrderQuery query, int num, Map<String, Object> parameters) {
+        log.info("第{}次查询订单: {}", num, query.getOrderId());
+        
+        Order order = orderMapper.selectById(query.getOrderId());
+        if (order != null && order.getStatus() == 1) {
+            log.info("订单已支付，停止轮询");
+            return true; // 返回true表示任务完成，停止轮询
+        }
+        
+        return false; // 返回false表示继续轮询
+    }
+}
 
-// 成功响应（无数据）
-return R.ok();
+// 使用示例
+@Service
+public class OrderService {
+    
+    @Autowired
+    private OrderQueryService orderQueryService;
+    
+    public void checkOrderPayment(String orderId) {
+        OrderQuery query = new OrderQuery();
+        query.setOrderId(orderId);
+        
+        // 最多查询10次，每次间隔5秒（均匀延迟）
+        // 第1次：立即执行
+        // 第2次：5秒后
+        // 第3次：10秒后
+        // ...
+        orderQueryService.runUniform(query, 10, 5);
+    }
+}
+```
 
-// 失败响应
-return R.error("操作失败");
+**6. 循环调度服务（累加延迟）**
+
+```java
+@Service
+public class RetryService extends AbsCycleService<RetryTask> {
+    
+    @Override
+    public Class<RetryTask> getEventClass() {
+        return RetryTask.class;
+    }
+    
+    @Override
+    protected boolean execute(RetryTask task, int num, Map<String, Object> parameters) {
+        log.info("第{}次重试任务: {}", num, task.getTaskId());
+        
+        try {
+            // 执行任务
+            executeTask(task);
+            log.info("任务执行成功");
+            return true;
+        } catch (Exception e) {
+            log.warn("第{}次重试失败: {}", num, e.getMessage());
+            return false;
+        }
+    }
+}
+
+// 使用示例
+@Service
+public class TaskService {
+    
+    @Autowired
+    private RetryService retryService;
+    
+    public void executeWithRetry(String taskId) {
+        RetryTask task = new RetryTask();
+        task.setTaskId(taskId);
+        
+        // 最多重试5次，基础间隔10秒，累加延迟
+        // 第1次：立即执行
+        // 第2次：10秒后（10×1）
+        // 第3次：30秒后（10×2 + 10×1）
+        // 第4次：60秒后（10×3 + 10×2 + 10×1）
+        // 第5次：100秒后（10×4 + 10×3 + 10×2 + 10×1）
+        retryService.runAccumulate(task, 5, 10);
+    }
+}
 ```
 
 ---
 
-### 2. simple-common-auth（认证授权模块）
+## 2. simple-common-auth
 
-认证授权模块，分为客户端和服务端两个子模块，提供完整的认证授权解决方案。
+认证授权模块，分为客户端和服务端两个子模块。
 
-#### 2.1 simple-common-auth-client（客户端模块）
+### 2.1 simple-common-auth-client（客户端模块）
 
-客户端认证模块，用于资源服务端的认证拦截和权限校验。
+#### 模块介绍
 
-##### 核心功能
+客户端认证模块，用于资源服务端的认证拦截和权限校验。提供Token解析、白名单管理、签名校验等功能。
+
+#### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
@@ -266,129 +496,24 @@ return R.error("操作失败");
 | 白名单管理 | `WhiteManager` | URL白名单配置 |
 | 登录信息管理 | `LoginInfoManager` | 获取当前登录用户信息 |
 | 签名校验 | `SignManager` | 接口签名校验 |
-| **签名密钥管理** | **`SignSecretManager`** | **签名密钥统一管理，支持动态更新** |
+| 签名密钥管理 | `SignSecretManager` | 签名密钥统一管理，支持动态更新 |
 | 缓存管理 | `CacheManager` | 认证相关缓存管理 |
 | CSRF防御 | `CsrfService` | CSRF Token生成和验证 |
 | 责任链处理 | `AuthProcess` | 认证拦截责任链处理接口 |
 
-##### 架构设计
+#### 集成方式
 
-**认证拦截流程：**
+**步骤1：添加依赖**
 
-```
-请求到达
-   ↓
-OPTIONS请求？→ 是 → 直接放行
-   ↓ 否
-获取IP和请求路径
-   ↓
-全局登录开关关闭？→ 是 → 直接放行
-   ↓ 否
-IP白名单校验
-   ↓
-URL白名单匹配？→ 是 → 直接放行
-   ↓ 否
-提取Token（从Header或Cookie）
-   ↓
-Token为空？→ 是 → 抛出未登录异常
-   ↓ 否
-执行认证责任链
-   ├─ CheckTokenAuthProcess: Token合法性校验
-   ├─ CheckRoleAuthProcess: 角色权限校验
-   └─ CheckScopeAuthProcess: 授权范围校验
-   ↓
-所有校验通过
-   ↓
-将用户信息存入ThreadLocal
-   ↓
-放行请求
-   ↓
-请求完成后清理ThreadLocal
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-auth-client</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-**重要说明：**
-
-- ✅ **责任链模式**：通过`AuthProcess`接口实现可扩展的认证流程
-- ✅ **白名单机制**：支持URL白名单和IP白名单
-- ✅ **流式API**：通过`ClientAuthInfo`提供流畅的配置方式
-- ✅ **ThreadLocal管理**：自动管理用户上下文生命周期
-
-##### 核心功能扩展
-
-**1. Redis与本地缓存自由切换**
-
-Auth模块支持通过配置项一键切换缓存类型，无需修改代码。
-
-**所属模块：** simple-common-auth-client
-
-**配置方式：**
-
-```yaml
-simple:
-  auth:
-    # 缓存类型：REDIS（默认）或 LOCAL
-    cache-type: REDIS  # 或 LOCAL
-```
-
-**CacheTypeEnum 枚举定义：**
-
-```java
-public enum CacheTypeEnum {
-    REDIS,  // Redis缓存（分布式环境推荐）
-    LOCAL   // 本地缓存（单机环境推荐）
-}
-```
-
-**使用场景：**
-
-| 缓存类型 | 适用场景       | 优势 | 劣势           |
-|---------|------------|------|--------------|
-| **REDIS** | 分布式部署、多实例  | 数据共享、一致性高 | 依赖Redis，性能略低 |
-| **LOCAL** | 分布式部署、单机部署 | 速度快 | 依赖于event同步数据 |
-
-**切换示例：**
-
-```yaml
-# 开发环境：使用本地缓存，提高响应速度
-simple:
-  auth:
-    cache-type: LOCAL
-
-# 生产环境：使用Redis缓存，支持分布式
-simple:
-  auth:
-    cache-type: REDIS
-```
-
-**优势：**
-
-- ✅ **零代码修改**：只需修改配置文件即可切换
-- ✅ **灵活适配**：根据部署环境选择最优方案
-- ✅ **性能优化**：一般生产环境用Redis，极致性能使用LOCAL
-- ✅ **平滑迁移**：从单机到分布式无需重构代码
-
-##### 扩展指南
-
-**自定义认证处理逻辑**：实现 `AuthProcess` 接口
-
-```java
-@Component
-public class CustomAuthProcess implements AuthProcess {
-    
-    @Override
-    public DefaultKindProcess getProcess() {
-        return AuthInterceptorKindProcess.CHECK_TOKEN; // 或其他自定义枚举
-    }
-    
-    @Override
-    public void execute(HttpServletRequest request, HttpServletResponse response, 
-                       String token, String path, String ipAddr) {
-        // 自定义认证逻辑
-    }
-}
-```
-
-**自定义白名单配置**：继承 `AbsClientAuthConfig`
+**步骤2：继承配置类**
 
 ```java
 @Configuration
@@ -396,557 +521,215 @@ public class MyClientAuthConfig extends AbsClientAuthConfig {
     
     @Override
     protected void configure(ClientAuthInfo clientAuthInfo) {
-        
-        // ========== 全局开关 ==========
-        // 开启所有请求需要登录
+        // 开启全局登录校验
         clientAuthInfo.openLogin();
         
-        // 开启所有请求需要鉴权（验证Scope）
-        clientAuthInfo.openAuthentication();
+        // 放行公开接口
+        clientAuthInfo.antMatchers("/api/public/**").permitAll();
         
-        // 开启单设备登录（同一账号只能在一处登录）
-        clientAuthInfo.openOneLogin();
-        
-        // 开启IP白名单校验
-        clientAuthInfo.openIPWhitelist();
-        
-        // 标记为客户端应用
-        clientAuthInfo.anyClient();
-        
-        // 添加访问本项目需要的Scope范围
-        clientAuthInfo.addScope("user:read", "order:manage");
-        
-        // ========== URL权限配置（流式API）==========
-        
-        // 1. 放行公开接口（无需登录）
-        clientAuthInfo.antMatchers("/api/public/**").permitAll()
-                      .antMatchers("/api/login").permitAll()
-                      .antMatchers("/doc.html").permitAll();
-        
-        // 2. IP白名单限制（只允许指定IP访问）
+        // IP白名单限制
         clientAuthInfo.antMatchers("/api/internal/**")
-                      .onlyIp("192.168.1.100", "10.0.0.1");
+                      .onlyIp("192.168.1.100");
         
-        // 3. 角色限制（只有指定角色可访问）
+        // 角色限制
         clientAuthInfo.antMatchers("/api/admin/**")
-                      .onlyRole("admin", "super_admin");
-        
-        // 4. 反向角色限制（排除指定角色，其他角色可访问）
-        clientAuthInfo.antMatchers("/api/user/**")
-                      .roleByRestricted("tourists");
+                      .onlyRole("admin");
     }
 }
 ```
 
-**ClientAuthInfo 核心方法说明：**
+#### 扩展示例
 
-| 方法 | 说明 | 使用场景 |
-|------|------|----------|
-| `openLogin()` | 开启登录校验 | 所有接口都需要用户登录 |
-| `openAuthentication()` | 开启Scope鉴权 | 微服务间调用需要验证授权范围 |
-| `openOneLogin()` | 开启单设备登录 | 防止账号共享，提高安全性 |
-| `openIPWhitelist()` | 开启IP白名单 | 内网接口只允许特定IP访问 |
-| `anyClient()` | 标记为客户端应用 | 区分服务端和客户端应用 |
-| `addScope(...)` | 添加所需Scope | 声明本服务需要的权限范围 |
-| `antMatchers(url).permitAll()` | 放行URL | 公开接口无需认证 |
-| `antMatchers(url).onlyIp(...)` | IP白名单 | 限制特定IP访问 |
-| `antMatchers(url).onlyRole(...)` | 角色限制 | 只允许指定角色访问 |
-| `antMatchers(url).roleByRestricted(...)` | 反向角色限制 | 排除某些角色，其他可访问 |
+**1. 自定义认证处理器**
 
-**获取当前登录用户**：使用 `LoginUserUtils`
+实现 `AuthProcess` 接口，添加自定义认证逻辑：
 
 ```java
-// 获取当前登录用户临时信息（推荐）
-UserTemporary user = LoginUserUtils.getUserTemporary();
-String userId = user.getUserId();
-String username = user.getUsername();
-Set<String> roles = user.getRoles();
-Set<String> scopes = user.getScopes();
-
-// 获取扩展信息(在登录的时候构建AbsUserDetails里面设置)
-Object extension = user.getExtension();
+@Component
+public class CustomAuthProcess implements AuthProcess {
+    
+    @Override
+    public DefaultKindProcess getProcess() {
+        return AuthInterceptorKindProcess.CHECK_TOKEN;
+    }
+    
+    @Override
+    public void execute(HttpServletRequest request, HttpServletResponse response, 
+                       String token, String path, String ipAddr) {
+        // 自定义认证逻辑
+        log.info("自定义认证检查: {}", path);
+    }
+}
 ```
 
-**2. 签名密钥统一管理**
+**2. 自定义白名单配置**
 
-SignSecretManager 提供签名密钥的统一管理，与 JWT 密钥管理保持一致的设计模式。
+继承 `AbsClientAuthConfig`，在 `configure()` 方法中配置白名单和权限规则：
 
-**所属模块：** simple-common-auth-client（密钥管理）、simple-common-auth-server（密钥更新）
+```java
+@Configuration
+public class MyAuthConfig extends AbsClientAuthConfig {
+    
+    @Override
+    protected void configure(ClientAuthInfo clientAuthInfo) {
+        // 开启全局登录校验
+        clientAuthInfo.openLogin();
+        
+        // 放行公开接口（白名单）
+        clientAuthInfo.antMatchers("/api/public/**").permitAll();
+        clientAuthInfo.antMatchers("/api/login").permitAll();
+        
+        // IP白名单限制
+        clientAuthInfo.antMatchers("/api/internal/**")
+                      .onlyIp("192.168.1.100");
+        
+        // 角色限制
+        clientAuthInfo.antMatchers("/api/admin/**")
+                      .onlyRole("admin");
+        
+        // URL权限映射
+        clientAuthInfo.addUrlOperation("/api/user/**", "user:read");
+        clientAuthInfo.addUrlOperation("/api/order/**", "order:manage");
+    }
+}
+```
 
-**核心优势：**
-- ✅ **统一存储** - 密钥存储在 CacheManager 中，支持 Redis/Local 切换
-- ✅ **自动初始化** - 应用启动时自动生成初始密钥
-- ✅ **动态更新** - 运行时可动态更新密钥，无需重启
-- ✅ **职责分离** - 密钥管理与签名逻辑分离
+#### 使用示例
 
-**服务端使用示例：**
+**1. 获取当前登录用户信息**
 
 ```java
 @RestController
-@RequestMapping("/admin/security")
-public class SignSecurityAdminController {
+@RequestMapping("/user")
+public class UserController {
+    
+    @GetMapping("/info")
+    public R<UserInfo> getCurrentUser() {
+        UserTemporary user = LoginUserUtils.getUserTemporary();
+        
+        UserInfo info = new UserInfo();
+        info.setUserId(user.getUserId());
+        info.setUsername(user.getUsername());
+        info.setRoles(user.getRoles());
+        
+        return R.ok(info);
+    }
+}
+```
+
+**2. 接口签名校验（使用@Sign注解）**
+
+auth-client模块提供了`@Sign`注解，自动进行签名校验：
+
+```java
+@RestController
+@RequestMapping("/api")
+public class ApiController {
+    
+    /**
+     * 启用签名校验（默认开启）
+     */
+    @PostMapping("/data")
+    @Sign
+    public R<Void> submitData(@RequestBody DataRequest request) {
+        // 框架自动校验签名，无需手动处理
+        // 业务逻辑
+        return R.ok();
+    }
+    
+    /**
+     * 排除敏感字段不参与签名计算
+     */
+    @PostMapping("/payment")
+    @Sign(excludeFields = {"password", "cvv"})
+    public R<Void> payment(@RequestBody PaymentRequest request) {
+        // password和cvv字段不参与签名计算
+        return R.ok();
+    }
+    
+    /**
+     * 关闭时间戳校验（不限制请求时效性）
+     */
+    @PostMapping("/webhook")
+    @Sign(checkTimestamp = false)
+    public R<Void> webhook(@RequestBody WebhookRequest request) {
+        // 不校验时间戳，适用于第三方回调
+        return R.ok();
+    }
+    
+    /**
+     * 关闭nonce校验（不防重放）
+     */
+    @PostMapping("/notification")
+    @Sign(checkNonce = false)
+    public R<Void> notification(@RequestBody NotificationRequest request) {
+        // 不校验nonce，允许重复请求
+        return R.ok();
+    }
+}
+```
+
+**@Sign注解参数说明：**
+
+| 参数 | 类型 | 默认值 | 说明 |
+|------|------|--------|------|
+| `enabled` | boolean | true | 是否启用签名校验 |
+| `excludeFields` | String[] | {} | 排除参与签名的字段名 |
+| `checkTimestamp` | boolean | true | 是否校验时间戳（时效性） |
+| `checkNonce` | boolean | true | 是否校验nonce（防重放） |
+
+**客户端调用示例：**
+
+```java
+@Service
+public class ApiClient {
     
     @Autowired
     private SignSecretManager signSecretManager;
     
-    /**
-     * 生成新的签名密钥
-     * POST /admin/security/sign/generate
-     */
-    @PostMapping("/sign/generate")
-    public R<String> generateSignSecret() {
-        // 生成新密钥（建议使用 UUID 或随机字符串）
-        String newSecret = UUID.randomUUID().toString().replace("-", "");
+    public void callApi() {
+        DataRequest request = new DataRequest();
+        request.setData("test");
         
-        // 添加并广播到所有客户端
-        signSecretManager.addSecret(newSecret);
+        // 生成签名
+        long timestamp = System.currentTimeMillis();
+        String nonce = UUID.randomUUID().toString();
+        String sign = signSecretManager.generateSign(request, timestamp, nonce);
         
-        log.info("签名密钥已生成并同步到所有客户端");
-        return R.ok(newSecret);
-    }
-    
-    /**
-     * 手动更新签名密钥
-     * POST /admin/security/sign/update
-     */
-    @PostMapping("/sign/update")
-    public R<Void> updateSignSecret(@RequestBody String newSecret) {
-        // 校验密钥非空
-        if (newSecret == null || newSecret.isEmpty()) {
-            return R.error("密钥不能为空");
-        }
+        // 发送请求
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-Timestamp", String.valueOf(timestamp));
+        headers.set("X-Nonce", nonce);
+        headers.set("X-Sign", sign);
         
-        // 更新密钥并广播
-        signSecretManager.addSecret(newSecret);
-        
-        log.info("签名密钥已手动更新");
-        return R.ok();
-    }
-    
-    /**
-     * 获取当前签名密钥（用于调试）
-     * GET /admin/security/sign/current
-     */
-    @GetMapping("/sign/current")
-    public R<String> getCurrentSignSecret() {
-        String currentSecret = signSecretManager.getCurrentSecret();
-        return R.ok(currentSecret);
+        restTemplate.exchange("/api/data", HttpMethod.POST, 
+            new HttpEntity<>(request, headers), Void.class);
     }
 }
 ```
 
-**客户端使用示例：**
-
-```java
-@Service
-public class ApiSecurityService {
-    
-    @Autowired
-    private SignManager signManager;
-    
-    /**
-     * 对请求参数进行签名
-     */
-    public String signRequest(Object requestData) {
-        // 从 SignManager 自动获取当前密钥
-        String key = signManager.getKey();
-        String message = SignUtils.generateSignStr(requestData, new String[]{});
-        return SignUtils.signWeb(message, key);
-    }
-    
-    /**
-     * 验证请求签名
-     */
-    public boolean verifyRequest(Object requestData, String signature) {
-        String key = signManager.getKey();
-        String message = SignUtils.generateSignStr(requestData, new String[]{});
-        return SignUtils.verifyWeb(message, signature, key);
-    }
-}
-```
-
-**工作流程：**
-
-```
-1. 应用启动
-   ↓
-2. DefaultSignSecretManager.afterPropertiesSet()
-   ↓
-3. 检查密钥是否存在 → 不存在则自动生成
-   ↓
-4. 密钥存储到 CacheManager (auth:sign:secret:current)
-   ↓
-5. SignManager 签名/验证时从 SignSecretManager 获取密钥
-   ↓
-6. 管理员调用 addSecret() 更新密钥
-   ↓
-7. 发布 SecretEvent 事件（如果配置了 EventBus）
-   ↓
-8. 所有客户端接收事件并更新本地密钥缓存
-```
-
-**架构对比：**
-
-| 组件 | 旧方案 | 新方案 |
-|------|--------|--------|
-| **密钥存储** | 内存变量 (currentKey) | CacheManager (Redis/Local) |
-| **密钥生成** | DefaultSignManager.generated() | SignSecretManager 自动初始化 |
-| **密钥更新** | putKey() 方法 | addSecret() 方法 |
-| **密钥获取** | getKey() 方法 | getCurrentSecret() 方法 |
-| **持久化** | ❌ 重启丢失 | ✅ 根据配置持久化 |
-| **分布式同步** | ❌ 不支持 | ✅ 通过事件总线同步 |
-
-**安全建议：**
-
-- 🔒 **定期轮换**：建议每 90 天轮换一次签名密钥
-- 🔒 **密钥长度**：推荐使用至少 32 位的随机字符串
-- 🔒 **传输加密**：生产环境确保事件总线通信加密
-- 🔒 **访问控制**：密钥更新接口需要管理员权限
-- 🔒 **密钥格式**：避免使用特殊字符，建议使用 Base64 或十六进制字符串
-
-**配置要求：**
-
-如需实现密钥自动同步，确保项目中已引入事件总线模块：
-
-```yaml
-simple:
-  event:
-    type: mq  # 或 sync，使用 RabbitMQ 或同步事件
-```
-
-**客户端启动行为：**
-
-- ✅ **强制获取** - 客户端模式下，应用启动时必须从授权中心获取签名密钥
-- ⚠️ **启动失败** - 如果获取失败（网络错误、返回空密钥、组件未加载等），应用将**终止启动**并抛出 `IllegalStateException`
-- 🔒 **安全保证** - 确保所有客户端在启动时都拥有有效的签名密钥，避免接口签名验证失败
-- 💡 **开发建议** - 本地开发时可暂时关闭客户端模式，或确保授权中心可用
-
-**错误示例：**
-
-```
-2024-04-24 02:00:00 [main] ERROR c.s.c.a.c.i.SignSecretInitializer - 从授权中心获取签名密钥失败: 连接超时
-2024-04-24 02:00:00 [main] ERROR o.s.boot.SpringApplication - Application run failed
-java.lang.IllegalStateException: 从授权中心获取签名密钥失败: 连接超时
-    at com.simple.common.auth.client.init.SignSecretInitializer.run(SignSecretInitializer.java:68)
-    ...
-```
-
-**注意事项：**
-
-- ⚠️ 密钥更新后，旧的签名将立即失效，需要客户端重新签名
-- ⚠️ 建议在低峰期进行密钥轮换，避免影响业务
-- ⚠️ 如果没有配置事件总线，需要重启所有客户端才能生效
-- ⚠️ 签名密钥与 JWT 密钥是独立的，可以分别管理
-
----
-
-**3. JWT 密钥管理**
-
-JwtSecretManager 提供 JWT 密钥的统一管理，支持服务端集中管理，客户端自动同步。
-
-**所属模块：** simple-common-auth-client（密钥同步）、simple-common-auth-server（密钥管理）
-
-**核心优势：**
-- ✅ **集中管理** - 服务端统一生成和管理 JWT 密钥
-- ✅ **自动同步** - 通过事件总线自动同步到所有客户端
-- ✅ **安全更新** - 支持运行时密钥轮换，无需重启服务
-- ✅ **长度校验** - 强制要求密钥长度至少 64 位，保证安全性
-
-**服务端使用示例：**
-
-```java
-@RestController
-@RequestMapping("/admin/security")
-public class SecurityAdminController {
-    
-    @Autowired
-    private JwtSecretManager jwtSecretManager;
-    
-    /**
-     * 生成新的 JWT 密钥
-     * POST /admin/security/jwt/generate
-     */
-    @PostMapping("/jwt/generate")
-    public R<String> generateJwtSecret() {
-        // 生成符合安全要求的密钥（至少 64 位）
-        String newSecret = jwtSecretManager.generateSecret();
-        
-        // 添加并广播到所有客户端
-        jwtSecretManager.addSecret(newSecret);
-        
-        log.info("JWT 密钥已生成并同步到所有客户端");
-        return R.ok(newSecret);
-    }
-    
-    /**
-     * 手动更新 JWT 密钥
-     * POST /admin/security/jwt/update
-     */
-    @PostMapping("/jwt/update")
-    public R<Void> updateJwtSecret(@RequestBody String newSecret) {
-        // 校验密钥长度
-        if (newSecret.length() < 64) {
-            return R.error("密钥长度至少为 64 位");
-        }
-        
-        // 更新密钥并广播
-        jwtSecretManager.addSecret(newSecret);
-        
-        log.info("JWT 密钥已手动更新");
-        return R.ok();
-    }
-}
-```
-
-**客户端自动同步机制：**
-
-客户端通过监听 `SecretEvent` 事件自动接收密钥更新：
-
-```java
-@Component
-public class SecretEventHandler {
-    
-    @Autowired
-    private ClientAuthInfo clientAuthInfo;
-    
-    @EventListener
-    public void onSecretChange(SecretEvent event) {
-        String secret = event.getSecret();
-        switch (event.getOperation()) {
-            case ADD, UPDATE -> {
-                if (clientAuthInfo.getClient()) {
-                    // 更新 JWT 密钥
-                    JJwtUtils.saveSecret(secret);
-                    JwtUtils.saveSecret(secret);
-                    log.debug("全局 JWT 密钥已更新");
-                }
-            }
-        }
-    }
-}
-```
-
-**密钥更新流程：**
-
-```
-1. 管理员调用服务端 JwtSecretManager.addSecret()
-   ↓
-2. 服务端验证密钥长度（≥64 位）
-   ↓
-3. 服务端缓存密钥到本地
-   ↓
-4. 发布 SecretEvent 事件（携带新密钥）
-   ↓
-5. 所有客户端接收事件
-   ↓
-6. 客户端更新本地 JWT 密钥缓存
-   ↓
-7. ✅ 所有服务使用新密钥签发/验证 Token
-```
-
-**安全建议：**
-
-- 🔒 **定期轮换**：建议每 90 天轮换一次 JWT 密钥
-- 🔒 **密钥长度**：强制要求至少 64 位，推荐使用 128 位
-- 🔒 **传输加密**：生产环境确保事件总线通信加密
-- 🔒 **访问控制**：密钥更新接口需要管理员权限
-
-**配置要求：**
-
-确保项目中已引入事件总线模块以实现密钥同步：
-
-```yaml
-simple:
-  event:
-    type: mq  # 或 sync，使用 RabbitMQ 或同步事件
-```
-
-**客户端启动行为：**
-
-- ✅ **强制获取** - 客户端模式下，应用启动时必须从授权中心获取 JWT 密钥
-- ⚠️ **启动失败** - 如果获取失败（网络错误、返回空密钥等），应用将**终止启动**并抛出 `IllegalStateException`
-- 🔒 **安全保证** - 确保所有客户端在启动时都拥有有效的 JWT 密钥，避免运行时认证失败
-- 💡 **开发建议** - 本地开发时可暂时关闭客户端模式，或确保授权中心可用
-
-**错误示例：**
-
-```
-2024-04-24 02:00:00 [main] ERROR c.s.c.a.c.i.JwtSecretInitializer - 从授权中心获取JWT密钥失败: 连接超时
-2024-04-24 02:00:00 [main] ERROR o.s.boot.SpringApplication - Application run failed
-java.lang.IllegalStateException: 从授权中心获取JWT密钥失败: 连接超时
-    at com.simple.common.auth.client.init.JwtSecretInitializer.run(JwtSecretInitializer.java:63)
-    ...
-```
-
----
-
----
-
-**4. Token 刷新并发优化**
-
-DefaultLoginService 采用优化的 Token 刷新策略，避免并发场景下的认证失败问题。
-
-**所属模块：** simple-common-auth-server
-
-**核心优势：**
-- ✅ **先加后删** - 先生成新 Token 并保存，再删除旧 Token
-- ✅ **无时间窗口** - 消除旧 Token 删除与新 Token 保存之间的竞态条件
-- ✅ **平滑过渡** - 确保用户在刷新过程中不会遇到认证失败
-
-**Token 刷新流程（优化后）：**
-
-```
-1. 客户端携带 RefreshToken 请求刷新
-   ↓
-2. 服务端校验 RefreshToken 合法性
-   ↓
-3. 从缓存获取用户内省数据
-   ↓
-4. 构建新的 TokenData（生成新 jti/ati）
-   ↓
-5. 生成新的 AccessToken 和 RefreshToken
-   ↓
-6. 【关键】先保存新 Token 信息到缓存
-   ↓
-7. 【关键】再删除旧 Token 信息
-   ↓
-8. 返回新 Token 给客户端
-   ↓
-9. ✅ 刷新完成，无并发风险
-```
-
-**代码实现：**
-
-```java
-@Override
-public Map<String, String> refresh(String refreshTokenStr) {
-    // 1. 校验 RefreshToken
-    Map<String, Object> payload = tokenManager.check(refreshTokenStr, true);
-    
-    // 2. 获取用户内省数据
-    Map<Object, Object> userInfo = loginUserOperationManager.getUserInfo(jti);
-    
-    // 3. 构建新 Token 数据
-    TokenData tokenData = new TokenData();
-    tokenData.refresh(userInfo, jti, ati);
-    
-    // 4. 生成新 Token
-    String accessToken = tokenManager.create(tokenData.getAccessTokenMap());
-    String refreshToken = tokenManager.create(tokenData.getRefreshTokenMap());
-    
-    // 5. 【优化点】先保存新 Token，再删除旧 Token
-    loginUserOperationManager.saveUserInfo(tokenData, false);  // 先保存
-    loginUserOperationManager.loginOut(userId, jti);           // 后删除
-    
-    // 6. 返回新 Token
-    return loginReturn;
-}
-```
-
-**并发场景对比：**
-
-| 场景 | 旧方案（先删后加） | 新方案（先加后删） |
-|------|------------------|------------------|
-| **刷新期间访问** | ❌ 可能认证失败 | ✅ 正常访问 |
-| **多设备同时刷新** | ⚠️ 可能冲突 | ✅ 安全处理 |
-| **网络延迟场景** | ❌ 高风险 | ✅ 低风险 |
-| **用户体验** | ⚠️ 偶发失败 | ✅ 流畅无感 |
-
----
-
-**5. Cookie 安全增强**
-
-CookieProcessingHandlerInterceptor 采用响应头方式设置 Cookie 属性，确保跨容器兼容性和安全性。
-
-**所属模块：** simple-common-auth-client
-
-**核心优势：**
-- ✅ **标准兼容** - 使用 Set-Cookie 响应头，符合 HTTP 标准
-- ✅ **SameSite 支持** - 正确设置 SameSite=Strict，防止 CSRF 攻击
-- ✅ **环境自适应** - 生产环境自动启用 Secure 标志
-- ✅ **HttpOnly 保护** - 防止 JavaScript 访问 Cookie，抵御 XSS 攻击
-
-**Cookie 安全配置：**
-
-```java
-@Component
-public class CookieProcessingHandlerInterceptor implements HandlerInterceptor {
-    
-    @Autowired
-    private ClientAuthInfo clientAuthInfo;
-    
-    @Override
-    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        handleCookie(request, response);
-        return true;
-    }
-    
-    protected void handleCookie(HttpServletRequest request, HttpServletResponse response) {
-        Cookie[] cookies = request.getCookies();
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                // 通过响应头设置 Cookie 属性
-                StringBuilder cookieHeader = new StringBuilder();
-                cookieHeader.append(cookie.getName()).append("=").append(cookie.getValue());
-                cookieHeader.append("; Path=").append(cookie.getPath() != null ? cookie.getPath() : "/");
-                
-                if (cookie.getMaxAge() >= 0) {
-                    cookieHeader.append("; Max-Age=").append(cookie.getMaxAge());
-                }
-                
-                cookieHeader.append("; HttpOnly");  // 防止 XSS
-                
-                if ("produce".equals(clientAuthInfo.getProduce())) {
-                    cookieHeader.append("; Secure");  // 仅 HTTPS
-                }
-                
-                cookieHeader.append("; SameSite=Strict");  // 防止 CSRF
-                
-                response.addHeader("Set-Cookie", cookieHeader.toString());
-            }
-        }
-    }
-}
-```
-
-**Cookie 安全属性说明：**
-
-| 属性 | 值 | 作用 | 适用环境 |
-|------|-----|------|----------|
-| **HttpOnly** | - | 禁止 JavaScript 访问，防止 XSS 窃取 Cookie | 所有环境 |
-| **Secure** | - | 仅通过 HTTPS 传输，防止中间人攻击 | 生产环境 |
-| **SameSite** | Strict | 严格模式，禁止第三方网站携带 Cookie | 所有环境 |
-| **Path** | / | Cookie 生效路径 | 所有环境 |
-| **Max-Age** | 动态 | Cookie 有效期（秒） | 所有环境 |
-
-**安全防护效果：**
-
-```
-攻击场景                      防护机制                     结果
-─────────────────────────────────────────────────────────────
-XSS 窃取 Cookie          →  HttpOnly                  →  ✅ 阻止
-CSRF 跨站请求伪造         →  SameSite=Strict           →  ✅ 阻止
-中间人窃听               →  Secure (生产环境)          →  ✅ 阻止
-Cookie 劫持              →  三重防护                   →  ✅ 阻止
-```
-
-**配置建议：**
+**3. 缓存类型切换**
 
 ```yaml
 # application.yaml
 simple:
   auth:
-    # 标记当前环境，生产环境自动启用 Secure
-    produce: produce  # 或 dev/test
+    # Redis缓存（分布式环境推荐）
+    cache-type: REDIS
+    
+    # 或本地缓存（单机环境推荐）
+    # cache-type: LOCAL
 ```
 
 ---
 
-#### 2.2 simple-common-auth-server（服务端模块）
+### 2.2 simple-common-auth-server（服务端模块）
 
-认证服务器模块，负责用户认证、Token颁发、OAuth2授权。
+#### 模块介绍
 
-##### 核心功能
+认证服务器模块，负责用户认证、Token颁发、OAuth2授权。提供登录服务、Token管理、客户端管理等功能。
+
+#### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
@@ -958,168 +741,228 @@ simple:
 | JWT密钥管理 | `JwtSecretManager` | JWT密钥生成和管理 |
 | 权限管理 | `PermissionManageService` | 角色权限管理，支持事件驱动实时同步 |
 
-##### 责任链模式
+### 集成方式
 
-**1. 登录错误处理责任链**
+**步骤1：添加依赖**
 
-登录失败时，通过责任链记录失败次数，达到阈值后锁定账号或IP。
-
-**责任链枚举定义：**
-
-```java
-public enum LoginErrorKindProcess implements DefaultKindProcess {
-    ACCOUNT_ERROR("基于账号的登录失败计数", true, 1),
-    IP_ERROR("基于IP的登录失败计数", true, 2);
-}
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-auth-server</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-**自定义登录错误处理：**继承 `AbsLoginErrorProcess`
+**步骤2：实现客户端详情服务（必须）**
+
+继承 `AbsClientDetailsService`，定义OAuth2客户端信息获取逻辑：
 
 ```java
-@Component
-public class CustomLoginErrorProcess extends AbsLoginErrorProcess {
+@Service
+public class MyClientDetailsService extends AbsClientDetailsService {
     
-    /**
-     * 返回对应的处理器类型枚举
-     */
-    @Override
-    public LoginErrorKindProcess getProcess() {
-        return LoginErrorKindProcess.ACCOUNT_ERROR;
-    }
+    @Autowired
+    private ClientRepository clientRepository;
     
-    /**
-     * 获取登录标识key（如账号、IP等）
-     */
     @Override
-    protected String getLoginKey(ClientDetails clientDetails, Object adapter, String ip) {
-        LoginRequest request = (LoginRequest) adapter;
-        return request.getUsername(); // 按用户名统计失败次数
-    }
-    
-    /**
-     * 获取Redis key前缀
-     */
-    @Override
-    protected String getKeyPrefix() {
-        return authProperties.getLoginErrorKey();
+    public ClientDetails checkClientDetails(String clientId, String clientSecret) {
+        SysClient entity = clientRepository.findByClientId(clientId);
+        AssertUtils.notNull(entity, "客户端不存在");
+        AssertUtils.isTrue(entity.getClientSecret().equals(clientSecret), "客户端密钥错误");
+        
+        ClientDetails details = new ClientDetails();
+        details.setClientId(entity.getClientId());
+        details.setScopes(entity.getScopes());
+        details.setAccessTokenValidity(entity.getAccessTokenValidity());
+        details.setRefreshTokenValidity(entity.getRefreshTokenValidity());
+        
+        return details;
     }
 }
 ```
 
-**核心方法说明：**
+**步骤3：实现登录管理器（必须，至少一种）**
 
-| 方法 | 说明 | 是否需实现 | 参数 |
-|------|------|-----------|------|
-| `getProcess()` | 返回处理器类型枚举 | **必须实现** | - |
-| `checkErrorNum()` | 检查失败次数是否超限 | 父类已实现 | clientDetails, adapter, ip |
-| `recordError()` | 记录登录失败 | 父类已实现 | clientDetails, adapter, ip |
-| `clearError()` | 清除失败记录（登录成功后调用） | 父类已实现 | clientDetails, adapter, ip |
-| `getLoginKey()` | 获取登录标识key | **必须实现** | clientDetails, adapter, ip |
-| `getKeyPrefix()` | 获取Redis key前缀 | **必须实现** | - |
-
-**2. 登录成功处理责任链**
-
-登录成功后，通过责任链执行保存用户信息、记录日志等后置操作。
-
-**责任链枚举定义：**
-
-```java
-public enum LoginSucKindProcess implements DefaultKindProcess {
-    SAVE_INFO("保存用户信息", true, 1),
-    LOGIN_LOG("登陆日志", true, 2);
-}
-```
-
-**自定义登录成功处理：**实现 `LoginSucProcess` 接口
+为每种登录方式实现 `LoginManager` 接口：
 
 ```java
 @Component
-public class CustomLoginSucProcess implements LoginSucProcess {
+public class PasswordLoginManager implements LoginManager {
+    
+    @Autowired
+    private UserService userService;
     
     @Override
-    public DefaultKindProcess getProcess() {
-        return LoginSucKindProcess.SAVE_INFO;
+    public AbsUserDetails login(ClientDetails clientDetails, Object adapter) {
+        PwdLoginRequest request = (PwdLoginRequest) adapter;
+        
+        // 查询用户
+        User user = userService.getByUsername(request.getUsername());
+        AssertUtils.notNull(user, "用户名或密码错误");
+        
+        // 校验密码
+        boolean matches = passwordEncoder.matches(request.getPassword(), user.getPassword());
+        AssertUtils.isTrue(matches, "用户名或密码错误");
+        
+        // 构建用户详情
+        AbsUserDetails details = new AbsUserDetails();
+        details.setUserId(user.getId());
+        details.setUsername(user.getUsername());
+        details.setLoginRole(user.getRoles());
+        details.setIsEnabled(user.getStatus());
+        details.setIsAccountNonExpired(1);
+        details.setIsAccountNonLocked(1);
+        details.setIsCredentialsNonExpired(1);
+        
+        return details;
     }
     
     @Override
-    public void execute(TokenData tokenData) {
-        // 登录成功后的自定义处理逻辑
-        log.info("用户 {} 登录成功", tokenData.getUserId());
+    public boolean support(Object adapter) {
+        return adapter instanceof PwdLoginRequest;
+    }
+    
+    @Override
+    public LoginTypeAdapter getLoginType() {
+        return LoginTypeAdapter.PASSWORD;
     }
 }
 ```
 
-##### 扩展指南
+**步骤4：使用权限管理服务（直接使用）**
 
-**1. 如何扩展新的登录方式**
+`PermissionManageService` 由框架提供默认实现，直接注入使用即可管理角色权限：
 
-框架支持多种登录方式（密码登录、短信登录等），通过 `LoginTypeAdapter` 枚举和 `LoginManager` 实现扩展。
+```java
+@Service
+public class RoleManagementService {
+    
+    @Autowired
+    private PermissionManageService permissionManageService;
+    
+    /**
+     * 更新角色权限
+     */
+    public void updateAdminPermissions() {
+        Map<String, String> permissions = new HashMap<>();
+        permissions.put("user:create", "创建用户");
+        permissions.put("user:delete", "删除用户");
+        permissions.put("user:update", "更新用户");
+        permissions.put("role:manage", "角色管理");
+        
+        // 更新admin角色的权限，自动发布事件通知所有客户端刷新缓存
+        permissionManageService.updateRolePermission("admin", permissions);
+    }
+    
+    /**
+     * 批量刷新多个角色的权限
+     */
+    public void batchRefreshRoles() {
+        List<String> roleKeys = List.of("admin", "editor", "viewer");
+        
+        // 批量刷新，只发布一次事件
+        permissionManageService.batchRefreshPermissions(roleKeys);
+    }
+    
+    /**
+     * 删除角色的某个权限
+     */
+    public void removePermission() {
+        // 删除admin角色的"user:delete"权限
+        permissionManageService.deletePermission("admin", "user:delete");
+    }
+    
+    /**
+     * 查询角色权限
+     */
+    public Map<Object, Object> queryRolePermissions(String roleKey) {
+        return permissionManageService.getRolePermission(roleKey);
+    }
+}
+```
 
-**步骤1：定义登录请求对象**
+**重要说明：**
+- `PermissionManageService` 由框架提供默认实现，无需自定义
+- 调用 `updateRolePermission()` 等方法后，会自动发布事件通知所有客户端刷新缓存
+- 客户端通过事件监听器自动接收权限变更并更新本地缓存
+
+### 扩展示例
+
+**1. 扩展新的登录方式（短信登录）**
+
+步骤1：定义登录请求对象
 
 ```java
 @Data
-public class WechatLoginRequest {
-    private String code;      // 微信授权码
-    private String state;     // 状态参数
+public class SmsLoginRequest {
+    private String phone;
+    private String code;
 }
 ```
 
-**步骤2：创建登录管理器**
+步骤2：创建登录管理器
 
 ```java
 @Component
-public class WechatLoginManager implements LoginManager {
+public class SmsLoginManager implements LoginManager {
     
     @Autowired
     private UserService userService;
     
     @Autowired
-    private TokenManager tokenManager;
+    private SmsService smsService;
     
     @Override
-    public TokenData login(Object adapter, ClientDetails clientDetails) {
-        WechatLoginRequest request = (WechatLoginRequest) adapter;
+    public AbsUserDetails login(ClientDetails clientDetails, Object adapter) {
+        SmsLoginRequest request = (SmsLoginRequest) adapter;
         
-        // 1. 调用微信API获取用户信息
-        String openId = wechatService.getOpenId(request.getCode());
+        // 校验短信验证码
+        boolean valid = smsService.verifyCode(request.getPhone(), request.getCode());
+        AssertUtils.isTrue(valid, "验证码错误或已过期");
         
-        // 2. 查询或创建用户
-        User user = userService.getByOpenId(openId);
+        // 查询或创建用户
+        User user = userService.getByPhone(request.getPhone());
         if (user == null) {
-            user = userService.createByWechat(openId);
+            user = userService.createByPhone(request.getPhone());
         }
         
-        // 3. 构建Token数据
-        TokenData tokenData = new TokenData();
-        tokenData.setUserId(user.getId());
-        tokenData.setUsername(user.getUsername());
-        tokenData.setRoles(user.getRoles());
-        tokenData.setScopes(clientDetails.getScopes());
+        // 构建用户详情
+        AbsUserDetails details = new AbsUserDetails();
+        details.setUserId(user.getId());
+        details.setUsername(user.getPhone());
+        details.setLoginRole(user.getRoles());
+        details.setIsEnabled(1);
+        details.setIsAccountNonExpired(1);
+        details.setIsAccountNonLocked(1);
+        details.setIsCredentialsNonExpired(1);
         
-        return tokenData;
+        return details;
+    }
+    
+    @Override
+    public boolean support(Object adapter) {
+        return adapter instanceof SmsLoginRequest;
     }
     
     @Override
     public LoginTypeAdapter getLoginType() {
-        return LoginTypeAdapter.WECHAT; // 需要在枚举中添加WECHAT
+        return LoginTypeAdapter.SMS;
     }
 }
 ```
 
-**步骤3：在枚举中添加登录类型**
+步骤3：在枚举中添加登录类型
 
 ```java
 public enum LoginTypeAdapter {
     PASSWORD("密码登录"),
-    SMS("短信登录"),
-    WECHAT("微信登录");  // 新增
+    SMS("短信登录");  // 新增
     
     private final String desc;
 }
 ```
 
-**步骤4：调用登录接口**
+步骤4：调用登录接口
 
 ```java
 @RestController
@@ -1129,17 +972,17 @@ public class AuthController {
     @Autowired
     private LoginService loginService;
     
-    @PostMapping("/wechat/login")
-    public R<Map<String, String>> wechatLogin(@RequestBody WechatLoginRequest request) {
-        Map<String, String> tokens = loginService.login(request, LoginTypeAdapter.WECHAT);
+    @PostMapping("/sms/login")
+    public R<Map<String, String>> smsLogin(@RequestBody SmsLoginRequest request) {
+        Map<String, String> tokens = loginService.login(request, LoginTypeAdapter.SMS);
         return R.ok(tokens);
     }
 }
 ```
 
-**2. 如何自定义登录成功处理**
+**2. 自定义登录成功处理**
 
-例如：发送登录通知、积分奖励、更新最后登录时间等。
+实现 `LoginSucProcess` 接口，添加登录成功后的处理逻辑：
 
 ```java
 @Component
@@ -1150,7 +993,6 @@ public class NotificationLoginSucProcess implements LoginSucProcess {
     
     @Override
     public DefaultKindProcess getProcess() {
-        // 在 LoginSucKindProcess 枚举中添加 NOTIFICATION
         return LoginSucKindProcess.NOTIFICATION;
     }
     
@@ -1166,9 +1008,23 @@ public class NotificationLoginSucProcess implements LoginSucProcess {
 }
 ```
 
-**3. 如何自定义登录失败处理**
+在枚举中注册：
 
-例如：基于设备指纹的失败计数、发送告警通知等。
+```java
+public enum LoginSucKindProcess implements DefaultKindProcess {
+    SAVE_INFO("保存用户信息", true, 1),
+    LOGIN_LOG("登陆日志", true, 2),
+    NOTIFICATION("登录通知", true, 3);  // 新增
+    
+    private final String label;
+    private final boolean execute;
+    private final int order;
+}
+```
+
+**3. 自定义登录失败处理**
+
+继承 `AbsLoginErrorProcess`，添加自定义失败计数逻辑：
 
 ```java
 @Component
@@ -1176,7 +1032,6 @@ public class DeviceLoginErrorProcess extends AbsLoginErrorProcess {
     
     @Override
     public LoginErrorKindProcess getProcess() {
-        // 在 LoginErrorKindProcess 枚举中添加 DEVICE_ERROR
         return LoginErrorKindProcess.DEVICE_ERROR;
     }
     
@@ -1194,30 +1049,72 @@ public class DeviceLoginErrorProcess extends AbsLoginErrorProcess {
 }
 ```
 
-**6. 权限管理服务与事件同步**
+#### 使用示例
 
-PermissionManageService 提供完整的权限管理能力，支持角色权限的增删改查，并通过事件总线实时同步到所有客户端。
+**1. 密码登录**
 
-**所属模块：** simple-common-auth-server
+```java
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+    
+    @Autowired
+    private LoginService loginService;
+    
+    @PostMapping("/login")
+    public R<Map<String, String>> login(@RequestBody PwdLoginRequest request) {
+        Map<String, String> tokens = loginService.login(request, LoginTypeAdapter.PASSWORD);
+        return R.ok(tokens);
+    }
+}
+```
 
-**核心优势：**
-- ✅ **事件携带完整数据** - 零HTTP请求，直接同步
-- ✅ **避免并发雪崩** - 不产生额外的服务端压力
-- ✅ **实时性高** - 事件到达即完成同步
-- ✅ **职责清晰** - 独立的权限管理服务
+返回数据：
 
-**使用示例：**
+```json
+{
+  "code": 200,
+  "data": {
+    "bearer": "Bearer",
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9...",
+    "refreshToken": "eyJhbGciOiJIUzI1NiJ9...",
+    "exp": 1234567890,
+    "scopes": "user:read,user:write"
+  }
+}
+```
+
+**2. Token刷新**
+
+```java
+@PostMapping("/refresh")
+public R<Map<String, String>> refresh(@RequestParam String refreshToken) {
+    Map<String, String> tokens = loginService.refresh(refreshToken);
+    return R.ok(tokens);
+}
+```
+
+**3. 退出登录**
+
+```java
+@PostMapping("/logout")
+public R<Void> logout() {
+    loginService.logout();
+    return R.ok();
+}
+```
+
+**4. 权限管理**
 
 ```java
 @Service
-public class UserRoleService {
+public class RolePermissionService {
     
     @Autowired
     private PermissionManageService permissionManageService;
     
     /**
      * 更新角色权限
-     * 自动完成：更新缓存 + 发布事件 + 所有客户端同步
      */
     public void updateAdminPermissions() {
         Map<String, String> permissions = new HashMap<>();
@@ -1225,19 +1122,19 @@ public class UserRoleService {
         permissions.put("user:delete", "删除用户");
         permissions.put("user:update", "更新用户");
         
-        // 一行代码，自动触发全流程
+        // 自动发布事件，所有客户端实时同步
         permissionManageService.updateRolePermission("admin", permissions);
     }
     
     /**
-     * 删除角色的某个权限
+     * 删除权限
      */
     public void removePermission() {
         permissionManageService.deletePermission("admin", "user:delete");
     }
     
     /**
-     * 批量刷新多个角色的权限
+     * 批量刷新
      */
     public void batchRefresh() {
         List<String> roles = List.of("admin", "editor", "viewer");
@@ -1246,173 +1143,404 @@ public class UserRoleService {
 }
 ```
 
-**工作流程：**
+---
 
-```
-1. 管理员调用 PermissionManageService.updateRolePermission()
-   ↓
-2. 服务端更新 Redis 缓存
-   ↓
-3. 发布 PermissionChangeEvent 事件（携带完整权限数据）
-   ↓
-4. 所有客户端接收事件
-   ↓
-5. 客户端直接从事件中获取权限数据并更新 CacheManager 缓存
-   ↓
-6. ✅ 同步完成（零HTTP请求）
+## 3. simple-common-cache
+
+### 模块介绍
+
+两级缓存模块，提供本地缓存（Caffeine）和分布式缓存（Redis + DB）的统一管理，支持缓存穿透保护和防雪崩。
+
+### 核心功能
+
+| 功能分类 | 接口/组件 | 说明 |
+|---------|----------|------|
+| 缓存工具类 | `CacheUtils` | 统一缓存访问入口 |
+| 本地缓存工厂 | `LocalCacheFactory` | Caffeine缓存实例管理 |
+| 分布式缓存获取 | `GetRedisFunction` | Redis缓存读取和回写逻辑 |
+| 数据库查询 | `GetDBFunction` | 数据库查询逻辑 |
+| 缓存配置 | `CacheConfig` | 缓存自动配置 |
+
+### 集成方式
+
+**步骤1：添加依赖**
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-cache</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-**事件类定义：**
+**注意：** cache模块依赖simple-common-redis，需要确保Redis已正确配置。
+
+### 使用示例
+
+**1. 分布式缓存（Redis + DB，防穿透）**
 
 ```java
-@Data
-public class PermissionChangeEvent {
-    private String roleKey;                    // 角色标识
-    private Map<String, String> permissions;   // 完整权限数据
-    private String changeType;                 // UPDATE/DELETE
-    private Long timestamp;                    // 时间戳
-}
-```
-
-**客户端监听器（自动处理）：**
-
-```java
-@Component
-public class PermissionChangeEventHandler {
+@Service
+public class UserService {
     
     @Autowired
-    private CacheManager cacheManager;
+    private UserMapper userMapper;
     
-    @EventHandler
-    public void onPermissionChange(PermissionChangeEvent event) {
-        String roleKey = event.getRoleKey();
-        Map<String, String> permissions = event.getPermissions();
+    /**
+     * 获取用户信息（带缓存）
+     */
+    public User getUserById(String userId) {
+        return CacheUtils.get(
+            userId,  // 请求参数
+            "user:" + userId,  // 锁key（必须与缓存key一致）
+            // Redis获取和回写逻辑
+            (request) -> {
+                String key = "user:" + request;
+                String json = redisTemplate.opsForValue().get(key);
+                if (json != null) {
+                    return JsonUtils.parse(json, User.class);
+                }
+                return null;
+            },
+            (request) -> {
+                // Redis中不存在，从数据库查询
+                User user = userMapper.selectById(request);
+                // 回写到Redis（包含空值处理，防止穿透）
+                if (user != null) {
+                    String key = "user:" + request;
+                    int expireTime = CacheUtils.getCacheTime(3600, 600); // 1小时+随机0-10分钟
+                    redisTemplate.opsForValue().set(key, JsonUtils.toJsonStr(user), expireTime, TimeUnit.SECONDS);
+                }
+                return user;
+            }
+        );
+    }
+    
+    /**
+     * 更新用户信息（删除缓存）
+     */
+    public void updateUser(User user) {
+        userMapper.updateById(user);
         
-        // 直接更新缓存，无需HTTP请求
-        String authKey = TokenConstant.getAuthKey(roleKey);
-        cacheManager.hashPutAll(authKey, new HashMap<>(permissions));
-        cacheManager.expire(authKey, 30 * 60);
+        // 主动删除缓存
+        CacheUtils.evict(
+            user.getId(),
+            "user:" + user.getId(),
+            (key) -> redisTemplate.delete(key)
+        );
     }
 }
 ```
 
-**配置要求：**
+**2. 本地缓存（Caffeine）**
 
-确保项目中已引入事件总线模块：
-
-```yaml
-simple:
-  event:
-    type: mq  # 或 sync，使用 RabbitMQ 或同步事件
+```java
+@Service
+public class DictService {
+    
+    private Cache<String, Dict> dictCache;
+    
+    @PostConstruct
+    public void init() {
+        // 创建本地缓存
+        dictCache = CacheUtils.createLocalCache("dictCache", spec -> {
+            spec.maximumSize(1000)  // 最大容量
+                 .expireAfterWrite(1, TimeUnit.HOURS);  // 写入后1小时过期
+        });
+    }
+    
+    public Dict getDict(String code) {
+        // 先从本地缓存获取
+        Dict dict = dictCache.getIfPresent(code);
+        if (dict != null) {
+            return dict;
+        }
+        
+        // 从数据库查询
+        dict = dictMapper.selectByCode(code);
+        if (dict != null) {
+            dictCache.put(code, dict);
+        }
+        
+        return dict;
+    }
+}
 ```
+
+**3. 自动加载缓存（LoadingCache）**
+
+```java
+@Service
+public class ConfigService {
+    
+    private LoadingCache<String, Config> configCache;
+    
+    @PostConstruct
+    public void init() {
+        // 创建自动加载缓存
+        configCache = CacheUtils.createLocalLoadingCache(
+            "configCache",
+            // 缓存加载器
+            new CacheLoader<String, Config>() {
+                @Override
+                public Config load(String key) throws Exception {
+                    // 缓存未命中时自动调用
+                    return configMapper.selectByCode(key);
+                }
+            },
+            spec -> {
+                spec.maximumSize(500)
+                     .expireAfterWrite(30, TimeUnit.MINUTES);
+            }
+        );
+    }
+    
+    public Config getConfig(String code) {
+        // 自动加载，无需手动判断
+        return configCache.get(code);
+    }
+}
+```
+
+**重要说明：**
+- 分布式缓存使用双重检查锁 + 分布式锁防止缓存击穿
+- 建议设置随机过期时间防止缓存雪崩（使用`CacheUtils.getCacheTime()`）
+- 本地缓存适合存储不常变化的小数据（如字典、配置）
+- 分布式缓存适合存储业务数据（如用户、订单）
 
 ---
 
-### 3. simple-common-redis（Redis模块）
+## 4. simple-common-redis
 
-Redis缓存模块，提供Redisson分布式锁、限流、缓存注解等高级功能封装。
+### 模块介绍
 
-#### 核心功能
+Redis封装模块，提供分布式锁、限流、缓存等功能。
+
+### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
 | 分布式锁服务 | `RedissonLockService` | 可重入锁、公平锁、闭锁、信号量 |
-| 限流管理 | `CurrentLimitingManager` | 基于令牌桶的限流 |
-| 限流注解 | `@CurrentLimiting` | 方法级限流注解 |
-| 缓存注解 | `@RedisCache` | 方法级缓存注解 |
-| 缓存切面管理 | `RedisCacheAspectManager` | 缓存Key生成策略 |
+| 限流注解 | `@CurrentLimiting` | 方法级限流，支持URL/用户/IP三种维度 |
+| 缓存注解 | `@RedisCache` | 方法级缓存，防雪崩、防击穿 |
+| 限流管理 | `CurrentLimitingManager` | 基于令牌桶的限流实现 |
+| 缓存Key生成 | `RedisCacheAspectManager` | 缓存Key生成策略 |
 
-#### 3.1 分布式锁（RedissonLockService）
+### 集成方式
 
-**支持的锁类型：**
+**步骤1：添加依赖**
 
-| 锁类型 | 方法 | 说明 |
-|--------|------|------|
-| 可重入锁 | `lock(key, function)` | 自动续期，30秒刷新一次 |
-| 带返回值锁 | `lockHaveValue(key, function)` | 支持返回值的可重入锁 |
-| 公平锁 | `fairLock(key, function)` | 按请求顺序获取锁 |
-| 闭锁 | `countDownLatch(key, count)` | 等待多个任务完成 |
-| 信号量 | `semaphoreLock(key, permits)` | 控制并发访问数量 |
-
-**使用示例：**
-
-```java
-@Autowired
-private RedissonLockService lockService;
-
-// 1. 可重入锁（无返回值）
-lockService.lock("order:create:" + orderId, () -> {
-    // 业务逻辑
-    orderService.create(order);
-});
-
-// 2. 可重入锁（有返回值）
-Object result = lockService.lockHaveValue("order:query:" + orderId, () -> {
-    return orderService.findById(orderId);
-});
-
-// 3. 公平锁
-lockService.fairLock("resource:access", () -> {
-    // 按请求顺序执行
-});
-
-// 4. 闭锁（等待多个任务完成）
-lockService.countDownLatch("task:batch", 10); // 等待10个任务
-// 在其他线程中完成任务后调用
-lockService.decreaseCountDownLatch("task:batch");
-
-// 5. 信号量（控制并发数）
-lockService.semaphoreLock("api:concurrent", 100); // 最多100个并发
-// 获取许可
-lockService.decreaseSemaphoreLock("api:concurrent", 1);
-// 释放许可
-lockService.increaseSemaphoreLock("api:concurrent", 1);
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-redis</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-#### 3.2 限流功能（@CurrentLimiting）
+**步骤2：配置Redis连接（必须）**
 
-**限流规则枚举：**
+```yaml
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: your_password
+      database: 0
+```
+
+**步骤3：启用Redisson（可选）**
+
+```yaml
+redisson:
+  open: true  # 默认开启，用于分布式锁等功能
+```
+
+**重要说明：**
+- Redisson默认开启，提供分布式锁、限流、缓存等功能
+- 如果不需要分布式锁功能，可以关闭Redisson以节省资源
+- 限流和缓存注解需要Redisson支持
+
+### 使用示例
+
+**1. 可重入锁（无返回值）**
 
 ```java
-public enum CurrentLimitingRulesEnum {
-    URL,      // 按URL限流
-    USER_ID,  // 按用户ID限流
-    IP        // 按IP限流
+@Service
+public class OrderService {
+    
+    @Autowired
+    private RedissonLockService lockService;
+    
+    public void createOrder(Order order) {
+        String lockKey = "order:create:" + order.getUserId();
+        
+        lockService.lock(lockKey, () -> {
+            // 业务逻辑，自动加锁/解锁
+            // 锁会自动续期，每30秒刷新一次
+            orderMapper.insert(order);
+        });
+    }
 }
 ```
 
-**注解参数：**
+**2. 可重入锁（有返回值）**
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `key` | 限流规则（URL/USER_ID/IP） | URL |
-| `time` | 单位时长（秒） | 10 |
-| `sum` | 单位时长允许的请求次数 | 2 |
-| `waitingTime` | 未获取令牌的最大等待时间（秒） | 5 |
-| `waitingTimeErrorStr` | 等待超时后的自定义错误信息 | "" |
+```java
+@Service
+public class ProductService {
+    
+    @Autowired
+    private RedissonLockService lockService;
+    
+    public Product getProduct(String productId) {
+        String lockKey = "product:query:" + productId;
+        
+        return (Product) lockService.lockHaveValue(lockKey, () -> {
+            // 查询数据库
+            return productMapper.selectById(productId);
+        });
+    }
+}
+```
 
-**使用示例：**
+**3. 公平锁**
+
+```java
+@Service
+public class ResourceService {
+    
+    @Autowired
+    private RedissonLockService lockService;
+    
+    public void accessResource(String resourceId) {
+        String lockKey = "resource:access:" + resourceId;
+        
+        // 按请求顺序获取锁，先来的先执行
+        lockService.fairLock(lockKey, () -> {
+            // 业务逻辑
+            processResource(resourceId);
+        });
+    }
+}
+```
+
+**4. 闭锁（CountDownLatch）**
+
+```java
+@Service
+public class BatchTaskService {
+    
+    @Autowired
+    private RedissonLockService lockService;
+    
+    /**
+     * 等待多个子任务完成
+     */
+    public void executeBatchTask(String taskId, int taskCount) {
+        String lockKey = "task:batch:" + taskId;
+        
+        // 启动主线程等待
+        new Thread(() -> {
+            lockService.countDownLatch(lockKey, taskCount);
+            log.info("所有子任务完成，继续执行");
+            // 后续处理
+        }).start();
+        
+        // 启动子任务
+        for (int i = 0; i < taskCount; i++) {
+            int finalI = i;
+            new Thread(() -> {
+                // 执行子任务
+                executeSubTask(taskId, finalI);
+                
+                // 完成任务，计数器减1
+                lockService.decreaseCountDownLatch(lockKey);
+            }).start();
+        }
+    }
+}
+```
+
+**5. 信号量（Semaphore）**
+
+```java
+@Service
+public class ParkingLotService {
+    
+    @Autowired
+    private RedissonLockService lockService;
+    
+    private static final String SEMAPHORE_KEY = "parking:lot:A";
+    
+    /**
+     * 初始化停车场（3个车位）
+     */
+    @PostConstruct
+    public void init() {
+        lockService.semaphoreLock(SEMAPHORE_KEY, 3);
+    }
+    
+    /**
+     * 车辆进入
+     */
+    public boolean enterParking(String vehicleId) {
+        try {
+            // 获取许可（阻塞等待）
+            lockService.decreaseSemaphoreLock(SEMAPHORE_KEY, 1);
+            log.info("车辆 {} 进入停车场", vehicleId);
+            return true;
+        } catch (Exception e) {
+            log.warn("停车场已满");
+            return false;
+        }
+    }
+    
+    /**
+     * 车辆离开
+     */
+    public void leaveParking(String vehicleId) {
+        // 释放许可
+        lockService.increaseSemaphoreLock(SEMAPHORE_KEY, 1);
+        log.info("车辆 {} 离开停车场", vehicleId);
+    }
+}
+```
+
+**6. 限流注解（@CurrentLimiting）**
 
 ```java
 @RestController
+@RequestMapping("/api")
 public class ApiController {
     
-    // 按URL限流：10秒内最多2次请求
-    @GetMapping("/api/data")
+    /**
+     * 按URL限流：10秒内最多2次请求
+     */
+    @GetMapping("/data")
     @CurrentLimiting(time = 10, sum = 2)
     public R getData() {
-        return R.ok(data);
+        return R.ok(dataService.getData());
     }
     
-    // 按用户ID限流：60秒内最多10次请求
-    @PostMapping("/api/submit")
-    @CurrentLimiting(key = CurrentLimitingRulesEnum.USER_ID, time = 60, sum = 10)
+    /**
+     * 按用户ID限流：60秒内最多10次请求
+     */
+    @PostMapping("/submit")
+    @CurrentLimiting(
+        key = CurrentLimitingRulesEnum.USER_ID,
+        time = 60,
+        sum = 10
+    )
     public R submit(@RequestBody Request request) {
         return R.ok();
     }
     
-    // 按IP限流：带自定义错误信息
-    @GetMapping("/api/search")
+    /**
+     * 按IP限流：带自定义错误信息
+     */
+    @GetMapping("/search")
     @CurrentLimiting(
         key = CurrentLimitingRulesEnum.IP,
         time = 1,
@@ -1420,53 +1548,48 @@ public class ApiController {
         waitingTimeErrorStr = "搜索太频繁，请稍后再试"
     )
     public R search(@RequestParam String keyword) {
-        return R.ok();
+        return R.ok(searchService.search(keyword));
     }
 }
 ```
 
-**注意**：使用 `USER_ID` 限流时，需要实现 `CoreLoginUserService` 接口：
+**限流规则枚举：**
 
-```java
-@Component
-public class CustomLoginUserService implements CoreLoginUserService {
-    
-    @Override
-    public String getUserId() {
-        return LoginUserUtils.getUserId();
-    }
-}
-```
+| 枚举值 | 说明 |
+|--------|------|
+| `URL` | 按请求URL限流 |
+| `USER_ID` | 按当前登录用户ID限流 |
+| `IP` | 按客户端IP限流 |
 
-#### 3.3 缓存功能（@RedisCache）
+**注意**：使用 `USER_ID` 限流时，需要从上下文中获取用户ID，确保已集成auth模块。
 
-**注解参数：**
-
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `head` | 缓存Key前缀 | 请求URL |
-| `cacheTime` | 缓存时长（秒） | 10 |
-| `appendRandomDuration` | 追加随机时长范围（秒），防止缓存雪崩 | 5 |
-| `aclass` | 返回值类型 | R.class |
-
-**使用示例：**
+**7. 缓存注解（@RedisCache）**
 
 ```java
 @RestController
+@RequestMapping("/api")
 public class DataController {
     
-    // 基本缓存：缓存10秒，追加0-5秒随机时长
-    @GetMapping("/api/user/{id}")
+    /**
+     * 基本缓存：缓存10秒，追加0-5秒随机时长（防雪崩）
+     */
+    @GetMapping("/user/{id}")
     @RedisCache(cacheTime = 10, appendRandomDuration = 5)
     public R getUser(@PathVariable String id) {
-        return R.ok(userService.findById(id));
+        // 首次请求：查数据库并缓存
+        // 后续请求：直接返回缓存
+        User user = userService.findById(id);
+        return R.ok(user);
     }
     
-    // 自定义缓存Key前缀
-    @GetMapping("/api/config")
+    /**
+     * 自定义缓存Key前缀
+     */
+    @GetMapping("/config")
     @RedisCache(head = "config:global", cacheTime = 3600)
     public R getConfig() {
-        return R.ok(configService.getGlobalConfig());
+        Config config = configService.getGlobalConfig();
+        return R.ok(config);
     }
 }
 ```
@@ -1476,129 +1599,146 @@ public class DataController {
 ```
 首次请求
    ↓
+查询Redis缓存
+   ↓
+未命中 → 获取分布式锁
+   ↓
 查询数据库
    ↓
-存入Redis（设置过期时间 + 随机偏移）
+存入Redis（cacheTime + 随机偏移）
    ↓
-返回结果
+释放锁，返回结果
 
 后续请求
    ↓
-查询Redis
+查询Redis缓存
    ↓
 命中 → 直接返回
-   ↓
-未命中 → 重新查库并缓存
 
 并发请求
    ↓
-第一个请求获取分布式锁
+第一个请求获取锁，查库并缓存
    ↓
-其他请求等待
+其他请求等待锁释放
    ↓
-第一个请求完成后释放锁
-   ↓
-其他请求从缓存读取
+从缓存读取
 ```
 
 **防雪崩机制：**
-- ✅ **随机过期时间**：`appendRandomDuration` 在基础过期时间上增加随机偏移
+- ✅ **随机过期时间**：`appendRandomDuration` 在基础过期时间上增加0-N秒随机偏移
 - ✅ **分布式锁**：防止缓存击穿，同一时刻只有一个请求查库
 - ✅ **并发控制**：其他请求等待缓存更新完成
 
+**缓存Key生成规则：**
+- 默认：`请求URI + & + 参数哈希值`
+- 自定义：`head参数 + & + 参数哈希值`
+- 无参数：`请求URI + & + noParametersKey配置值`
+
 ---
 
-### 4. simple-common-cache（多缓存模块）
+## 5. simple-common-mp
 
-多缓存模块，提供Caffeine本地缓存和Redis分布式缓存的统一抽象。
+### 模块介绍
 
-#### 核心功能
+MyBatis-Plus封装模块，提供分页、通用Mapper等功能。
+
+### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
-| 缓存管理 | `CacheManager` | 缓存操作统一接口 |
-| 本地缓存 | `LocalCacheManager` | 基于Caffeine的本地缓存 |
-| Redis缓存 | `RedisCacheManager` | 基于Redis的分布式缓存 |
-| 缓存工厂 | `CacheManagerFactory` | 根据配置创建缓存管理器 |
+| 分页基类 | `PageBase` | 分页参数基类，支持动态排序 |
+| 通用Mapper | `BaseMapper` | MyBatis-Plus通用Mapper |
 
-#### 4.1 架构设计
+### 集成方式
 
-**两级缓存架构：**
+**步骤1：添加依赖**
 
-```
-应用层
-   ↓
-CacheManager (统一接口)
-   ↓
-   ├─ LocalCacheManager (一级缓存)
-   │   └─ Caffeine (进程内缓存)
-   │       ├─ 速度快 (ns级)
-   │       └─ 不支持分布式
-   │
-   └─ RedisCacheManager (二级缓存)
-       └─ Redis (分布式缓存)
-           ├─ 支持分布式
-           └─ 速度稍慢 (ms级)
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-mp</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-**读写策略：**
+**步骤2：配置数据库连接（必须）**
 
-```
-写入：
-   ↓
-同时写入本地缓存 + Redis
-
-读取：
-   ↓
-先查本地缓存
-   ↓
-命中 → 返回
-   ↓
-未命中 → 查Redis
-   ↓
-命中 → 写入本地缓存 + 返回
-   ↓
-未命中 → 查数据库 → 写入两级缓存 → 返回
-
-删除：
-   ↓
-同时删除本地缓存 + Redis
+```yaml
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver  # 或 com.mysql.cj.jdbc.Driver
+    url: jdbc:postgresql://localhost:5432/your_database
+    username: your_username
+    password: your_password
 ```
 
-#### 4.2 使用示例
+**步骤3：配置Mapper扫描路径（必须）**
+
+在启动类或配置类上添加`@MapperScan`注解：
 
 ```java
-@Autowired
-private CacheManager cacheManager;
-
-// 设置缓存（自动写入本地缓存和Redis）
-cacheManager.set("user:1", userData, 30, TimeUnit.MINUTES);
-
-// 获取缓存（优先从本地缓存读取，未命中则查Redis）
-User user = cacheManager.get("user:1", User.class);
-
-// 删除缓存（同时删除本地和Redis）
-cacheManager.delete("user:1");
-
-// 批量操作
-cacheManager.setAll(userMap, 30, TimeUnit.MINUTES);
-Map<String, User> users = cacheManager.getAll(keys, User.class);
+@SpringBootApplication
+@MapperScan("com.yourpackage.mapper")  // 替换为你的Mapper包路径
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
 ```
 
-**缓存管理器选择：**
+**重要说明：**
+- mp模块已自动配置分页插件（默认PostgreSQL），如需切换为MySQL，需自定义`MybatisPlusInterceptor`
+- 自动填充功能已启用（createTime、updateTime字段）
+- PageBase支持动态排序，格式：`字段名-true/false`（驼峰命名）
 
-| 类型 | 适用场景 | 特点 |
-|------|---------|------|
-| `LocalCacheManager` | 单机应用、热点数据 | 速度快，不支持分布式 |
-| `RedisCacheManager` | 分布式应用、共享数据 | 支持分布式，性能略低 |
+### 使用示例
+
+**1. 分页查询**
+
+查询对象继承 `PageBase`：
+
+```java
+@Data
+public class UserQuery extends PageBase {
+    private String username;
+    private Integer status;
+}
+```
+
+Service中使用：
+
+```java
+@Service
+public class UserService {
+    
+    @Autowired
+    private UserMapper userMapper;
+    
+    public IPage<User> pageQuery(UserQuery query) {
+        Page<User> page = query.getPage(User.class);
+        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+        
+        if (StrUtil.isNotBlank(query.getUsername())) {
+            wrapper.like(User::getUsername, query.getUsername());
+        }
+        if (query.getStatus() != null) {
+            wrapper.eq(User::getStatus, query.getStatus());
+        }
+        
+        return userMapper.selectPage(page, wrapper);
+    }
+}
+```
 
 ---
 
-### 5. simple-common-rabbitmq（消息队列模块）
+## 6. simple-common-rabbitmq
 
-RabbitMQ消息队列模块，提供**防重消费、自动重试、锁续期、责任链处理**等企业级特性。
+### 模块介绍
 
-#### 核心功能
+RabbitMQ消息队列模块，提供防重消费、自动重试、锁续期、责任链处理等企业级特性。
+
+### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
@@ -1607,70 +1747,109 @@ RabbitMQ消息队列模块，提供**防重消费、自动重试、锁续期、�
 | 责任链处理 | `RabbitMqProcess` | 消息处理责任链接口 |
 | 消费锁管理 | `ConsumptionLockManager` | 防止重复消费的分布式锁 |
 | 重试管理 | `RetryMessageManager` | 消息重试控制 |
-| 重试计数 | `RetryCountManager` | 重试次数管理 |
 | ACK管理 | `AckRMQManager` | 消息确认管理 |
+| 重试计数 | `RetryCountManager` | 原子递增重试次数 |
 | 失败持久化 | `SendFailurePersistenceManager` | 发送失败消息持久化 |
+| 完成校验策略 | `CompletionVerificationStrategyManager` | 业务完成校验策略 |
+| 校验策略路由 | `CompletionVerificationRouterManager` | 根据队列名路由校验策略 |
 
-#### 5.1 架构设计
+### 集成方式
 
-**消息消费流程：**
+**步骤1：添加依赖**
 
-```
-接收消息
-   ↓
-尝试获取分布式锁（防重消费）
-   ├─ 成功 → 继续
-   └─ 失败 → 检查锁状态
-       ├─ 已完成且校验通过 → 直接ACK
-       ├─ 已完成但校验失败 → 重置锁并重试
-       ├─ 处理中 → 拒绝并不放回
-       ├─ 僵尸锁 → 重新竞争锁
-       └─ 不存在 → 放回队列
-   ↓
-启动锁续期任务（每 businessTime/3 刷新一次）
-   ↓
-执行前置处理器（RabbitMqProcess责任链）
-   ↓
-执行业务方法
-   ↓
-标记业务完成（存储业务ID）
-   ↓
-ACK消息
-   ↓
-清理重试计数
-   ↓
-取消锁续期任务
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-rabbitmq</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-**重要说明：**
+**步骤2：配置RabbitMQ连接（必须）**
 
-- ✅ **防重消费**：基于Redis分布式锁，防止同一消息被多次消费
-- ✅ **自动重试**：消费失败后自动重试，支持配置最大重试次数
-- ✅ **锁续期**：业务执行时间超过预估时，自动续期锁，防止锁提前释放
-- ✅ **僵尸锁恢复**：检测并恢复异常的长TTL锁
-- ✅ **完成校验**：消费完成后验证业务状态，确保一致性
-- ✅ **责任链扩展**：支持自定义前置处理器
+```yaml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: manual  # 必须设置为手动ACK
+```
 
-#### 5.2 消息消费注解（@RabbitMqConsumption）
+**步骤3：实现失败消息持久化管理器（推荐）**
 
-**这是框架的核心特性！**通过注解即可实现完整的消息消费流程，包括：
-- ✅ **防重消费**：基于Redis分布式锁，防止同一消息被多次消费
-- ✅ **自动重试**：消费失败后自动重试，支持配置最大重试次数
-- ✅ **锁续期**：业务执行时间超过预估时，自动续期锁，防止锁提前释放
-- ✅ **僵尸锁恢复**：检测并恢复异常的长TTL锁
-- ✅ **完成校验**：消费完成后验证业务状态，确保一致性
-- ✅ **责任链扩展**：支持自定义前置处理器
+继承 `SendFailurePersistenceManager`，定义发送失败消息的持久化逻辑：
 
-**注解参数：**
+```java
+@Primary
+@Component
+public class DefaultSendFailurePersistenceManager implements SendFailurePersistenceManager {
+    
+    @Autowired
+    private FailedMessageMapper failedMessageMapper;
+    
+    @Override
+    public void saveConfirmFailure(String correlationId, String cause, 
+                                   String exchange, String routingKey,
+                                   DefaultMessage defaultMessage, byte[] messageBody) {
+        FailedMessage record = new FailedMessage();
+        record.setCorrelationId(correlationId);
+        record.setCause(cause);
+        record.setExchange(exchange);
+        record.setRoutingKey(routingKey);
+        record.setMessageBody(messageBody);
+        record.setStatus("PENDING_RETRY");
+        record.setCreateTime(LocalDateTime.now());
+        
+        failedMessageMapper.insert(record);
+        
+        log.error("消息发送失败，已持久化: correlationId={}", correlationId);
+    }
+    
+    @Override
+    public void saveReturnFailure(Message message, int replyCode, 
+                                  String replyText, String exchange, String routingKey) {
+        // 类似实现...
+    }
+}
+```
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `businessTime` | 业务预估执行时长（秒），用于锁的初始TTL | 10 |
-| `effectiveTime` | 消息有效时长，用于判断重复消费的最大时间 | 1800 (30分钟) |
-| `timeUnit` | 时间单位 | SECONDS |
-| `retryCount` | 最大重试次数 | 3 |
+**步骤4：实现业务完成校验策略（可选，按队列配置）**
 
-**使用示例：**
+为需要二次确认的队列实现 `CompletionVerificationStrategyManager`：
+
+```java
+@Component
+public class OrderCompletionVerificationStrategy implements CompletionVerificationStrategyManager {
+    
+    @Autowired
+    private OrderMapper orderMapper;
+    
+    @Override
+    public boolean isCompleted(String businessId, DefaultMessage defaultMessage, Message message) {
+        // 查询订单状态，确认订单已创建
+        Order order = orderMapper.selectById(businessId);
+        return order != null && order.getStatus() == OrderStatus.CREATED;
+    }
+    
+    @Override
+    public String getQueueName() {
+        return "order.create.queue";
+    }
+}
+```
+
+**说明：**
+- 如果不实现任何校验策略，框架默认信任Redis中的锁状态
+- 每个队列可以配置不同的校验策略
+- 校验策略用于防止“假成功”情况（业务方法返回但实际未成功）
+
+### 使用示例
+
+**1. 基本消息消费（防重+重试+锁续期）**
 
 ```java
 @Component
@@ -1723,45 +1902,10 @@ public class OrderConsumer {
 1. **必须设置手动ACK**：`ackMode = "MANUAL"`
 2. **方法签名固定**：`(Message message, Channel channel)`
 3. **返回值可选**：
-   - 返回String：作为业务ID，用于完成校验
-   - 返回void/null：使用correlationId作为业务ID
+    - 返回String：作为业务ID，用于完成校验
+    - 返回void/null：使用correlationId作为业务ID
 
-#### 5.3 消费流程详解
-
-`RabbitMqProcessAspect` 切面实现的完整流程：
-
-```
-1. 接收消息
-   ↓
-2. 尝试获取分布式锁（防重消费）
-   ├─ 成功 → 继续
-   └─ 失败 → 检查锁状态
-       ├─ 已完成且校验通过 → 直接ACK
-       ├─ 已完成但校验失败 → 重置锁并重试
-       ├─ 处理中 → 拒绝并不放回
-       ├─ 僵尸锁 → 重新竞争锁
-       └─ 不存在 → 放回队列
-   ↓
-3. 启动锁续期任务（每 businessTime/3 刷新一次）
-   ↓
-4. 执行前置处理器（RabbitMqProcess责任链）
-   ↓
-5. 执行业务方法
-   ↓
-6. 标记业务完成（存储业务ID）
-   ↓
-7. ACK消息
-   ↓
-8. 清理重试计数
-   ↓
-9. 取消锁续期任务
-```
-
-**异常处理：**
-- 业务异常 → 释放锁 → NACK（不放回）→ 触发重试
-- 中断异常 → NACK（放回队列）→ 让其他消费者处理
-
-#### 5.4 自定义前置处理器
+**2. 自定义前置处理器（责任链）**
 
 通过实现 `RabbitMqProcess` 接口，在业务执行前进行预处理：
 
@@ -1771,7 +1915,8 @@ public class LogRMQProcess implements RabbitMqProcess {
     
     @Override
     public RMQKindProcess getProcess() {
-        return RMQKindProcess.LOG_PROCESS; // 需在枚举中定义
+        // 需在枚举中定义 LOG_PROCESS
+        return RMQKindProcess.LOG_PROCESS;
     }
     
     @Override
@@ -1783,32 +1928,27 @@ public class LogRMQProcess implements RabbitMqProcess {
 }
 ```
 
-**责任链枚举：**
+在枚举中注册：
 
 ```java
 public enum RMQKindProcess implements DefaultKindProcess {
     TEST("测试步骤", false, 1),
-    // 添加自定义处理器
-    LOG_PROCESS("日志记录", true, 2),
-    VALIDATION_PROCESS("数据校验", true, 3);
+    LOG_PROCESS("日志记录", true, 2);  // 新增
 }
 ```
 
-#### 5.5 消息重试机制
+**3. 消息重试机制**
 
-**自动重试流程：**
+框架内部自动处理，无需手动调用：
 
 ```java
-// 框架内部自动处理，无需手动调用
+// 业务异常 → 释放锁 → NACK（不放回）→ 触发重试
 try {
     // 执行业务逻辑
 } catch (Exception e) {
+    // 框架自动处理：
     // 1. 释放锁
-    lockManager.release(queue, correlationId);
-    
     // 2. NACK消息（不放回队列）
-    channel.basicNack(deliveryTag, false, false);
-    
     // 3. 处理重试
     retryMessageManager.handleBusinessFailureRetry(
         retryKey,       // 重试key
@@ -1825,16 +1965,12 @@ try {
 - 重试次数 < 最大次数：消息重新入队（专用的延迟队列）
 - 重试次数 >= 最大次数：消息持久化到失败表，等待人工处理
 
-#### 5.6 锁续期机制
+**4. 锁续期机制**
 
-**为什么需要锁续期？**
-
-当业务执行时间超过预估的 `businessTime` 时，分布式锁可能提前过期，导致其他消费者重复消费。锁续期机制会每隔 `businessTime / 3` 的时间刷新锁的TTL。
-
-**续期流程：**
+当业务执行时间超过预估的 `businessTime` 时，分布式锁可能提前过期。锁续期机制会每隔 `businessTime / 3` 的时间刷新锁的TTL。
 
 ```java
-// 框架自动启动续期任务
+// 框架自动启动续期任务，无需手动调用
 ScheduledFuture<?> renewalFuture = startLockRenewal(
     queue,           // 队列名称
     correlationId,   // 消息ID
@@ -1863,2290 +1999,1346 @@ renewalFuture.cancel(false);
 3. 成功 → 继续消费
 4. 失败 → 放回队列，让其他消费者处理
 
+**5. RabbitMqProcessAspect的核心Manager支持**
+
+RabbitMQ模块提供了7个核心Manager，协同工作实现完整的消息消费流程：
+
+**(1) ConsumptionLockManager - 消费防重锁管理器**
+
+防止同一条消息被重复消费，支持5种锁状态：
+
+```java
+public interface ConsumptionLockManager {
+    // 尝试获取消费锁（原子操作）
+    boolean tryAcquire(String queue, String correlationId, int businessTime, TimeUnit timeUnit);
+    
+    // 续期锁的过期时间（用于长时间运行的业务）
+    boolean renewLock(String queue, String correlationId, int businessTime, TimeUnit timeUnit);
+    
+    // 检查已存在的锁状态，返回处理建议
+    LockStatus checkLockStatus(String queue, String correlationId, DefaultMessage defaultMessage, Message message);
+    
+    // 删除锁
+    void release(String queue, String correlationId);
+    
+    // 将锁标记为已完成
+    void markAsDone(String queue, String correlationId, String businessId, long effectiveSeconds, TimeUnit timeUnit);
+    
+    // 重置锁为处理中状态（用于校验失败时重新进入处理状态）
+    void resetToProcessing(String queue, String correlationId, int businessTime, TimeUnit timeUnit);
+}
+
+// 锁状态枚举
+enum LockStatus {
+    NOT_EXISTS,                          // 锁不存在
+    PROCESSING,                          // 处理中
+    COMPLETED_AND_VERIFIED,              // 已完成且校验通过
+    COMPLETED_BUT_VERIFICATION_FAILED,   // 已完成但校验未通过
+    PROCESSING_WITH_RECOVERED_TTL        // 处理中但TTL异常长，已自动缩短
+}
+```
+
+**(2) RetryMessageManager - 消息重试管理器**
+
+管理业务失败和校验失败两种重试场景：
+
+```java
+public interface RetryMessageManager {
+    // 处理业务失败重试（数据库超时、第三方API失败等）
+    void handleBusinessFailureRetry(
+        String retryKey,      // 重试计数Key
+        Message message,      // 原始消息
+        Channel channel,      // MQ通道
+        int maxRetryCount,    // 最大重试次数
+        Exception cause,      // 失败原因
+        DefaultMessage defaultMessage  // 解析后的消息体
+    );
+    
+    // 处理校验失败重试（数据一致性校验未通过）
+    void handleVerificationFailureRetry(
+        String verifyRetryKey,  // 校验重试Key（与业务重试隔离）
+        Message message,
+        Channel channel,
+        int maxRetryCount,
+        Exception cause,
+        DefaultMessage defaultMessage
+    );
+}
+```
+
+**重试策略：**
+- 重试次数 < 最大次数：消息重新入队（专用的延迟队列）
+- 重试次数 >= 最大次数：调用 `SendFailurePersistenceManager` 持久化失败消息
+
+**(3) AckRMQManager - 消息确认管理器**
+
+封装RabbitMQ的ACK/NACK操作：
+
+```java
+public interface AckRMQManager {
+    // 确认消息已成功消费
+    void basicAck(Channel channel, Long deliveryTag);
+    
+    // 拒绝消息（可选择是否重新入队）
+    void basicNack(Channel channel, Long deliveryTag, boolean requeue);
+}
+```
+
+**(4) RetryCountManager - 重试次数管理器**
+
+使用Redis原子递增控制重试次数：
+
+```java
+public interface RetryCountManager {
+    // 原子递增计数，并设置过期时间（若首次创建）
+    long incrementAndGet(String retryKey);
+    
+    // 删除计数（消费成功后清理）
+    void delete(String retryKey);
+    
+    // 构建业务失败重试 Key: "queue:correlationId"
+    String buildRetryKey(String queue, String correlationId);
+    
+    // 构建校验失败重试 Key（独立计数）: "queue:verify:correlationId"
+    String buildVerifyRetryKey(String queue, String correlationId);
+}
+```
+
+**(5) SendFailurePersistenceManager - 发送失败持久化管理器**
+
+集成方需实现此接口，持久化失败消息并提供补偿机制。
+
+**接口定义：**
+
+```java
+public interface SendFailurePersistenceManager {
+    // 保存到交换机失败的消息（ConfirmCallback ack=false）
+    void saveConfirmFailure(
+        String correlationId,     // 消息唯一ID
+        String cause,             // 失败原因
+        String receivedExchange,  // 目标交换机
+        String receivedRoutingKey,// 路由键
+        DefaultMessage defaultMessage, // 消息体对象
+        byte[] messageBody        // 原始消息字节数组（兜底）
+    );
+    
+    // 保存路由失败的消息（ReturnCallback触发）
+    void saveReturnFailure(
+        Message message,    // 原始消息
+        int replyCode,      // 回复码
+        String replyText,   // 回复文本
+        String exchange,    // 交换机
+        String routingKey   // 路由键
+    );
+}
+```
+
+**实现示例请参考“集成方式”步骤3。**
+
+**(6) CompletionVerificationStrategyManager - 业务完成校验策略**
+
+每个队列可配置不同的校验实现，验证业务是否真正完成。
+
+**接口定义：**
+
+```java
+public interface CompletionVerificationStrategyManager {
+    /**
+     * 判断指定业务ID对应的业务是否已完成
+     *
+     * @param businessId 业务方法返回的唯一标识
+     * @param defaultMessage 消息体对象
+     * @param message 原始消息对象
+     * @return true-已完成，可安全丢弃消息；false-未完成，应重新消费
+     */
+    boolean isCompleted(String businessId, DefaultMessage defaultMessage, Message message);
+    
+    // 返回该策略支持的队列名称
+    String getQueueName();
+}
+```
+
+**实现示例请参考“集成方式”步骤4。**
+
+**(7) CompletionVerificationRouterManager - 校验策略路由器**
+
+根据队列名自动路由到对应的校验策略：
+
+```java
+public interface CompletionVerificationRouterManager {
+    /**
+     * 根据队列名获取校验策略，若未找到则返回null
+     *
+     * @param queueName 队列名称
+     * @return 对应的策略，或null表示无需校验（默认信任Redis）
+     */
+    CompletionVerificationStrategyManager getStrategy(String queueName);
+}
+```
+
+**工作流程：**
+
+```
+消息到达
+   ↓
+ConsumptionLockManager.tryAcquire()  // 尝试获取锁
+   ↓
+├─ 成功 → 执行消费逻辑
+│         ↓
+│      业务成功 → markAsDone() 标记完成
+│         ↓
+│      ACK消息
+│
+└─ 失败 → checkLockStatus() 检查锁状态
+          ├─ PROCESSING → NACK（不放回）
+          ├─ COMPLETED_AND_VERIFIED → ACK
+          ├─ COMPLETED_BUT_VERIFICATION_FAILED → 重置锁 + 重试
+          └─ PROCESSING_WITH_RECOVERED_TTL → 重新竞争锁
+               
+消费过程中：
+- RetryCountManager.incrementAndGet()  // 原子递增重试次数
+- RenewalScheduler.renewLock()         // 每businessTime/3续期一次
+- AckRMQManager.basicAck/Nack()        // 确认/拒绝消息
+
+超过最大重试次数：
+- SendFailurePersistenceManager.saveConfirmFailure()  // 持久化失败消息
+```
+
 ---
 
-### 6. simple-common-eventbus（事件总线模块）
+## 7. simple-common-eventbus
 
-事件总线模块，提供**同步/异步事件处理、延迟事件、跨系统事件分发**等功能。
+### 模块介绍
 
-#### 核心功能
+事件总线模块，提供同步/异步事件处理、延迟事件、跨系统事件分发等功能。
+**支持在其他项目中集成**，基于RabbitMQ实现跨服务事件通信。
+
+### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
 | 事件服务 | `EventBusService` | 事件发布接口 |
 | 同步事件服务 | `SyncEventBusService` | 同步执行事件处理器 |
 | 异步事件服务 | `MqEventBusService` | 基于RabbitMQ的异步事件 |
-| **循环任务服务** | **`AbsEventCycleService`** | **基于事件总线的可重试循环任务抽象类** |
 | 事件处理器管理 | `EventHandlerManager` | 事件处理器注册和管理 |
-| 事件注解 | `@Event` | 标记事件类 |
+| 事件注解 | `@Event` | 标记事件类，支持targets配置 |
 | 事件监听注解 | `@EventHandler` | 标记事件处理方法 |
+| MQ名称工具 | `MqNameUtil` | 自动生成交换机/队列名称 |
+| 循环调度事件 | `CycleEvent` | 基于事件的循环任务调度（均匀/累加延迟） |
+| 循环调度服务 | `AbsEventCycleService` | 继承实现自定义循环任务逻辑 |
 
-#### 6.1 架构设计
+### 集成方式
 
-**同步 vs 异步模式：**
+**步骤1：添加依赖**
 
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-eventbus</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
-配置：simple.event.type = sync/mq
 
-同步模式 (SyncEventBusService)
-   ↓
-发布事件
-   ↓
-在当前线程中立即执行所有监听器
-   ↓
-所有监听器执行完成
-   ↓
-返回
+**步骤2：配置事件总线模式（必须）**
 
-异步模式 (MqEventBusService)
-   ↓
-发布事件
-   ↓
-序列化事件数据
-   ↓
-发送到RabbitMQ
-   ↓
-立即返回（不等待监听器执行）
-   ↓
-RabbitMQ分发给消费者
-   ↓
-各系统的监听器异步执行
+```yaml
+simple:
+  event:
+    # 事件类型：sync（同步）或 mq（异步，基于RabbitMQ）
+    type: mq  # 推荐mq，支持跨服务通信
+```
+
+**步骤3：配置RabbitMQ连接（仅mq模式需要）**
+
+```yaml
+spring:
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
 ```
 
 **重要说明：**
+- **sync模式**：事件在同一个线程中立即执行，适合单体应用
+- **mq模式**：事件通过RabbitMQ异步分发，支持跨服务通信、延迟事件、全局广播
 
-- ✅ **同步模式**：适合轻量级、快速的事件处理，阻塞发布线程
-- ✅ **异步模式**：适合耗时操作，支持跨系统事件分发
-- ✅ **延迟事件**：基于RabbitMQ延迟队列或调度线程池
-- ✅ **跨系统**：通过`targets`参数指定接收事件的系统
+---
 
-#### 6.2 事件定义（@Event）
+### 跨项目集成指南
 
-**事件类必须添加 `@Event` 注解：**
+EventBus支持在其他项目中集成，实现跨服务事件通信。
 
-```java
-import com.simple.common.eventbus.common.annotation.Event;
-import lombok.Getter;
+**集成步骤：**
 
-@Getter
-@Event("user.created")  // 事件名称，可选，默认为类名
-public class UserCreatedEvent {
-    
-    private final String userId;
-    private final String username;
-    private final String email;
-    
-    public UserCreatedEvent(String userId, String username, String email) {
-        this.userId = userId;
-        this.username = username;
-        this.email = email;
-    }
-}
-```
+**1. 多个项目都引入eventbus依赖**
 
-**@Event 注解参数：**
+每个微服务项目都需要添加simple-common-eventbus依赖。
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `value` | 事件名称 | 类的短类名 |
-| `targets` | 要接收该事件的目标系统名称 | THIS_MACHINE（本系统） |
+**2. 配置相同的RabbitMQ连接**
 
-**跨系统事件示例：**
+所有项目连接到同一个RabbitMQ集群，确保消息可以互通。
+
+**3. 在@Event注解中指定targets**
 
 ```java
 @Event(
     value = "order.created",
-    targets = {"order-service", "notification-service", "analytics-service"}
+    targets = {"inventory-service", "notification-service"}  // 目标服务名
 )
 public class OrderCreatedEvent {
-    private final String orderId;
-    private final BigDecimal amount;
-    
-    // ...
+    private String orderId;
 }
 ```
 
-#### 6.3 事件监听（@EventHandler）
+**4. 框架自动创建Exchange和Queue**
 
-**使用 `@EventHandler` 注解标记事件处理方法：**
+- Exchange名称：`event.order.created`
+- Queue名称：`event.order.created.inventory-service`、`event.order.created.notification-service`
+- RoutingKey：`event.order.created`
+
+**5. 在各服务中监听事件**
+
+库存服务和通知服务分别实现自己的事件处理器。
+
+**示例架构：**
+
+```
+订单服务 (order-service)
+   ↓ 发布 OrderCreatedEvent
+   ↓
+RabbitMQ Exchange: event.order.created
+   ↓
+   ├─→ Queue: event.order.created.inventory-service
+   │         ↓
+   │      库存服务 (inventory-service)
+   │         ↓ 扣减库存
+   │
+   └─→ Queue: event.order.created.notification-service
+             ↓
+          通知服务 (notification-service)
+             ↓ 发送通知
+```
+
+### 使用示例
+
+**1. 定义事件**
+
+```java
+@Getter
+@Event("user.created")
+public class UserCreatedEvent {
+    private final String userId;
+    private final String username;
+    
+    public UserCreatedEvent(String userId, String username) {
+        this.userId = userId;
+        this.username = username;
+    }
+}
+```
+
+**2. 发布事件**
+
+```java
+@Service
+public class UserService {
+    
+    @Autowired
+    private EventBusService eventBusService;
+    
+    public void createUser(User user) {
+        // 保存用户
+        userMapper.insert(user);
+        
+        // 发布事件
+        eventBusService.push(new UserCreatedEvent(user.getId(), user.getUsername()));
+    }
+}
+```
+
+**3. 监听事件**
 
 ```java
 @Component
 public class UserEventListener {
     
-    /**
-     * 监听用户创建事件
-     * 注意：方法只能有一个参数，且参数类型必须带有@Event注解
-     */
     @EventHandler
     public void handleUserCreated(UserCreatedEvent event) {
         log.info("用户创建成功: {}, {}", event.getUserId(), event.getUsername());
         
         // 发送欢迎邮件
-        emailService.sendWelcomeEmail(event.getEmail());
-        
-        // 初始化用户数据
-        userService.initUserData(event.getUserId());
+        emailService.sendWelcomeEmail(event.getUserId());
     }
+}
+```
+
+**4. 跨项目事件分发（基于MQ）**
+
+订单服务发布事件，库存服务和通知服务监听：
+
+**订单服务（order-service）：**
+
+```java
+@Event(
+    value = "order.created",
+    targets = {"inventory-service", "notification-service"}  // 指定目标服务
+)
+public class OrderCreatedEvent {
+    private String orderId;
+    private BigDecimal amount;
+}
+
+@Service
+public class OrderService {
     
-    /**
-     * 监听指定名称的事件
-     */
-    @EventHandler("order.created")
+    @Autowired
+    private EventBusService eventBusService;
+    
+    public void createOrder(Order order) {
+        orderMapper.insert(order);
+        
+        // 发布事件，自动发送到 inventory-service 和 notification-service
+        eventBusService.push(new OrderCreatedEvent(order.getId(), order.getAmount()));
+    }
+}
+```
+
+**库存服务（inventory-service）：**
+
+```java
+@Component
+public class InventoryEventListener {
+    
+    @EventHandler(applicationName = "inventory-service")  // 只接收发给本服务的事件
     public void handleOrderCreated(OrderCreatedEvent event) {
-        log.info("订单创建: {}", event.getOrderId());
-        
         // 扣减库存
-        inventoryService.deduct(event.getOrderId());
-        
-        // 发送通知
+        inventoryService.deductStock(event.getOrderId());
+    }
+}
+```
+
+**通知服务（notification-service）：**
+
+```java
+@Component
+public class NotificationEventListener {
+    
+    @EventHandler(applicationName = "notification-service")
+    public void handleOrderCreated(OrderCreatedEvent event) {
+        // 发送订单通知
         notificationService.sendOrderNotification(event.getOrderId());
     }
 }
 ```
 
-**@EventHandler 注解参数：**
+**5. 全局广播事件（event.all）**
 
-| 参数 | 说明 | 默认值 |
-|------|------|--------|
-| `value` | 要处理的事件名称 | 参数类型的短类名 |
-| `applicationName` | 接收哪些系统的事件 | THIS_MACHINE（本系统） |
-
-**重要限制：**
-- ✅ 方法只能有**一个参数**
-- ✅ 参数类型必须带有 `@Event` 注解
-- ❌ 不支持多参数方法，多参数请全部放到@Event标注的类里面
-
-#### 6.4 事件发布
-
-**EventBusService 提供4种发布方式：**
+使用 `EventConstant.TARGET_ALL_X` 广播到所有服务：
 
 ```java
-@Autowired
-private EventBusService eventBusService;
-
-// 1. 发布事件（自动识别事件类型）
-eventBusService.push(new UserCreatedEvent("123", "张三", "zhangsan@example.com"));
-
-// 2. 发布事件（指定事件类型）
-Map<String, Object> data = new HashMap<>();
-data.put("userId", "123");
-data.put("username", "张三");
-eventBusService.push(data, UserCreatedEvent.class);
-
-// 3. 发布延迟事件（自动识别事件类型）
-// 30分钟后取消未支付订单
-eventBusService.push(
-    new OrderTimeoutEvent("ORDER123"), 
-    30, 
-    TimeUnit.MINUTES
-);
-
-// 4. 发布延迟事件（指定事件类型）
-// 24小时后发送用户活跃度提醒
-Map<String, Object> reminderData = new HashMap<>();
-reminderData.put("userId", "123");
-eventBusService.push(
-    reminderData, 
-    UserActiveReminderEvent.class, 
-    24, 
-    TimeUnit.HOURS
-);
-```
-
-#### 6.5 同步 vs 异步模式
-
-**配置方式：**
-
-```yaml
-simple:
-  event:
-    type: sync  # sync=同步, mq=异步（默认）
-```
-
-**同步模式（SyncEventBusService）：**
-
-- ✅ 事件在发布线程中立即执行
-- ✅ 适合轻量级、快速的事件处理
-- ✅ 延迟事件使用调度线程池执行
-- ❌ 阻塞发布线程，影响性能
-
-```java
-// 同步执行：handleUserCreated 在当前线程中执行
-eventBusService.push(new UserCreatedEvent(...));
-log.info("事件已处理完成"); // 此时事件处理器已经执行完毕
-```
-
-**异步模式（MqEventBusService）：**
-
-- ✅ 事件通过RabbitMQ异步分发
-- ✅ 不阻塞发布线程，性能更好
-- ✅ 支持跨系统事件分发
-- ✅ 支持延迟事件（基于RabbitMQ延迟队列）
-- ❌ 需要RabbitMQ依赖
-- ❌ 多线程消费的情况下，事件处理顺序不保证
-
-```java
-// 异步执行：消息发送到RabbitMQ后立即返回
-eventBusService.push(new UserCreatedEvent(...));
-log.info("消息已发送"); // 此时事件处理器可能还未执行
-
-// 在其他系统或同一系统的消费者中处理
-同上 6.2 事件监听（@EventHandler）
-```
-
-#### 6.6 跨系统事件分发
-
-**场景：订单创建后，通知多个系统**
-
-```java
-// 1. 定义跨系统事件
 @Event(
-    value = "order.created",
-    targets = {"order-service", "inventory-service", "notification-service"}
+    value = "system.config.changed",
+    targets = {EventConstant.TARGET_ALL_X}  // 广播到所有服务
 )
-public class OrderCreatedEvent {
-    private final String orderId;
-    private final BigDecimal amount;
+public class ConfigChangedEvent {
+    private String configKey;
+    private String configValue;
+}
+
+// 发布事件
+eventBusService.push(new ConfigChangedEvent("max.connections", "100"));
+
+// 所有服务都会收到该事件
+@Component
+public class ConfigRefreshListener {
     
-    // ...
-}
-
-// 2. 发布事件（会自动发送到所有目标系统）
-eventBusService.push(new OrderCreatedEvent("ORDER123", new BigDecimal("99.99")));
-
-// 3. 各系统分别监听
-
-// order-service 中
-@EventHandler(applicationName = "order-service")
-public void handleOrderCreatedInOrderService(OrderCreatedEvent event) {
-    // 订单服务处理逻辑
-}
-
-// inventory-service 中
-@EventHandler(applicationName = "inventory-service")
-public void handleOrderCreatedInInventory(OrderCreatedEvent event) {
-    // 库存服务处理逻辑：扣减库存
-}
-
-// notification-service 中
-@EventHandler(applicationName = "notification-service")
-public void handleOrderCreatedInNotification(OrderCreatedEvent event) {
-    // 通知服务处理逻辑：发送订单确认通知
-}
-```
-
-#### 6.6 事件处理器注册机制
-
-框架通过 `EventHandlerManager` 自动扫描并注册所有带有 `@EventHandler` 注解的方法：
-
-```java
-// 应用启动时自动执行
-@PostConstruct
-public void init() {
-    // 扫描所有Bean
-    for (String beanName : applicationContext.getBeanDefinitionNames()) {
-        Object bean = applicationContext.getBean(beanName);
-        
-        // 扫描Bean中的所有方法
-        for (Method method : bean.getClass().getMethods()) {
-            if (method.isAnnotationPresent(EventHandler.class)) {
-                // 注册事件处理器
-                eventHandlerManager.register(beanName, method);
-            }
-        }
+    @EventHandler
+    public void handleConfigChanged(ConfigChangedEvent event) {
+        // 刷新本地缓存
+        cacheManager.refresh(event.getConfigKey());
     }
 }
 ```
 
-**注意事项：**
-- ✅ 事件监听器必须是Spring Bean（添加 `@Component` 等注解）
-- ✅ 方法必须是public
-- ✅ 方法只能有一个参数，所有参数需要聚合在一个类中。
-
-#### 🌟 亮点特性：基于事件的循环任务 AbsEventCycleService
-
-**AbsEventCycleService 是框架的核心亮点之一！**通过事件总线实现可重试、可延迟的循环任务，支持失败自动重试和灵活的生命周期回调。
-
-**核心机制：**
-
-```
-启动循环任务
-   ↓
-创建 CycleEvent 事件
-   ↓
-执行 handler() 业务逻辑
-   ↓
-成功 → 调用 ok() 回调
-   ↓
-失败 → 发送延迟事件（timeInterval秒后）
-   ↓
-事件触发 → 再次执行 handler()
-   ↓
-达到最大次数 → 调用 more() 回调
-   ↓
-异常/发送失败 → 调用 error() 回调
-```
-
-**使用示例：**
+**6. 延迟事件（支持跨服务）**
 
 ```java
-import com.simple.common.eventbus.common.service.AbsEventCycleService;
-import lombok.Data;
-import org.springframework.stereotype.Component;
-import java.util.Map;
-
-/**
- * 订单超时取消任务
- */
-@Component
-public class OrderTimeoutCycleService extends AbsEventCycleService<OrderTimeoutTask> {
+@Service
+public class OrderService {
     
     @Autowired
-    private OrderService orderService;
+    private EventBusService eventBusService;
     
     /**
-     * 指定任务参数类型
+     * 创建订单，30分钟后自动取消未支付订单
      */
-    @Override
-    public Class<OrderTimeoutTask> getEventClass() {
-        return OrderTimeoutTask.class;
-    }
-    
-    /**
-     * 业务处理逻辑
-     * @return true=成功，false=失败（会重试）
-     */
-    @Override
-    protected Boolean handler(OrderTimeoutTask task, Map<String, Object> parameters) {
-        log.info("第{}次检查订单超时: orderId={}", parameters.get("retryCount"), task.getOrderId());
+    public void createOrder(Order order) {
+        orderMapper.insert(order);
         
-        // 查询订单状态
-        Order order = orderService.getById(task.getOrderId());
-        if (order == null) {
-            log.warn("订单不存在: {}", task.getOrderId());
-            return true; // 订单不存在，视为成功
-        }
-        
-        // 如果订单已支付，取消任务
-        if (order.isPaid()) {
-            log.info("订单已支付，取消超时任务: {}", task.getOrderId());
-            return true;
-        }
-        
-        // 检查是否超时
-        if (order.isTimeout()) {
-            // 取消订单
-            orderService.cancelOrder(task.getOrderId(), "订单超时自动取消");
-            log.info("订单已取消: {}", task.getOrderId());
-            return true;
-        }
-        
-        // 未超时，返回false触发重试
-        return false;
-    }
-    
-    /**
-     * 成功回调
-     */
-    @Override
-    protected void ok(OrderTimeoutTask task, Map<String, Object> parameters) {
-        log.info("订单超时任务完成: orderId={}, retryCount={}", 
-                 task.getOrderId(), parameters.get("retryCount"));
-    }
-    
-    /**
-     * 超过最大次数回调
-     */
-    @Override
-    protected void more(OrderTimeoutTask task, Map<String, Object> parameters) {
-        log.error("订单超时任务达到最大重试次数: orderId={}, retryCount={}", 
-                  task.getOrderId(), parameters.get("retryCount"));
-        // 可以发送告警通知
-    }
-    
-    /**
-     * 异常回调
-     */
-    @Override
-    protected void error(OrderTimeoutTask task, Map<String, Object> parameters) {
-        log.error("订单超时任务执行异常: orderId={}", task.getOrderId(), 
-                  (Throwable) parameters.get("exception"));
-        // 可以记录异常日志或告警
+        // 发布延迟事件：30分钟后检查订单状态
+        eventBusService.push(
+            new OrderTimeoutEvent().setOrderId(order.getId()),
+            30,
+            TimeUnit.MINUTES
+        );
     }
 }
 
-/**
- * 任务参数类
- */
-@Data
-public class OrderTimeoutTask {
-    private String orderId;
-    private Integer timeoutMinutes;
+// 监听延迟事件
+@Component
+public class OrderTimeoutListener {
+    
+    @EventHandler
+    public void handleOrderTimeout(OrderTimeoutEvent event) {
+        // 检查订单是否已支付
+        Order order = orderMapper.selectById(event.getOrderId());
+        if (order.getStatus() == OrderStatus.UNPAID) {
+            // 取消订单
+            orderService.cancelOrder(order.getId());
+        }
+    }
 }
 ```
 
-**启动循环任务：**
+**延迟事件实现原理：**
+- **MQ模式**：使用RabbitMQ延迟交换机（delay exchange）
+- **同步模式**：使用调度线程池（ThreadUtils.schedule）
+
+**7. 事件目标优化机制**
+
+框架会自动优化事件目标列表：
 
 ```java
-@Autowired
-private OrderTimeoutCycleService orderTimeoutCycleService;
+// 示例1：包含广播目标时，忽略其他单播目标
+@Event(targets = {"service-a", EventConstant.TARGET_ALL_X, "service-b"})
+// 实际只会发送到 TARGET_ALL_X（因为广播已覆盖所有服务）
 
-// 启动任务
-OrderTimeoutTask task = new OrderTimeoutTask();
-task.setOrderId("ORDER123");
-task.setTimeoutMinutes(30);
-
-// 参数说明：
-// runBody: 任务参数
-// sum: 总执行次数（最多重试次数）
-// timeInterval: 每次执行的间隔时间（秒）
-// isAccumulate: 是否累加延迟（true=1s,2s,3s...；false=固定1s）
-// parameters: 扩展参数（可选）
-orderTimeoutCycleService.run(task, 10, 60, false, null);
+// 示例2：THIS_MACHINE 自动替换为当前服务名
+@Event(targets = {EventConstant.THIS_MACHINE})
+// 如果当前服务名为 "order-service"，则实际发送到 "order-service"
 ```
 
-**参数详解：**
+**8. MQ名称自动生成规则**
 
-| 参数 | 类型 | 说明 | 示例 |
-|------|------|------|------|
-| `runBody` | T | 任务参数对象 | OrderTimeoutTask |
-| `sum` | Integer | 总执行次数（最大重试次数） | 10 |
-| `timeInterval` | Integer | 执行间隔时间（秒） | 60 |
-| `isAccumulate` | Boolean | 是否累加延迟 | false |
-| `parameters` | Map | 扩展参数（传递额外数据） | null |
+框架根据服务名和环境自动生成交换机/队列名称：
 
-**执行流程示例：**
+```java
+// 服务名：order-service，环境：dev
+MqNameUtil.exchangeName("order-service")       // order-service-dev.event.ex
+MqNameUtil.delayExchangeName("order-service")  // order-service-dev.event.delay.ex
+MqNameUtil.queueName("order-service")          // order-service-dev.event.queue
+MqNameUtil.keyName("order-service")            // order-service-dev.event.key
 
-```
-假设配置：sum=5, timeInterval=10, isAccumulate=false
-
-第1次执行（0秒） → 失败 → 10秒后重试
-第2次执行（10秒） → 失败 → 10秒后重试
-第3次执行（20秒） → 失败 → 10秒后重试
-第4次执行（30秒） → 失败 → 10秒后重试
-第5次执行（40秒） → 失败 → 调用 more() 回调
+// 服务名：inventory-service，环境：prod
+MqNameUtil.exchangeName("inventory-service")   // inventory-service-prod.event.ex
 ```
 
+**9. 同步 vs 异步模式对比**
+
+| 特性 | 同步模式（sync） | 异步模式（mq） |
+|------|----------------|---------------|
+| 执行方式 | 当前线程立即执行 | RabbitMQ异步分发 |
+| 跨服务通信 | ❌ 不支持 | ✅ 支持 |
+| 延迟事件 | ✅ 线程池调度 | ✅ 延迟交换机 |
+| 性能 | 阻塞调用方 | 非阻塞，高性能 |
+| 可靠性 | 依赖调用方 | RabbitMQ保证 |
+| 适用场景 | 单机、轻量级 | 分布式、微服务 |
+
+**配置切换：**
+
+```yaml
+# 开发环境：使用同步模式，快速调试
+simple:
+  event:
+    type: sync
+
+# 生产环境：使用MQ模式，支持跨服务通信
+simple:
+  event:
+    type: mq
 ```
-假设配置：sum=5, timeInterval=10, isAccumulate=true
 
-第1次执行（0秒） → 失败 → 10秒后重试
-第2次执行（10秒） → 失败 → 20秒后重试
-第3次执行（30秒） → 失败 → 30秒后重试
-第4次执行（60秒） → 失败 → 40秒后重试
-第5次执行（100秒） → 失败 → 调用 more() 回调
+**10. 基于事件的循环调度任务**
+
+EventBus提供了基于事件的循环调度功能，适用于订单轮询、重试机制等场景。
+
+**步骤1：继承AbsEventCycleService实现任务逻辑**
+
+```java
+@Component("orderQueryCycleService")  // Bean名称必须指定
+public class OrderQueryCycleService extends AbsEventCycleService<OrderQuery> {
+    
+    @Autowired
+    private OrderMapper orderMapper;
+    
+    @Override
+    public Class<OrderQuery> getEventClass() {
+        return OrderQuery.class;
+    }
+    
+    @Override
+    protected boolean execute(OrderQuery query, int num, Map<String, Object> parameters) {
+        log.info("第{}次查询订单状态: {}", num, query.getOrderId());
+        
+        Order order = orderMapper.selectById(query.getOrderId());
+        if (order != null && order.getStatus() == 1) {
+            log.info("订单已支付，停止轮询");
+            return true; // 返回true表示任务完成，停止轮询
+        }
+        
+        if (num >= query.getMaxRetry()) {
+            log.warn("达到最大重试次数，停止轮询");
+            return true; // 达到最大次数也停止
+        }
+        
+        return false; // 返回false表示继续轮询
+    }
+}
 ```
 
-**生命周期回调：**
+**步骤2：发布循环调度事件**
 
-| 回调方法 | 触发时机 | 用途 |
-|---------|---------|------|
-| `handler()` | 每次执行时 | **必须实现**，业务逻辑，返回true/false |
-| `ok()` | handler返回true | 任务成功时的清理工作 |
-| `more()` | 达到最大重试次数 | 任务彻底失败的处理 |
-| `error()` | 执行异常或发送失败 | 异常情况处理 |
-| `addCounter()` | 每次执行前 | 可选，记录重试次数 |
+```java
+@Service
+public class OrderService {
+    
+    @Autowired
+    private EventBusService eventBusService;
+    
+    /**
+     * 启动订单支付状态轮询
+     */
+    public void startPaymentPolling(String orderId) {
+        CycleEvent cycleEvent = new CycleEvent();
+        cycleEvent.setBeanName("orderQueryCycleService");  // 指定Bean名称
+        
+        OrderQuery query = new OrderQuery();
+        query.setOrderId(orderId);
+        query.setMaxRetry(10);  // 最多重试10次
+        
+        cycleEvent.setRunBody(query);
+        cycleEvent.setSum(10);           // 总执行次数
+        cycleEvent.setTimeInterval(5);   // 每次间隔5秒
+        cycleEvent.setIsAccumulate(false); // 均匀延迟（非累加）
+        
+        // 发布循环事件
+        eventBusService.push(cycleEvent);
+    }
+}
+```
 
-**优势：**
+**循环调度模式说明：**
 
-- ✅ **基于事件总线**：利用EventBus的延迟事件能力，无需定时任务
-- ✅ **自动重试**：失败后自动延迟重试，支持配置重试次数和间隔
-- ✅ **灵活延迟**：支持固定间隔和累加间隔两种模式
-- ✅ **生命周期管理**：提供ok/more/error三个回调，便于监控和告警
-- ✅ **分布式友好**：异步模式下支持跨系统任务调度
-- ✅ **线程安全**：基于BeanNameAware自动获取Bean名称，避免并发问题
+- **均匀延迟（isAccumulate=false）**：每次执行间隔固定
+  - 第1次：立即执行
+  - 第2次：5秒后
+  - 第3次：10秒后
+  - ...
 
-**典型应用场景：**
+- **累加延迟（isAccumulate=true）**：延迟时间累加
+  - 第1次：立即执行
+  - 第2次：5秒后（5×1）
+  - 第3次：15秒后（5×2 + 5×1）
+  - 第4次：30秒后（5×3 + 5×2 + 5×1）
+  - ...
 
-1. **订单超时取消**：下单后30分钟未支付自动取消
-2. **支付结果轮询**：第三方支付结果异步通知，主动轮询确认
-3. **数据同步重试**：第三方接口调用失败后重试
-4. **定时提醒**：会议开始前5分钟、1分钟分别提醒
-5. **库存补偿**：扣减库存失败后重试
-
-**与XXL-JOB对比：**
-
-| 特性 | AbsEventCycleService | XXL-JOB |
-|------|---------------------|----------|
-| 适用场景 | 短时任务、重试任务 | 长时任务、复杂调度 |
-| 部署依赖 | 无需额外部署 | 需要XXL-JOB Admin |
-| 配置复杂度 | 代码配置，简单 | 需要在Admin界面配置 |
-| 重试机制 | 内置自动重试 | 需手动配置 |
-| 延迟执行 | 天然支持 | 需配置Cron |
-| 跨系统 | 异步模式支持 | 支持 |
-| 可视化 | 无 | 有管理界面 |
-
-**建议：**
-- 简单的重试任务、延迟任务 → 使用 `AbsEventCycleService`
-- 复杂的定时任务、需要可视化管理 → 使用 `XXL-JOB`
+**重要说明：**
+- `beanName` 必须与Spring容器中的Bean名称一致
+- `execute()` 方法返回 `true` 表示任务完成，停止轮询
+- `execute()` 方法返回 `false` 表示继续轮询
+- 循环事件通过EventBus发布，支持同步/异步两种模式
 
 ---
 
-### 7. simple-common-websocket（WebSocket模块）
+## 8. simple-common-websocket
 
-WebSocket实时通信模块，**基于Netty实现**，支持**消息监听注解、连接鉴权、集群部署**。
+### 模块介绍
 
-#### 核心功能
+WebSocket实时通讯模块，提供消息监听、通道管理、身份认证等企业级功能。
+
+### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
-| 消息推送工具 | `WebSocketUtils` | **静态工具类**，提供消息发送、连接管理 |
-| 连接校验 | `CheckWebSocketManager` | WebSocket连接鉴权接口 |
-| 默认校验实现 | `DefaultCheckWebSocketManager` | 默认放行所有连接 |
-| 消息监听管理 | `WebSocketListeningManager` | 消息监听器注册和分发接口 |
-| 默认监听管理 | `DefaultWebSocketListeningManager` | 基于type+cliKey的双层Map分发 |
-| 消息监听注解 | `@WebSocketListening` | 声明式消息监听 |
-| 认证处理器 | `WebSocketAuthHandler` | WebSocket握手认证（Netty Handler） |
-| 消息处理器 | `WebSocketServerHandler` | 消息接收、解析、分发（Netty Handler） |
-| 通道管理 | `ChannelMap` | 线程安全的通道存储结构 |
+| 消息监听注解 | `@WebSocketListening` | 标记消息处理方法 |
+| 通道管理 | `ChannelMap<K, V, T>` | 线程安全的通道存储 |
+| 消息监听管理 | `WebSocketListeningManager` | 注册和调用消息处理器 |
+| 连接认证 | `WebSocketAuthHandler` | WebSocket握手认证 |
+| 消息处理 | `WebSocketServerHandler` | WebSocket消息分发 |
+| **消息发送工具** | `WebSocketUtils` | **静态工具类，提供发送消息的辅助方法** |
 
-#### 7.1 消息监听注解（@WebSocketListening）
+### 集成方式
 
-**这是框架的核心特性！**通过注解即可实现声明式消息监听：
+**步骤1：添加依赖**
 
-```java
-@Component
-public class OrderMessageHandler {
-    
-    /**
-     * 监听订单类型消息
-     * type: 消息类型，用于区分不同业务
-     * cliKey: 客户端标识，默认为"default"
-     */
-    @WebSocketListening(type = "order", cliKey = "web")
-    public String handleOrderMessage(WebSocketRequest request) {
-        // request.getData() 获取消息数据（JSON字符串）
-        log.info("收到订单消息: {}", request.getData());
-        
-        // 处理业务逻辑
-        OrderMessage message = JsonUtils.parse(request.getData(), OrderMessage.class);
-        orderService.process(message);
-        
-        // 返回响应（可选），会发送回客户端
-        return "{\"status\":\"success\"}";
-    }
-    
-    /**
-     * 监听聊天消息
-     */
-    @WebSocketListening(type = "chat")
-    public void handleChatMessage(WebSocketRequest request) {
-        ChatMessage chat = JsonUtils.parse(request.getData(), ChatMessage.class);
-        
-        // 转发给目标用户
-        webSocketService.sendToUser(chat.getTargetUserId(), chat.getContent());
-    }
-}
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-websocket</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
-**@WebSocketListening 注解参数：**
+**步骤2：配置WebSocket（必须）**
 
-| 参数 | 说明 | 必填 | 默认值 |
-|------|------|------|--------|
-| `type` | 消息类型，用于区分不同业务通道 | 是 | - |
-| `cliKey` | 客户端标识，用于区分相同类型下的不同端 | 否 | "default" |
+```yaml
+simple:
+  websocket:
+    # WebSocket服务端口
+    port: 8081
+    # 路径
+    path: /ws
+```
 
-**重要说明：**
-- ✅ 方法只能有**一个参数**：`WebSocketRequest`
-- ✅ 返回值可选：
-  - 返回String：作为响应发送回客户端
-  - 返回void：不发送响应
-- ✅ 同一个type+cliKey组合只能有一个监听器
-- ❌ 不支持多参数方法
+**步骤3：实现认证处理器（必须）**
 
-#### 7.2 自定义连接鉴权
-
-**继承 `DefaultCheckWebSocketManager` 实现Token验证：**
+继承 `WebSocketAuthHandler`，定义WebSocket连接认证逻辑：
 
 ```java
 @Component
-public class CustomCheckWebSocketManager extends DefaultCheckWebSocketManager {
-    
-    @Autowired
-    private TokenManager tokenManager;
+public class CustomWebSocketAuthHandler extends WebSocketAuthHandler {
     
     @Override
-    public boolean checkToken(String token, String type, String cliKey) {
-        // 验证Token有效性
+    protected boolean authenticate(ChannelHandlerContext ctx, FullHttpRequest request) {
+        // 从请求头获取token
+        String token = request.headers().get("Authorization");
+        
+        if (StrUtil.isBlank(token)) {
+            log.warn("WebSocket连接缺少token");
+            return false;
+        }
+        
+        // 验证token
         try {
-            Map<String, Object> payload = tokenManager.check(token, false);
+            Map<String, Object> payload = jwtUtil.verify(token);
+            String userId = payload.get("userId").toString();
             
-            if (payload == null || payload.isEmpty()) {
-                log.warn("WebSocket Token无效");
-                return false;
-            }
+            // 将用户ID存入上下文
+            ctx.channel().attr(AttributeKey.valueOf("userId")).set(userId);
             
-            // 可以在此处进行额外的权限校验
-            String userId = (String) payload.get("userId");
-            log.info("WebSocket连接认证成功: userId={}, type={}, cliKey={}", 
-                     userId, type, cliKey);
-            
+            log.info("WebSocket认证成功: userId={}", userId);
             return true;
         } catch (Exception e) {
-            log.error("WebSocket Token验证失败", e);
+            log.error("WebSocket认证失败", e);
             return false;
         }
     }
 }
 ```
 
-**参数说明：**
+### 使用示例
 
-| 参数 | 说明 | 示例 |
-|------|------|------|
-| `token` | 认证Token字符串，通常为JWT Token | "eyJhbGciOiJIUzI1NiJ9..." |
-| `type` | 客户端类型，从URL参数中获取 | "web"、"app"、"mini-program" |
-| `cliKey` | 客户端唯一标识，从URL参数中获取 | "client_12345" |
-
-**客户端连接示例：**
-
-```javascript
-// 连接时传递Token、type、cliKey
-const ws = new WebSocket('ws://localhost:8080/ws?token=xxx&type=web&cliKey=client123');
-
-ws.onopen = () => {
-    console.log('连接成功');
-};
-
-ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    console.log('收到消息:', data);
-};
-
-ws.onerror = (error) => {
-    console.error('连接错误:', error);
-};
-
-ws.onclose = () => {
-    console.log('连接关闭');
-    // 重连逻辑
-    setTimeout(() => reconnect(), 3000);
-};
-```
-
-#### 7.3 消息推送（WebSocketUtils）
-
-**重要：WebSocket模块没有Service层，所有消息推送通过静态工具类 `WebSocketUtils` 实现！**
-
-```java
-import com.simple.common.websocket.utils.WebSocketUtils;
-
-// 1. 向指定type的所有客户端发送消息
-WebSocketUtils.sendMsg("notification", "您有一条新消息");
-
-// 2. 向指定type+cliKey的客户端发送消息
-boolean success = WebSocketUtils.sendMsg("order", "user001", "订单已支付");
-
-// 3. 检查客户端是否在线
-boolean online = WebSocketUtils.isOnline("chat", "user123");
-
-// 4. 获取当前连接总数
-int count = WebSocketUtils.getConnectionCount();
-
-// 5. 清理无效通道（定时任务调用）
-int cleaned = WebSocketUtils.cleanInactiveChannels();
-```
-
-**方法说明：**
-
-| 方法 | 说明 | 参数 | 返回值 |
-|------|------|------|--------|
-| `sendMsg(type, msg)` | 向指定type的所有客户端广播 | type: 类型标识<br>msg: 消息内容 | void |
-| `sendMsg(type, cliKey, msg)` | 向指定客户端发送消息 | type: 类型标识<br>cliKey: 客户端标识<br>msg: 消息内容 | boolean: 是否发送成功 |
-| `isOnline(type, cliKey)` | 检查客户端是否在线 | type: 类型标识<br>cliKey: 客户端标识 | boolean |
-| `getConnectionCount()` | 获取当前连接总数 | - | int |
-| `cleanInactiveChannels()` | 清理无效通道 | - | int: 清理数量 |
-| `clearAll()` | 清空所有通道 | - | void |
-
-#### 7.4 消息监听机制
-
-**DefaultWebSocketListeningManager 使用双层Map结构：**
-
-```
-listenerMap:
-  type1 ->
-    cliKey1 -> InvocationTarget(bean1, method1)
-    cliKey2 -> InvocationTarget(bean2, method2)
-  type2 ->
-    cliKey1 -> InvocationTarget(bean3, method3)
-```
-
-**消息分发流程：**
-
-```
-1. 客户端发送消息
-   ↓
-2. WebSocketServerHandler 接收TextWebSocketFrame
-   ↓
-3. 解析为 WebSocketRequest 对象
-   ↓
-4. 从Channel属性中获取 type 和 cliKey
-   ↓
-5. 调用 webSocketListeningManager.invoke(type, cliKey, request)
-   ↓
-6. 查找对应的 InvocationTarget
-   ↓
-7. 反射调用监听器方法
-   ↓
-8. 如果有返回值，发送回客户端
-```
-
-**自动注册机制：**
-
-应用启动时，框架会自动扫描所有带有 `@WebSocketListening` 注解的方法并注册：
-
-```java
-// 框架内部自动执行
-@PostConstruct
-public void init() {
-    for (String beanName : applicationContext.getBeanDefinitionNames()) {
-        Object bean = applicationContext.getBean(beanName);
-        
-        for (Method method : bean.getClass().getMethods()) {
-            if (method.isAnnotationPresent(WebSocketListening.class)) {
-                WebSocketListening annotation = method.getAnnotation(WebSocketListening.class);
-                
-                // 注册监听器
-                listeningManager.registerMethod(
-                    annotation.type(),
-                    annotation.cliKey(),
-                    bean,
-                    method
-                );
-            }
-        }
-    }
-}
-```
-
-#### 7.5 消息格式
-
-**客户端发送的消息格式：**
-
-```json
-{
-  "data": "{\"orderId\":\"123\",\"action\":\"pay\"}"
-}
-```
-
-**注意**：`data` 字段是一个JSON字符串，需要在服务端再次解析。
-
-**服务端响应格式（如果监听器有返回值）：**
-
-```json
-{
-  "status": "success"
-}
-```
-
-**错误响应格式：**
-
-```json
-{
-  "code": 4001,
-  "message": "消息过长，最大允许10240字节"
-}
-```
-
-#### 7.6 配置项
-
-```yaml
-simple:
-  websocket:
-    port: 8080                    # WebSocket端口
-    path: /ws                     # WebSocket路径
-    max-text-message-length: 10240 # 最大文本消息长度（字节）
-    boss-thread-count: 1          # Boss线程数
-    worker-thread-count: 4        # Worker线程数
-```
-
-#### 7.7 完整示例
-
-**服务端：**
-
-```java
-// 1. 定义消息监听器
-@Component
-public class NotificationHandler {
-    
-    @WebSocketListening(type = "notification")
-    public void handleNotification(WebSocketRequest request) {
-        Notification notification = JsonUtils.parse(
-            request.getData(), Notification.class
-        );
-        
-        log.info("收到通知: {}", notification.getTitle());
-        
-        // 转发给其他用户（使用 WebSocketUtils）
-        WebSocketUtils.sendMsg(
-            "notification",
-            notification.getTargetCliKey(),
-            notification.getContent()
-        );
-    }
-}
-
-// 2. 自定义鉴权
-@Component
-public class CustomWebSocketAuth extends DefaultCheckWebSocketManager {
-    
-    @Override
-    public boolean checkToken(String token, String type, String cliKey) {
-        // Token验证逻辑
-        return token != null && !token.isEmpty();
-    }
-}
-```
-
-**客户端：**
-
-```javascript
-// 连接
-const ws = new WebSocket('ws://localhost:8080/ws?token=abc123&type=web&cliKey=user001');
-
-// 发送消息
-ws.send(JSON.stringify({
-  data: JSON.stringify({
-    title: "系统通知",
-    content: "您有一条新消息",
-    targetCliKey: "user002"
-  })
-}));
-
-// 接收消息
-ws.onmessage = (event) => {
-  const response = event.data; // 直接是字符串，不是JSON
-  console.log('收到响应:', response);
-};
-```
-
-### 8. simple-common-logs（统一日志模块）
-
-统一日志中心模块，**基于Netty TCP + Protobuf实现远程日志收集**，支持**批量发送、失败降级、自动恢复、WAL兜底**。
-
-#### 模块结构
-
-| 子模块 | 说明 |
-|--------|------|
-| `simple-common-logs-client` | 日志客户端，负责采集和发送日志 |
-| `simple-common-logs-proto` | Protobuf协议定义 |
-| `simple-common-logs-server` | 日志服务端，负责接收、保存日志 |
-
-#### 核心功能
-
-| 功能分类 | 接口/组件 | 说明 |
-|---------|----------|------|
-| **Client端** | | |
-| 日志服务 | `LogService` | 日志采集和发送接口 |
-| 默认日志服务 | `DefaultLogService` | 从HTTP请求中提取日志信息并发送 |
-| 日志管理器 | `LogManager` | 日志发送管理接口 |
-| 缓冲日志管理 | `BufferedLogManager` | **核心组件**：批量发送、失败降级、自动恢复 |
-| 用户信息管理 | `LogUserManager` | 获取当前登录用户信息接口 |
-| 默认用户管理 | `DefaultLogUserManager` | 默认返回"测试用户名"和"测试用户ID" |
-| TCP客户端 | `LogProtobufTcpClient` | 基于Netty的TCP客户端，Fire-and-Forget模式 |
-| 日志过滤器 | `LogFilter` | 包装HttpServletRequest为CachedBodyHttpServletRequest |
-| 日志拦截器 | `LogInterceptor` | 生成TraceId、记录请求开始时间、调用日志服务 |
-| 请求体缓存 | `CachedBodyHttpServletRequest` | 支持多次读取请求体的包装类 |
-| **Proto定义** | | |
-| 日志数据消息 | `LogData` | 包含traceId、userId、operUrl等15个字段 |
-| 批量日志容器 | `LogBatch` | 包含repeated LogData logs |
-| **Server端** | | |
-| TCP服务端 | `LogProtobufTcpServer` | 基于Netty的TCP服务端，监听端口接收日志 |
-| 服务端处理器 | `LogProtobufServerHandler` | 接收LogBatch，转换为LogDataEvent列表 |
-| 日志保存管理 | `LogsSaveManager` | 日志保存管理接口 |
-| 抽象保存管理 | `AbsLogsSaveManager` | **核心组件**：内存队列+批量处理+WAL兜底+死信队列 |
-
-#### 8.1 架构设计
-
-**整体架构：**
-
-```
-┌─────────────────────┐         TCP + Protobuf          ┌──────────────────────┐
-│   Client 端          │  ──────────────────────────►    │   Server 端           │
-│                     │                                 │                      │
-│ • LogFilter         │     Fire-and-Forget 模式        │ • LogProtobufTcpServer│
-│ • LogInterceptor    │     (单向发送，不等待响应)       │ • LogProtobufServer   │
-│ • DefaultLogService │                                 │ • AbsLogsSaveManager  │
-│ • BufferedLogManager│                                 │   ├─ 内存队列         │
-│ • LogProtobufTcp    │                                 │   ├─ WAL兜底          │
-│   Client            │                                 │   ├─ 死信队列         │
-│                     │                                 │   └─ 持久化(子类实现)  │
-└─────────────────────┘                                 └──────────────────────┘
-```
-
-**Client端工作流程：**
-
-```
-1. LogFilter（优先级最高）拦截所有请求
-   ↓
-2. 包装HttpServletRequest为CachedBodyHttpServletRequest（缓存请求体）
-   ↓
-3. LogInterceptor.preHandle() 执行
-   ├─ 生成或沿用TraceId
-   ├─ 设置到Request属性
-   ├─ 设置到Response Header
-   └─ 记录请求开始时间
-   ↓
-4. 业务逻辑执行
-   ↓
-5. LogInterceptor.afterCompletion() 执行
-   ↓
-6. DefaultLogService.send() 被调用
-   ├─ 从对象池获取 LogDataEvent
-   ├─ 提取HTTP请求信息（URL、IP、参数、用户信息等）
-   └─ 调用 bufferedLogManager.send(logDataEvent)
-   ↓
-7. BufferedLogManager 处理
-   ├─ 尝试入队到 LinkedBlockingQueue
-   │  ├─ 成功：等待后台线程批量发送
-   │  └─ 失败（队列满）：异步降级写入本地文件
-   └─ 后台线程 batchSendLoop()
-      ├─ 定期从队列拉取数据（最多batchSize条）
-      ├─ 组装为 LogBatch
-      └─ 调用 tcpClient.sendBatch()
-         ├─ 成功：回收对象到对象池
-         └─ 失败：触发 SendFailureListener 回调，异步降级写入
-   ↓
-8. 降级恢复线程 fallbackResendLoop() 定时扫描降级目录
-   ├─ 读取降级文件
-   ├─ 解析日志记录（魔数校验）
-   └─ 重新发送到服务器
-```
-
-**Server端工作流程：**
-
-```
-1. LogProtobufTcpServer 启动，监听指定端口
-   ↓
-2. 接收客户端TCP连接
-   ↓
-3. LogProtobufServerHandler.channelRead0() 接收 LogBatch
-   ↓
-4. 将 Protobuf LogBatch 转换为 List<LogDataEvent>
-   ↓
-5. 调用 logsSaveManager.saveLogBatch(events)
-   ↓
-6. AbsLogsSaveManager 处理
-   ├─ 批次入队到 LinkedBlockingQueue<List<LogDataEvent>>
-   ├─ 如果队列满：写入WAL文件兜底
-   └─ 定时任务 processLogs()
-      ├─ 从队列批量取出（drainTo）
-      ├─ 扁平化为单个列表
-      ├─ 调用 persistence(logsToSave) （子类实现）
-      └─ 如果持久化失败：写入WAL文件
-   ↓
-7. WAL恢复任务 walRecoveryTask()
-   ├─ 定时扫描WAL目录
-   ├─ 读取WAL文件中的JSON日志
-   ├─ 反序列化为 LogDataEvent
-   └─ 重新入队或直接持久化
-   ↓
-8. 死信队列处理
-   ├─ WAL恢复失败的日志进入死信目录
-   └─ 人工介入处理
-```
-
-**BufferedLogManager 核心特性：**
-
-1. ✅ **内存缓冲队列**：使用 `LinkedBlockingQueue` 缓冲日志，后台线程批量发送
-2. ✅ **失败降级**：发送失败时自动写入本地文件，避免数据丢失
-3. ✅ **自动恢复**：连接恢复后自动补发降级文件中的日志
-4. ✅ **优雅停机**：应用关闭时刷新缓冲区，确保数据不丢
-5. ✅ **对象池优化**：使用 `LogDataEvent.acquire()` 和 `recycle()` 减少GC压力
-6. ✅ **异步降级写入**：降级文件写入使用独立线程池，不阻塞业务线程
-7. ✅ **魔数校验**：降级文件采用魔数（0xCAFEBABE）校验，具备损坏恢复能力
-
-**AbsLogsSaveManager 核心特性：**
-
-1. ✅ **内存队列**：`LinkedBlockingQueue<List<LogDataEvent>>`，批次入队减少锁竞争
-2. ✅ **批量处理**：定时从队列drainTo批量取出，减少持久化次数
-3. ✅ **WAL兜底**：队列满或持久化失败时写入WAL文件，保证数据不丢
-4. ✅ **WAL恢复**：定时扫描WAL文件，重新入队或直接持久化
-5. ✅ **死信队列**：WAL恢复失败的日志进入死信目录，人工介入
-6. ✅ **幂等性要求**：persistence()方法必须保证幂等性（WAL可能重放）
-7. ✅ **优雅停机**：应用关闭时取消定时任务，刷新剩余日志
-
-#### 8.2 自定义用户信息获取
-
-**继承 `DefaultLogUserManager` 实现真实用户信息：**
+**1. 定义消息监听器**
 
 ```java
 @Component
-public class CustomLogUserManager extends DefaultLogUserManager {
+public class ChatMessageListener {
     
-    @Override
-    public String loginNickName() {
-        // 从登录上下文获取用户名
-        UserTemporary user = LoginUserUtils.getUserTemporary();
-        return user != null ? user.getUsername() : "anonymous";
-    }
-    
-    @Override
-    public String loginUserId() {
-        // 从登录上下文获取用户ID
-        return LoginUserUtils.getUserId();
-    }
-}
-```
-
-**重要说明：**
-
-- ❌ 如果不实现此接口，日志中将显示"测试用户名"和"测试用户ID"
-- ❌ 控制台会输出警告：`请实现LogUserManager提供用户名和ID`
-- ✅ 方法返回null或空字符串时，日志中会显示 `-`
-
-#### 8.3 Protobuf协议定义
-
-**LogData 消息结构（15个字段）：**
-
-```protobuf
-message LogData {
-  string traceId = 1;          // 追踪ID
-  string title = 2;            // 方法名称/操作标题
-  string method = 3;           // 请求方式
-  string operUrl = 4;          // 请求URL
-  string operIp = 5;           // 主机地址
-  string operLocation = 6;     // 操作地点
-  string userId = 7;           // 操作人员id
-  string nickname = 8;         // 用户名
-  string operName = 9;         // 操作名称
-  string operParam = 10;       // 请求参数
-  int32 status = 11;           // 操作状态
-  string errorMsg = 12;        // 错误消息
-  string errorData = 13;       // 异常信息
-  int64 requestTime = 14;      // 接口耗时（毫秒）
-  int64 createTime = 15;       // 创建时间
-}
-```
-
-**LogBatch 批量容器：**
-
-```protobuf
-message LogBatch {
-  repeated LogData logs = 1;   // 多条日志数据
-}
-```
-
-**重要说明：**
-
-- ✅ 采用 Fire-and-Forget 模式，**没有响应消息**
-- ✅ 客户端单向发送，不等待服务端响应
-- ✅ 减少网络往返开销，适合极高吞吐场景
-
-#### 8.4 Server端扩展
-
-**继承 `AbsLogsSaveManager` 实现自定义持久化：**
-
-```java
-@Component
-public class EsLogsSaveManager extends AbsLogsSaveManager {
-    
-    @Autowired
-    private LogTcpServerProperties properties;
-    
-    @Autowired
-    private ElasticsearchClient esClient;
-    
-    @Override
-    protected LogTcpServerProperties getProperties() {
-        return properties;
+    /**
+     * 监听聊天消息
+     * type: 消息类型标识
+     * cliKey: 客户端标识，默认为"default"
+     */
+    @WebSocketListening(type = "chat", cliKey = "web")
+    public String handleChatMessage(WebSocketRequest request) {
+        // 解析消息数据
+        String messageData = request.getData();
+        ChatMessage message = JsonUtils.parse(messageData, ChatMessage.class);
+        
+        log.info("收到聊天消息: {}", message.getContent());
+        
+        // 广播给所有在线用户
+        broadcastToAll(message);
+        
+        return "消息已发送";
     }
     
     /**
-     * 实现具体的持久化逻辑
-     * ⚠️ 必须保证幂等性！WAL恢复可能重放已成功持久化的日志
+     * 监听私聊消息
      */
-    @Override
-    protected void persistence(List<LogDataEvent> logs) throws Exception {
-        if (logs == null || logs.isEmpty()) {
-            return;
-        }
+    @WebSocketListening(type = "private_chat")
+    public String handlePrivateMessage(WebSocketRequest request) {
+        PrivateMessage message = JsonUtils.parse(request.getData(), PrivateMessage.class);
         
-        // 批量写入Elasticsearch
-        BulkRequest.Builder bulkBuilder = new BulkRequest.Builder();
-        for (LogDataEvent log : logs) {
-            bulkBuilder.operations(op -> op
-                .index(idx -> idx
-                    .index("sys-logs")
-                    .document(log)
-                )
-            );
-        }
+        // 发送给指定用户
+        sendToUser(message.getToUserId(), message);
         
-        BulkResponse response = esClient.bulk(bulkBuilder.build());
-        if (response.errors()) {
-            throw new RuntimeException("ES批量写入失败");
-        }
-        
-        log.info("成功保存 {} 条日志到ES", logs.size());
+        return "私聊消息已发送";
     }
 }
 ```
 
-**⚠️ 幂等性要求：**
+**2. 发送消息（使用WebSocketUtils工具类）**
 
-由于WAL恢复机制可能在进程崩溃后重放已成功持久化的日志，`persistence()` 方法**必须保证幂等性**。
-
-**实现幂等性的方法：**
-
-1. **使用唯一ID**：以 `traceId + timestamp` 作为文档ID
-2. **先查询再插入**：检查是否已存在相同日志
-3. **使用UPSERT**：存在则更新，不存在则插入
-
-**示例：使用traceId保证幂等性**
-
-```java
-@Override
-protected void persistence(List<LogDataEvent> logs) throws Exception {
-    for (LogDataEvent log : logs) {
-        // 使用 traceId 作为文档ID，保证幂等性
-        String docId = log.getTraceId() + "_" + log.getCreateTime();
-        
-        esClient.index(op -> op
-            .index("sys-logs")
-            .id(docId)  // 指定ID，存在则覆盖
-            .document(log)
-        );
-    }
-}
-```
-
-**配置项：**
-
-```yaml
-simple:
-  log:
-    server:
-      port: 9090                         # 监听端口
-      boss-threads: 1                    # Boss线程数
-      worker-threads: 4                  # Worker线程数
-      reader-idle-time: 300              # 读空闲超时（秒）
-      queue-capacity: 10000              # 内存队列容量
-      batch-size: 100                    # 批量处理大小
-      process-interval: 5000             # 处理间隔（毫秒）
-      wal-enabled: true                  # 是否启用WAL
-      wal-dir: ./logs/wal                # WAL文件目录
-      wal-recovery-interval: 60000       # WAL恢复间隔（毫秒）
-      dead-letter-dir: ./logs/dead-letter # 死信目录
-```
-
-#### 8.5 日志采集详情
-
-框架通过拦截器/过滤器自动调用 `LogService.send()`，无需手动调用。
-
-**采集的信息包括：**
-
-| 字段 | 来源 | 说明 |
-|------|------|------|
-| `traceId` | Request属性 | 链路追踪ID（由LogInterceptor生成） |
-| `userId` | LogUserManager | 用户ID |
-| `nickname` | LogUserManager | 用户昵称 |
-| `operUrl` | HttpServletRequest | 请求URL |
-| `method` | HttpServletRequest | HTTP方法（GET/POST等） |
-| `operIp` | IPUtils | 客户端IP地址 |
-| `operParam` | HttpServletRequest | 请求参数（JSON格式） |
-| `title` | @Operation注解 | 接口描述（Swagger注解） |
-| `status` | HttpServletResponse | 响应状态码 |
-| `errorMsg` | Exception | 错误消息 |
-| `errorData` | Exception | 异常堆栈信息 |
-| `requestTime` | 计算得出 | 请求耗时（毫秒） |
-| `createTimestamp` | TimeStampProvider | 创建时间戳 |
-
-**请求参数采集规则：**
-
-- `application/json`：从请求体读取（需要CachedBodyHttpServletRequest包装）
-- `application/xml` / `text/xml`：从请求体读取
-- `text/plain`：从请求体读取
-- `application/x-www-form-urlencoded`：从ParameterMap读取
-- `multipart/form-data`：从ParameterMap读取（不包含文件内容）
-- 其他类型：从ParameterMap读取
-
-**CachedBodyHttpServletRequest 工作原理：**
-
-```java
-// LogFilter 中执行
-CachedBodyHttpServletRequest cachedRequest = new CachedBodyHttpServletRequest(request, properties);
-chain.doFilter(cachedRequest, response);
-
-// 支持的Content-Type：
-// - application/json
-// - application/xml
-// - text/xml
-// - text/plain
-// - application/x-www-form-urlencoded
-
-// 如果请求体大小超过配置限制（maxBodyCacheSize），则不缓存
-```
-
-#### 8.4 TCP客户端（LogProtobufTcpClient）
-
-**Fire-and-Forget 模式：**
-
-- ✅ 单向发送，不等待服务端响应
-- ✅ 基于Netty实现，高性能
-- ✅ 使用Protobuf序列化，减少网络传输量
-- ✅ 支持断线重连（可配置最大重连次数）
-- ✅ 心跳检测（30秒空闲检测）
-
-**发送批量日志：**
-
-```java
-@Autowired
-private LogProtobufTcpClient tcpClient;
-
-// 方式1：不关心失败回调
-boolean success = tcpClient.sendBatch(logBatch);
-
-// 方式2：带失败回调（推荐）
-tcpClient.sendBatch(logBatch, batch -> {
-    // 发送失败时的降级逻辑
-    log.error("日志发送失败，降级写入本地文件");
-    writeToFallback(batch);
-});
-```
-
-**配置项：**
-
-```yaml
-simple:
-  log:
-    tcp:
-      host: localhost                    # 日志服务器地址
-      port: 9090                         # 日志服务器端口
-      worker-threads: 2                  # Netty Worker线程数
-      connect-timeout: 5000              # 连接超时（毫秒）
-      max-reconnect-attempts: 0          # 最大重连次数（0=无限重试）
-      reconnect-interval: 5000           # 重连间隔（毫秒）
-```
-
-#### 8.6 配置项（Client端）
-
-```yaml
-simple:
-  log:
-    tcp:
-      host: localhost                      # 日志服务器地址
-      port: 9090                           # 日志服务器端口
-      worker-threads: 2                    # Netty Worker线程数
-      connect-timeout: 5000                # 连接超时（毫秒）
-      max-reconnect-attempts: 0            # 最大重连次数（0=无限重试）
-      reconnect-interval: 5000             # 重连间隔（毫秒）
-      buffer-capacity: 10000               # 缓冲队列容量
-      batch-size: 100                      # 批量发送大小
-      batch-flush-interval: 5000           # 批量刷新间隔（毫秒）
-      fallback-enabled: true               # 是否启用降级
-      fallback-dir: ./logs/fallback        # 降级文件目录
-      fallback-resend-enabled: true        # 是否启用降级恢复
-      fallback-file-retention-days: 7      # 降级文件保留天数
-      max-body-cache-size: 1048576         # 请求体缓存限制（字节）
-```
-
-#### 8.7 降级机制详解（Client端）
-
-**降级触发条件：**
-
-1. 缓冲队列已满（offer返回false）
-2. 批量发送失败（TCP连接断开或服务器异常）
-
-**降级文件结构：**
-
-```
-logs/fallback/
-├── fallback.log          # 当前正在写入的降级文件
-└── sent/                 # 已成功发送的降级文件（待清理）
-    ├── fallback_20240101_120000.log
-    └── fallback_20240101_130000.log
-```
-
-**降级文件格式（二进制）：**
-
-```
-[魔数 4字节][长度 4字节][Protobuf数据 N字节]
-[魔数 4字节][长度 4字节][Protobuf数据 N字节]
-...
-```
-
-**魔数校验算法：**
-
-- 每条记录以魔数 `0xCAFEBABE` 开头
-- 如果某条记录损坏，跳过该记录继续扫描下一条
-- 避免因单条记录损坏导致整文件丢弃
-
-**降级恢复流程：**
-
-```
-1. fallbackResendThread 定时扫描降级目录
-   ↓
-2. 找到所有 .log 文件（按修改时间排序）
-   ↓
-3. 逐个读取文件，解析每条记录
-   ├─ 读取魔数（4字节）
-   ├─ 校验魔数是否正确
-   ├─ 读取长度（4字节）
-   ├─ 读取Protobuf数据（N字节）
-   └─ 反序列化为 LogDataEvent
-   ↓
-4. 调用 bufferedLogManager.send() 重新发送
-   ├─ 成功：移动文件到 sent/ 目录
-   └─ 失败：保留原文件，下次继续尝试
-   ↓
-5. 定期清理 sent/ 目录中超过保留天数的文件
-```
-
-#### 8.8 性能优化
-
-**对象池机制：**
-
-```java
-// 从对象池获取实例（避免频繁创建对象）
-LogDataEvent logDataEvent = LogDataEvent.acquire();
-
-try {
-    // 设置日志信息
-    logDataEvent.setUserId("123");
-    logDataEvent.setOperUrl("/api/order");
-    
-    // 发送日志（成功后会自动回收到对象池）
-    bufferedLogManager.send(logDataEvent);
-} catch (Exception e) {
-    // 异常情况下必须手动回收，避免对象泄漏
-    logDataEvent.recycle();
-}
-```
-
-**异步降级写入：**
-
-```java
-// 队列满时，异步写入降级文件，不阻塞业务线程
-if (!bufferQueue.offer(logData)) {
-    fallbackExecutor.submit(() -> writeToFallback(logData));
-}
-```
-
-**异步反序列化：**
-
-```java
-// 发送失败回调中，反序列化操作提交到异步线程池
-// 避免阻塞 Netty I/O 线程
-@Override
-public void onSendFailure(LogBatch batch) {
-    fallbackExecutor.submit(() -> {
-        // 反序列化和降级写入逻辑
-    });
-}
-```
-
-#### 8.9 完整示例
-
-**步骤1：实现自定义用户信息管理**
-
-```java
-@Component
-public class CustomLogUserManager extends DefaultLogUserManager {
-    
-    @Autowired
-    private TokenManager tokenManager;
-    
-    @Override
-    public String loginNickName() {
-        try {
-            String token = RequestContextHolder.getToken();
-            Map<String, Object> payload = tokenManager.check(token, false);
-            return (String) payload.get("username");
-        } catch (Exception e) {
-            return "anonymous";
-        }
-    }
-    
-    @Override
-    public String loginUserId() {
-        try {
-            String token = RequestContextHolder.getToken();
-            Map<String, Object> payload = tokenManager.check(token, false);
-            return (String) payload.get("userId");
-        } catch (Exception e) {
-            return null;
-        }
-    }
-}
-```
-
-**步骤2：配置日志服务器地址**
-
-```yaml
-simple:
-  log:
-    tcp:
-      host: 192.168.1.100
-      port: 9090
-      buffer-capacity: 10000
-      batch-size: 100
-      batch-flush-interval: 5000
-      fallback-enabled: true
-      fallback-dir: ./logs/fallback
-      max-body-cache-size: 1048576  # 1MB
-```
-
-**步骤3：启动日志服务**
-
-框架自动启动，无需额外配置。`LogFilter` 和 `LogInterceptor` 会被Spring自动注册，`DefaultLogService` 会在请求完成后自动调用。
-
----
-
-### 9. simple-common-sms（短信服务模块）
-
-短信服务模块，**支持多厂商适配、责任链校验、防刷机制**。
-
-#### 核心功能
-
-| 功能分类 | 接口/组件 | 说明 |
-|---------|----------|------|
-| 短信服务 | `SmsService` | 短信发送和校验接口 |
-| 抽象基类 | `AbsSmsService` | 实现校验逻辑，子类只需实现发送方法 |
-| 阿里云实现 | `AliSmsService` | 阿里云短信服务实现 |
-| 校验责任链 | `CheckSmsProcess` | 短信发送前校验接口 |
-| 时间间隔校验 | `TimeIntervalBeforeSmsProcess` | 校验发送时间间隔 |
-| IP次数校验 | `IpBeforeSmsProcess` | 根据IP校验每日发送次数 |
-| 手机号次数校验 | `PhoneBeforeSmsProcess` | 根据手机号校验每日发送次数 |
-| 校验枚举 | `BeforeSmsKindProcess` | 定义校验类型和执行顺序 |
-| 配置属性 | `SmsProperties` | 短信配置参数 |
-
-#### 9.1 架构设计
-
-**责任链模式：**
-
-```
-发送短信
-   ↓
-执行校验责任链（按order排序）
-   ├─ 1. TIME_INTERVAL_PROCESS: 校验发送时间间隔
-   ├─ 2. IP_PROCESS: 校验IP每日发送次数
-   └─ 3. PHONE_PROCESS: 校验手机号每日发送次数
-   ↓
-所有校验通过
-   ↓
-调用 sendTemplateParam() 发送短信
-   ↓
-记录发送结果到数据库
-```
-
-**分布式锁保护：**
-
-```java
-// AbsSmsService.sendCode() 中使用分布式锁
-lockService.lock(mobile, () -> {
-    // 执行校验责任链
-    checkSmsProcessList.forEach(process -> {
-        if (process.getProcess().isExecute()) {
-            process.execution(mobile, code);
-        }
-    });
-    // 发送短信
-    sendTemplateParam(mobile, sendType, "{'code':'" + code + "'}");
-});
-```
-
-**重要说明：**
-
-- ✅ 使用分布式锁防止同一手机号并发发送
-- ✅ 责任链模式灵活组合多种校验逻辑
-- ✅ 每个校验处理器可独立启用/禁用
-- ✅ 所有发送记录保存到数据库，支持审计和统计
-
-#### 9.2 短信服务接口
-
-**SmsService 提供3个核心方法：**
-
-```java
-public interface SmsService {
-    
-    /**
-     * 发送短信验证码
-     * @param mobile   手机号
-     * @param code     验证码
-     * @param sendType 短信类型配置标识
-     */
-    void sendCode(String mobile, String code, String sendType);
-    
-    /**
-     * 发送模板短信
-     * @param mobile        手机号
-     * @param sendType      短信类型配置标识
-     * @param templateParam 模板参数（JSON格式）
-     * @param ip            客户端IP地址，用于防刷校验
-     */
-    void sendTemplateParam(String mobile, String sendType, String templateParam, String ip);
-    
-    /**
-     * 校验短信验证码
-     * @param mobile   手机号
-     * @param code     验证码
-     * @param sendType 短信类型配置标识
-     */
-    void checkSms(String mobile, String code, String sendType);
-}
-```
-
-#### 9.3 使用示例
-
-**发送验证码：**
-
-```java
-@Autowired
-private SmsService smsService;
-
-// 生成6位随机验证码
-String code = RandomUtil.randomNumbers(6);
-
-// 发送验证码（自动执行校验责任链 + 分布式锁保护）
-smsService.sendCode("13800138000", code, "LOGIN");
-```
-
-**发送模板短信：**
-
-```java
-// 方式1：自动获取客户端IP
-smsService.sendTemplateParam(
-    "13800138000",
-    "ORDER_NOTIFY",
-    "{\"orderNo\":\"ORD123\",\"amount\":\"99.99\"}"
-);
-
-// 方式2：手动指定IP
-String clientIp = IPUtils.getIpAddr();
-smsService.sendTemplateParam(
-    "13800138000",
-    "ORDER_NOTIFY",
-    "{\"orderNo\":\"ORD123\",\"amount\":\"99.99\"}",
-    clientIp
-);
-```
-
-**校验验证码：**
-
-```java
-try {
-    // 校验验证码（会检查重试次数、过期时间、验证码正确性）
-    smsService.checkSms("13800138000", "123456", "LOGIN");
-    
-    // 校验成功，继续业务逻辑
-    loginService.login(username, password);
-} catch (Exception e) {
-    // 校验失败，返回错误信息
-    return R.error(e.getMessage());
-}
-```
-
-#### 9.4 自定义校验处理器
-
-**实现 `CheckSmsProcess` 接口添加自定义校验：**
-
-```java
-@Component
-public class BlacklistBeforeSmsProcess implements CheckSmsProcess {
-    
-    @Autowired
-    private SysSmsCodeView sysSmsCodeView;
-    
-    @Override
-    public DefaultKindProcess getProcess() {
-        // 需要先在 BeforeSmsKindProcess 枚举中添加 BLACKLIST_PROCESS
-        return BeforeSmsKindProcess.BLACKLIST_PROCESS;
-    }
-    
-    @Override
-    public void execution(String phone, String code) {
-        // 检查手机号是否在黑名单中
-        boolean inBlacklist = blacklistService.isInBlacklist(phone);
-        AssertUtils.isFalse(inBlacklist, "该手机号已被加入黑名单");
-    }
-}
-```
-
-**责任链执行顺序：**
-
-在 `BeforeSmsKindProcess` 枚举中通过 `order` 参数控制执行顺序：
-
-```java
-public enum BeforeSmsKindProcess implements DefaultKindProcess {
-    
-    TIME_INTERVAL_PROCESS("校验发送时间间隔", true, 1),  // 第1个执行
-    IP_PROCESS("根据ip校验发送次数", true, 2),           // 第2个执行
-    PHONE_PROCESS("根据手机号校验发送次数", true, 3),    // 第3个执行
-    BLACKLIST_PROCESS("黑名单校验", true, 4);            // 第4个执行
-    
-    private final String label;   // 说明
-    private final boolean execute; // 是否执行
-    private final int order;       // 执行顺序
-}
-```
-
-**禁用某个校验：**
-
-将 `execute` 设置为 `false` 即可禁用：
-
-```java
-IP_PROCESS("根据ip校验发送次数", false, 2),  // 不执行IP校验
-```
-
-#### 9.5 扩展新短信平台
-
-**继承 `AbsSmsService` 实现新的短信平台：**
-
-```java
-@Service("tencentSmsService")
-public class TencentSmsService extends AbsSmsService {
-    
-    @Autowired
-    private SysSmsTemplateView sysSmsTemplateView;
-    
-    @Autowired
-    private SysSmsCodeView sysSmsCodeView;
-    
-    @Override
-    protected void sendTemplateParam(String mobile, String sendType, String templateParam, String ip) {
-        // 1. 获取短信模板配置
-        SysSmsTemplate template = sysSmsTemplateView.findByType(sendType);
-        AssertUtils.notEmpty(template, "短信模板不存在");
-        
-        // 2. 构建腾讯云短信请求
-        SmsClient client = new SmsClient(credentials);
-        SendSmsRequest request = new SendSmsRequest();
-        request.setPhoneNumberSet(new String[]{mobile});
-        request.setSmsSdkAppId(template.getAppId());
-        request.setSignName(template.getSignName());
-        request.setTemplateId(template.getTemplateCode());
-        request.setTemplateParamSet(parseTemplateParam(templateParam));
-        
-        // 3. 发送短信
-        SysSmsCode codeRecord = new SysSmsCode();
-        codeRecord.setPhone(mobile);
-        codeRecord.setSendType(sendType);
-        codeRecord.setCode(templateParam);
-        codeRecord.setIp(ip);
-        
-        try {
-            SendSmsResponse response = client.SendSms(request);
-            
-            // 4. 记录发送结果
-            if ("Ok".equals(response.getSendStatusSet()[0].getCode())) {
-                codeRecord.setReqStatus(Status.OK);
-                codeRecord.setReqResults(JsonUtils.toJsonStr(response));
-            } else {
-                codeRecord.setReqStatus(Status.ERROR);
-                codeRecord.setReqResults(response.getSendStatusSet()[0].getMessage());
-            }
-        } catch (Exception e) {
-            log.error("腾讯云短信发送异常", e);
-            codeRecord.setReqStatus(Status.ERROR);
-            codeRecord.setReqResults(e.getMessage());
-        }
-        
-        // 5. 保存到数据库
-        sysSmsCodeView.save(codeRecord);
-        
-        // 6. 如果发送失败，抛出异常
-        AssertUtils.isTrue(codeRecord.getReqStatus() == Status.OK, "短信发送失败");
-    }
-}
-```
-
-**切换短信平台：**
-
-通过Spring的 `@Qualifier` 或 `@Primary` 注解切换：
-
-```java
-@Configuration
-public class SmsConfig {
-    
-    @Bean
-    @Primary  // 设置为主实现
-    public SmsService tencentSmsService() {
-        return new TencentSmsService();
-    }
-}
-```
-
-#### 9.6 验证码校验机制
-
-**AbsSmsService.checkSms() 的校验流程：**
-
-```java
-@Override
-public void checkSms(String mobile, String code, String sendType) {
-    // 1. Redis计数器：限制重试次数
-    Long increment = redisTemplate.opsForValue().increment(mobile);
-    AssertUtils.notEmpty(increment, "请重试");
-    
-    // 第一次进入，设置过期时间
-    if (increment == 1L) {
-        redisTemplate.expire(mobile, smsProperties.getOutTime(), TimeUnit.SECONDS);
-    }
-    
-    // 检查是否超过最大重试次数
-    AssertUtils.isTrue(
-        increment <= smsProperties.getErrorSum(), 
-        "超过最大重试次数，请重新获取验证码"
-    );
-    
-    // 2. 从数据库查询验证码记录
-    List<SysSmsCode> list = sysSmsCodeView.findByTimeAndPhoneAndState(
-        new FindAllSysSmsCodeRequest()
-            .setPhone(mobile)
-            .setStatus(Status.NOT_USED)
-            .setSendType(sendType)
-            .setCode(code)
-    );
-    AssertUtils.notEmpty(list, "没有发送消息");
-    
-    // 3. 校验过期时间
-    SysSmsCode sysSmsCode = list.get(0);
-    long between = DateUtil.between(
-        sysSmsCode.getCreateTime(), 
-        DateUtil.date(), 
-        DateUnit.SECOND, 
-        true
-    );
-    AssertUtils.isTrue(
-        between <= smsProperties.getOutTime(), 
-        "验证码已过期，请重新获取验证码"
-    );
-    
-    // 4. 校验验证码是否正确
-    AssertUtils.isTrue(
-        sysSmsCode.getCode().equals(code), 
-        "验证码错误，请重新输入"
-    );
-    
-    // 5. 标记为已使用
-    sysSmsCode.setStatus(Status.USED);
-    sysSmsCodeView.updateById(sysSmsCode);
-}
-```
-
-**校验要点：**
-
-1. ✅ **Redis计数器**：限制重试次数（默认3次）
-2. ✅ **数据库查询**：查找未使用的验证码记录
-3. ✅ **过期时间校验**：检查验证码是否过期（默认300秒）
-4. ✅ **验证码比对**：验证用户输入的验证码是否正确
-5. ✅ **状态更新**：校验成功后标记为已使用，防止重复使用
-
-#### 9.7 配置项
-
-```yaml
-simple:
-  ali:
-    sms:
-      ip-send-max: 20              # 同一IP每日最大发送次数
-      phone-send-max: 5            # 同一手机号每日最大发送次数
-      time-inter: 60               # 发送时间间隔（秒）
-      out-time: 300                # 验证码有效期（秒）
-      error-sum: 3                 # 验证码允许的错误重试次数
-      endpoint: dysmsapi.aliyuncs.com  # 阿里云短信服务端点
-```
-
-#### 9.8 数据库表结构
-
-**sys_sms_code（短信验证码记录表）：**
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键 |
-| phone | VARCHAR(20) | 手机号 |
-| code | VARCHAR(100) | 验证码（JSON格式） |
-| send_type | VARCHAR(50) | 短信类型 |
-| status | INT | 状态（0=未使用，1=已使用，2=错误） |
-| ip | VARCHAR(50) | 客户端IP |
-| date | VARCHAR(20) | 日期（yyyy-MM-dd） |
-| create_time | DATETIME | 创建时间 |
-| req_status | INT | 请求状态（OK/ERROR） |
-| req_results | TEXT | 请求结果（JSON） |
-
-**sys_sms_template（短信模板配置表）：**
-
-| 字段 | 类型 | 说明 |
-|------|------|------|
-| id | BIGINT | 主键 |
-| type | VARCHAR(50) | 短信类型标识 |
-| sign_name | VARCHAR(100) | 签名 |
-| template_code | VARCHAR(100) | 模板CODE |
-| app_id | VARCHAR(100) | 应用ID（腾讯云用） |
-| status | INT | 状态（启用/禁用） |
-
-#### 9.9 防刷机制
-
-**三层防护：**
-
-1. **分布式锁**：防止同一手机号并发发送
-2. **时间间隔校验**：限制发送频率（默认60秒）
-3. **每日次数限制**：
-   - IP维度：同一IP每日最多20次
-   - 手机号维度：同一手机号每日最多5次
-
-**攻击场景防护：**
-
-| 攻击场景 | 防护机制 | 效果 |
-|---------|---------|------|
-| 单手机号暴力发送 | 分布式锁 + 时间间隔 + 手机号次数限制 | 每分钟最多1次，每日最多5次 |
-| 多手机号IP攻击 | IP次数限制 | 同一IP每日最多20次 |
-| 验证码爆破 | Redis计数器 + 错误次数限制 | 最多重试3次 |
-| 重放攻击 | 验证码一次性使用 | 校验后立即标记为已使用 |
-
----
-
-### 10. simple-common-xxljob（定时任务模块）
-
-XXL-JOB分布式任务调度模块，**提供代码动态管理任务的能力**。
-
-#### 核心功能
-
-| 功能分类 | 接口/组件 | 说明 |
-|---------|----------|------|
-| 任务服务 | `XxlJobService` | 任务管理服务接口 |
-| 默认任务服务 | `DefaultXxlJobService` | 调用Manager实现任务管理 |
-| 任务管理器 | `XxlJobManager` | 任务管理接口，通过HTTP调用XXL-JOB Admin API |
-| 默认任务管理 | `DefaultXxlJobManager` | 基于HttpUtils实现远程调用 |
-| 创建请求DTO | `CreateXxlJobTaskRequest` | 创建任务的请求对象 |
-| 更新请求DTO | `UpdateXxlJobTaskRequest` | 更新任务的请求对象 |
-| 请求URL枚举 | `XxlJobRequestUrl` | 定义XXL-JOB Admin API的URL |
-| 配置类 | `XxlJobConfig` | XXL-JOB配置属性 |
-
-#### 10.1 架构设计
-
-**三层架构：**
-
-```
-业务代码
-   ↓
-XxlJobService (服务层)
-   ↓
-XxlJobManager (管理层)
-   ↓
-DefaultXxlJobManager (实现层)
-   ↓
-HttpUtils.post() 调用 XXL-JOB Admin API
-   ↓
-XXL-JOB Admin 服务器
-```
-
-**重要说明：**
-
-- ✅ **不是任务执行器**，而是**任务管理器**
-- ✅ 通过HTTP调用XXL-JOB Admin API来管理任务
-- ✅ 支持动态创建、修改、删除、启停任务
-- ✅ 不处理任务的具体执行逻辑
-
-#### 10.2 任务管理接口
-
-**XxlJobService 提供6个核心方法：**
-
-```java
-public interface XxlJobService {
-    
-    /**
-     * 创建定时任务
-     * @return 任务ID字符串
-     */
-    String create(CreateXxlJobTaskRequest request);
-    
-    /**
-     * 修改定时任务配置
-     */
-    void update(UpdateXxlJobTaskRequest request);
-    
-    /**
-     * 删除定时任务
-     */
-    void delete(Integer id);
-    
-    /**
-     * 启动定时任务
-     */
-    void start(Integer id);
-    
-    /**
-     * 停止定时任务
-     */
-    void end(Integer id);
-    
-    /**
-     * 立即触发任务执行
-     */
-    void trigger(Integer id);
-}
-```
-
-#### 10.3 使用示例
-
-**创建并启动任务：**
-
-```java
-@Autowired
-private XxlJobService xxlJobService;
-
-// 1. 构建创建请求
-CreateXxlJobTaskRequest request = new CreateXxlJobTaskRequest();
-request.setJobGroup(1);                        // 执行器ID
-request.setJobDesc("订单超时取消任务");
-request.setAuthor("system");
-request.setScheduleConf("0 0/5 * * * ?");      // Cron表达式：每5分钟执行
-request.setExecutorHandler("orderTimeoutHandler"); // 任务Handler名称
-request.setExecutorParam("{\"timeoutMinutes\":30}"); // 任务参数
-request.setExecutorRouteStrategy("FIRST");     // 路由策略：第一个
-request.setExecutorBlockStrategy("SERIAL_EXECUTION"); // 阻塞策略：串行执行
-request.setMisfireStrategy("DO_NOTHING");      // 过期策略：忽略
-request.setExecutorTimeout(30);                // 超时时间：30秒
-request.setExecutorFailRetryCount(3);          // 失败重试次数：3次
-
-// 2. 创建任务（返回任务ID）
-String jobId = xxlJobService.create(request);
-log.info("任务创建成功，任务ID: {}", jobId);
-
-// 3. 启动任务
-xxlJobService.start(Integer.parseInt(jobId));
-log.info("任务已启动");
-```
-
-**修改任务配置：**
-
-```java
-UpdateXxlJobTaskRequest request = new UpdateXxlJobTaskRequest();
-request.setId(123);                            // 任务ID
-request.setScheduleConf("0 0/10 * * * ?");     // 修改为每10分钟执行
-request.setJobDesc("订单超时取消任务(已优化)");
-request.setExecutorParam("{\"timeoutMinutes\":60}"); // 修改超时时间为60分钟
-
-xxlJobService.update(request);
-log.info("任务配置已更新");
-```
-
-**停止和删除任务：**
-
-```java
-Integer jobId = 123;
-
-// 1. 先停止任务
-xxlJobService.end(jobId);
-log.info("任务已停止");
-
-// 2. 再删除任务
-xxlJobService.delete(jobId);
-log.info("任务已删除");
-```
-
-**立即触发任务执行：**
-
-```java
-// 手动触发任务立即执行一次（不受Cron限制）
-xxlJobService.trigger(jobId);
-log.info("任务已触发");
-
-// 可以用于测试新创建的任务是否正常
-```
-
-#### 10.4 任务处理器定义
-
-**在业务项目中定义任务处理器：**
-
-```java
-@Component
-public class OrderTimeoutJobHandler {
-    
-    /**
-     * 任务Handler名称必须与 CreateXxlJobTaskRequest.executorHandler 一致
-     */
-    @XxlJob("orderTimeoutHandler")
-    public void execute(String param) throws Exception {
-        log.info("开始执行订单超时取消任务，参数: {}", param);
-        
-        // 解析参数
-        JSONObject params = JSON.parseObject(param);
-        int timeoutMinutes = params.getIntValue("timeoutMinutes");
-        
-        // 业务逻辑：查询超时订单并取消
-        List<Order> timeoutOrders = orderService.findTimeoutOrders(timeoutMinutes);
-        for (Order order : timeoutOrders) {
-            orderService.cancelOrder(order.getId(), "订单超时自动取消");
-        }
-        
-        log.info("订单超时取消任务执行完成，共取消 {} 个订单", timeoutOrders.size());
-    }
-}
-```
-
-**重要说明：**
-
-- ✅ `@XxlJob` 注解的值必须与 `executorHandler` 字段一致
-- ✅ 任务处理器必须是Spring Bean（添加 `@Component`）
-- ✅ 方法可以接收String类型的参数
-- ✅ 抛出异常会被XXL-JOB捕获并记录
-
-#### 10.5 配置项
-
-```yaml
-simple:
-  xxl:
-    job:
-      admin-addresses: http://localhost:8080/xxl-job-admin  # XXL-JOB Admin地址
-      access-token: default_token                            # 访问令牌
-      request-timeout: 5000                                  # HTTP请求超时（毫秒）
-```
-
-#### 10.6 CreateXxlJobTaskRequest 参数详解
-
-| 参数 | 类型 | 必填 | 默认值 | 说明 |
-|------|------|------|--------|------|
-| `jobGroup` | Integer | 是 | - | 执行器ID |
-| `jobDesc` | String | 是 | - | 任务描述 |
-| `author` | String | 是 | - | 负责人 |
-| `scheduleConf` | String | 是 | - | Cron表达式 |
-| `executorHandler` | String | 是 | - | 任务Handler名称 |
-| `scheduleType` | String | 否 | CRON | 调度类型 |
-| `glueType` | String | 否 | BEAN | 运行模式 |
-| `executorRouteStrategy` | String | 否 | FIRST | 路由策略 |
-| `executorBlockStrategy` | String | 否 | SERIAL_EXECUTION | 阻塞策略 |
-| `misfireStrategy` | String | 否 | DO_NOTHING | 过期策略 |
-| `executorParam` | String | 否 | - | 任务参数（JSON） |
-| `alarmEmail` | String | 否 | - | 报警邮件 |
-| `childJobId` | String | 否 | - | 子任务ID |
-| `executorTimeout` | int | 否 | 30 | 执行超时时间（秒） |
-| `executorFailRetryCount` | int | 否 | 3 | 失败重试次数 |
-
-**路由策略选项：**
-
-- `FIRST`：第一个
-- `LAST`：最后一个
-- `ROUND`：轮询
-- `RANDOM`：随机
-- `CONSISTENT_HASH`：一致性HASH
-- `LEAST_FREQUENTLY_USED`：最不经常使用
-- `LEAST_RECENTLY_USED`：最近最久未使用
-- `FAILOVER`：故障转移
-- `BUSYOVER`：忙碌转移
-- `SHARDING_BROADCAST`：分片广播
-
-**阻塞策略选项：**
-
-- `SERIAL_EXECUTION`：单机串行
-- `DISCARD_LATER`：丢弃后续调度
-- `COVER_EARLY`：覆盖之前调度
-
-**过期策略选项：**
-
-- `DO_NOTHING`：忽略
-- `FIRE_ONCE_NOW`：立即执行一次
-
-#### 10.7 典型应用场景
-
-**场景1：动态创建定时任务**
+`WebSocketUtils`是静态工具类，提供便捷的消息发送方法：
 
 ```java
 @Service
-public class DynamicJobService {
-    
-    @Autowired
-    private XxlJobService xxlJobService;
+public class NotificationService {
     
     /**
-     * 根据用户配置动态创建任务
+     * 向指定类型的所有客户端广播消息
      */
-    public String createCustomJob(JobConfig config) {
-        CreateXxlJobTaskRequest request = new CreateXxlJobTaskRequest();
-        request.setJobGroup(config.getExecutorId());
-        request.setJobDesc(config.getJobName());
-        request.setAuthor(config.getCreator());
-        request.setScheduleConf(config.getCronExpression());
-        request.setExecutorHandler(config.getHandlerName());
-        request.setExecutorParam(config.getParams());
+    public void broadcastToAll(String type, String message) {
+        // 向所有 "chat" 类型的客户端发送消息
+        WebSocketUtils.sendMsg("chat", message);
+    }
+    
+    /**
+     * 向指定客户端发送消息
+     */
+    public void sendToUser(String type, String userId, String message) {
+        // 向指定用户发送消息
+        boolean success = WebSocketUtils.sendMsg(type, userId, message);
         
-        String jobId = xxlJobService.create(request);
-        xxlJobService.start(Integer.parseInt(jobId));
-        
-        return jobId;
+        if (!success) {
+            log.warn("用户不在线: {}", userId);
+        }
+    }
+    
+    /**
+     * 检查用户是否在线
+     */
+    public boolean isUserOnline(String type, String userId) {
+        return WebSocketUtils.isOnline(type, userId);
+    }
+    
+    /**
+     * 获取当前连接总数
+     */
+    public int getConnectionCount() {
+        return WebSocketUtils.getConnectionCount();
     }
 }
 ```
 
-**场景2：任务生命周期管理**
+**WebSocketUtils常用方法：**
+
+| 方法 | 说明 | 返回值 |
+|------|------|--------|
+| `sendMsg(type, msg)` | 向指定类型的所有客户端广播 | void |
+| `sendMsg(type, cliKey, msg)` | 向指定客户端发送消息 | boolean |
+| `isOnline(type, cliKey)` | 检查客户端是否在线 | boolean |
+| `getConnectionCount()` | 获取当前连接总数 | int |
+| `cleanInactiveChannels()` | 清理无效通道 | int |
+| `clearAll()` | 清空所有通道 | void |
+
+**3. 通道管理**
 
 ```java
-@Service
-public class JobLifecycleService {
-    
-    @Autowired
-    private XxlJobService xxlJobService;
+// 添加通道（用户登录后）
+String userId = "user123";
+String deviceId = "device_web_001";
+Channel channel = ctx.channel();
+
+channelMap.add(userId, deviceId, channel);
+
+// 获取用户的通道
+List<Channel> userChannels = channelMap.get(userId);
+
+// 获取指定设备的通道
+Channel deviceChannel = channelMap.get(userId, deviceId);
+
+// 删除通道（用户登出时）
+channelMap.del(userId, deviceId);
+
+// 删除用户的所有通道
+channelMap.del(userId);
+```
+
+**4. 多端支持**
+
+通过 `cliKey` 区分不同客户端：
+
+```java
+@Component
+public class MultiClientListener {
     
     /**
-     * 系统维护期间暂停所有任务
+     * Web端消息处理
      */
-    public void pauseAllJobs(List<Integer> jobIds) {
-        for (Integer jobId : jobIds) {
-            try {
-                xxlJobService.end(jobId);
-                log.info("任务已暂停: {}", jobId);
-            } catch (Exception e) {
-                log.error("暂停任务失败: {}", jobId, e);
-            }
-        }
+    @WebSocketListening(type = "notification", cliKey = "web")
+    public String handleWebNotification(WebSocketRequest request) {
+        // Web端特殊处理
+        return "Web端通知";
     }
     
     /**
-     * 维护完成后恢复所有任务
+     * App端消息处理
      */
-    public void resumeAllJobs(List<Integer> jobIds) {
-        for (Integer jobId : jobIds) {
-            try {
-                xxlJobService.start(jobId);
-                log.info("任务已恢复: {}", jobId);
-            } catch (Exception e) {
-                log.error("恢复任务失败: {}", jobId, e);
-            }
-        }
+    @WebSocketListening(type = "notification", cliKey = "app")
+    public String handleAppNotification(WebSocketRequest request) {
+        // App端特殊处理（如推送）
+        pushService.sendPush(request.getData());
+        return "App端通知";
+    }
+    
+    /**
+     * 小程序端消息处理
+     */
+    @WebSocketListening(type = "notification", cliKey = "miniprogram")
+    public String handleMiniProgramNotification(WebSocketRequest request) {
+        return "小程序通知";
     }
 }
 ```
 
-**场景3：测试任务逻辑**
+**通道存储结构：**
+
+```
+ChannelMap<userId, deviceId, Channel>
+
+userId: "user123"
+  ├─ deviceId: "web_001" → Channel(web连接)
+  ├─ deviceId: "app_001" → Channel(app连接)
+  └─ deviceId: "mp_001"  → Channel(小程序连接)
+
+userId: "user456"
+  ├─ deviceId: "web_002" → Channel(web连接)
+  └─ deviceId: "app_002" → Channel(app连接)
+```
+
+**重要说明：**
+
+1. **type参数**：用于区分不同类型的消息通道，同一type在同一端只能有一个数据通道
+2. **cliKey参数**：用于区分相同type下不同客户端的消息处理
+3. **方法签名**：监听方法必须接收 `WebSocketRequest` 参数，返回值会发送回客户端
+4. **线程安全**：ChannelMap使用读写锁保证复合操作的原子性
+
+---
+
+## 9. simple-common-excel
+
+### 模块介绍
+
+Excel导入导出模块，基于EasyExcel和Apache POI双引擎，支持大数据量导入导出、模板填充等功能。
+
+### 核心功能
+
+| 功能分类 | 接口/组件 | 说明 |
+|---------|----------|------|
+| **Excel读取服务** | `EasyExcelReadService` | **从文件/流/MultipartFile读取Excel，支持监听器逐行处理** |
+| **Excel写入服务** | `EasyExcelWriteService` | **将数据写入输出流/HTTP响应，支持浏览器下载** |
+| POI读取服务 | `PoiReadService` | 基于POI的Excel读取（适合复杂样式） |
+| POI写入服务 | `PoiWriteService` | 基于POI的Excel写入（适合复杂样式） |
+
+### 集成方式
+
+**步骤1：添加依赖**
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-excel</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+**重要说明：**
+- excel模块已自动排除EasyExcel自带的旧版POI，统一使用项目中的POI版本
+- 推荐使用EasyExcel引擎（内存占用低，适合大数据量）
+- POI引擎适合需要复杂样式的场景
+- EasyExcel读取采用监听器模式，逐行处理，不会OOM
+
+### 使用示例
+
+**1. 导入Excel（从MultipartFile读取）**
 
 ```java
 @RestController
-@RequestMapping("/test/job")
-public class JobTestController {
+@RequestMapping("/excel")
+public class ExcelController {
     
     @Autowired
-    private XxlJobService xxlJobService;
+    private EasyExcelReadService readService;
+    
+    @Autowired
+    private UserService userService;
     
     /**
-     * 手动触发任务执行，用于测试
+     * 导入用户数据
      */
-    @PostMapping("/trigger/{jobId}")
-    public R triggerJob(@PathVariable Integer jobId) {
-        try {
-            xxlJobService.trigger(jobId);
-            return R.ok("任务已触发");
-        } catch (Exception e) {
-            return R.error("触发失败: " + e.getMessage());
-        }
+    @PostMapping("/import")
+    public R<String> importUsers(@RequestParam("file") MultipartFile file) {
+        List<UserDTO> userList = new ArrayList<>();
+        
+        // 使用监听器逐行处理
+        readService.read(file, 1, UserDTO.class, new ReadListener<UserDTO>() {
+            @Override
+            public void invoke(UserDTO data, AnalysisContext context) {
+                // 处理每一行数据
+                userList.add(data);
+            }
+            
+            @Override
+            public void doAfterAllAnalysed(AnalysisContext context) {
+                // 所有数据解析完成后，批量保存
+                userService.saveBatch(userList);
+                log.info("导入成功，共{}条数据", userList.size());
+            }
+        });
+        
+        return R.ok("导入成功，共" + userList.size() + "条数据");
+    }
+}
+```
+
+**2. 导出Excel（浏览器下载）**
+
+```java
+@RestController
+@RequestMapping("/excel")
+public class ExcelController {
+    
+    @Autowired
+    private EasyExcelWriteService writeService;
+    
+    @Autowired
+    private UserService userService;
+    
+    /**
+     * 导出用户列表
+     */
+    @GetMapping("/export")
+    public void exportUsers(HttpServletResponse response) {
+        // 查询数据
+        List<UserDTO> userList = userService.list();
+        
+        // 直接写入HTTP响应，触发浏览器下载
+        writeService.writeResponse(UserDTO.class, userList, "用户列表");
+    }
+}
+```
+
+**3. 导出Excel到输出流**
+
+```java
+@Service
+public class ReportService {
+    
+    @Autowired
+    private EasyExcelWriteService writeService;
+    
+    /**
+     * 生成报表并上传到OSS
+     */
+    public void generateReportAndUpload() {
+        List<OrderDTO> orders = orderService.findAll();
+        
+        // 写入输出流
+        ByteArrayOutputStream outputStream = writeService.writeOutputStream(
+            OrderDTO.class, orders
+        );
+        
+        // 上传到OSS
+        ossClient.putObject("reports/orders.xlsx", outputStream.toByteArray());
+    }
+}
+```
+
+**4. 从文件路径读取Excel**
+
+```java
+@Service
+public class DataImportService {
+    
+    @Autowired
+    private EasyExcelReadService readService;
+    
+    /**
+     * 从服务器本地文件导入
+     */
+    public void importFromLocalFile() {
+        List<ProductDTO> productList = new ArrayList<>();
+        
+        readService.read("/data/import/products.xlsx", 1, ProductDTO.class, 
+            new ReadListener<ProductDTO>() {
+                @Override
+                public void invoke(ProductDTO data, AnalysisContext context) {
+                    productList.add(data);
+                }
+                
+                @Override
+                public void doAfterAllAnalysed(AnalysisContext context) {
+                    productService.saveBatch(productList);
+                }
+            });
+    }
+}
+```
+
+**5. 实体类定义（使用@ExcelProperty注解）**
+
+```java
+@Data
+public class UserDTO {
+    
+    @ExcelProperty(value = "用户ID", index = 0)
+    private String userId;
+    
+    @ExcelProperty(value = "用户名", index = 1)
+    private String username;
+    
+    @ExcelProperty(value = "邮箱", index = 2)
+    private String email;
+    
+    @ExcelProperty(value = "手机号", index = 3)
+    private String phone;
+    
+    @ExcelProperty(value = "创建时间", index = 4)
+    private LocalDateTime createTime;
+}
+```
+
+**EasyExcelReadService常用方法：**
+
+| 方法 | 说明 |
+|------|------|
+| `read(filePath, headRowNumber, clazz, listener)` | 从文件路径读取 |
+| `read(inputStream, headRowNumber, clazz, listener)` | 从输入流读取 |
+| `read(multipartFile, headRowNumber, clazz, listener)` | 从MultipartFile读取（便捷方法） |
+
+**EasyExcelWriteService常用方法：**
+
+| 方法 | 说明 | 返回值 |
+|------|------|--------|
+| `writeResponse(clazz, data, writeName)` | 写入HTTP响应（浏览器下载） | void |
+| `writeOutputStream(clazz, data)` | 写入输出流 | ByteArrayOutputStream |
+| `writeInputStream(clazz, data)` | 写入输入流 | ByteArrayInputStream |
+
+---
+
+## 10. simple-common-sms
+
+### 模块介绍
+
+短信服务模块，阿里云SMS集成，多层防刷机制(IP限流+频次控制+黑名单)。
+
+### 核心功能
+
+| 功能分类 | 接口/组件 | 说明 |
+|---------|----------|------|
+| 短信服务 | `SmsService` | 短信发送接口 |
+| 防刷管理 | `SmsAntiFraudManager` | IP限流、频次控制、黑名单 |
+
+### 集成方式
+
+**步骤1：添加依赖**
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-sms</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+**步骤2：配置阿里云短信（必须）**
+
+```yaml
+simple:
+  alibaba:
+    # 阿里云AccessKey ID（必须配置）
+    access-key-id: your_access_key_id
+    # 阿里云AccessKey Secret（必须配置）
+    access-key-secret: your_access_key_secret
+  
+  ali:
+    sms:
+      # 一天内IP发送短信最大次数（默认20）
+      ip-send-max: 20
+      # 一天内相同手机号发送短信最大次数（默认5）
+      phone-send-max: 5
+      # 发送最低时间间隔，单位秒（默认60）
+      time-inter: 60
+      # 验证码超时时间，单位秒（默认300）
+      out-time: 300
+      # 每次短信验证码允许的错误验证次数（默认3）
+      error-sum: 3
+      # 服务地址（默认dysmsapi.aliyuncs.com）
+      endpoint: dysmsapi.aliyuncs.com
+```
+
+**重要说明：**
+- `access-key-id` 和 `access-key-secret` 必须在阿里云控制台获取
+- 建议将密钥配置在环境变量或配置中心，不要硬编码在代码中
+- 防刷机制默认开启，可根据业务需求调整参数
+
+### 使用示例
+
+**1. 发送短信验证码**
+
+```java
+@Service
+public class SmsService {
+    
+    @Autowired
+    private com.simple.common.sms.service.SmsService smsService;
+    
+    public void sendVerifyCode(String phone) {
+        String code = RandomUtil.randomNumbers(6);
+        
+        // 发送短信
+        smsService.send(phone, "SMS_123456", Map.of("code", code));
+        
+        // 缓存验证码
+        cacheManager.set("sms:" + phone, code, 300);
     }
 }
 ```
 
 ---
 
-### 11. simple-common-doc（Word文档模板模块）
+## 11. simple-common-doc
 
-Word文档模板替换模块，**基于poi-tl引擎实现**，支持**文本、图片、表格、列表等多种元素替换**。
+### 模块介绍
 
-#### 核心功能
+Word文档处理模块，提供模板替换、动态生成合同/证书/报表等功能。
+
+### 核心功能
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
-| 文档服务 | `DocReplaceService` | 文档替换服务接口，提供多种便捷方法 |
-| 默认文档服务 | `DefaultDocReplaceService` | 调用Manager实现文档替换 |
-| 模板管理 | `DocTemplateReplaceManager` | 文档模板替换管理器接口 |
-| PoiTl模板管理 | `PoiTlTemplateReplaceManager` | 基于poi-tl引擎的实现 |
-| 文档构建器 | `Docs.DocBuilder` | **核心工具**：链式API构建模板数据 |
-| 配置类 | `DocConfig` | 文档模块配置 |
+| **文档构建器** | `Docs` | **真正的入口，提供Builder模式构建文档数据** |
+| 文档替换服务 | `DocReplaceService` | Word模板参数替换 |
+| 模板管理器 | `DocTemplateReplaceManager` | 模板解析和替换引擎 |
+| HTTP响应封装 | `replaceResponse` | 直接生成文档并下载 |
+| 流转换工具 | `replaceAndGetInputStream` | 返回输入流便于进一步处理 |
 
-#### 11.1 架构设计
+### 集成方式
 
-**三层架构：**
+**步骤1：添加依赖**
 
-```
-业务代码
-   ↓
-DocReplaceService (服务层)
-   ├─ replace() - 基础替换
-   ├─ replaceResponse() - HTTP响应下载
-   └─ replaceAndGetInputStream() - 返回流
-   ↓
-DocTemplateReplaceManager (管理层)
-   ↓
-PoiTlTemplateReplaceManager (实现层)
-   ↓
-XWPFTemplate.compile().render() (poi-tl引擎)
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-doc</artifactId>
+    <version>${version}</version>
+</dependency>
 ```
 
 **重要说明：**
+- doc模块基于**poi-tl**引擎（官网：https://deepoove.com/poi-tl/）
+- **推荐使用`Docs.builder()`作为入口，提供链式调用构建文档数据**
+- 模板占位符格式根据类型不同：
+  - `${var}` 或 `{{var}}` - 普通文本
+  - `{{@var}}` - 图片
+  - `{{#var}}` - 表格
+  - `{{*var}}` - 列表
+- poi-tl天然支持Word的所有特性，包括样式、颜色、表格、图表等
 
-- ✅ **不是API文档生成**，而是**Word文档模板替换**
-- ✅ 基于 poi-tl 引擎（https://deepoove.com/poi-tl/）
-- ✅ 支持文本、图片、表格、列表等多种元素
-- ✅ 提供链式API构建模板数据
+### 使用示例
 
-#### 11.2 模板语法
+**1. 使用Docs构建器（推荐）**
 
-**poi-tl 支持的模板语法：**
-
-| 语法 | 说明 | 示例 |
-|------|------|------|
-| `{{key}}` | 文本替换 | `{{contractNo}}` |
-| `{{@key}}` | 图片替换 | `{{@signature}}` |
-| `{{#key}}` | 表格循环 | `{{#orderList}}...{{/orderList}}` |
-| `{{*key}}` | 列表循环 | `{{*items}}` |
-| `{{?key}}` | 条件判断 | `{{?hasDiscount}}...{{/hasDiscount}}` |
-
-#### 11.3 Docs.DocBuilder 构建器
-
-**Docs 提供链式API构建模板数据：**
+`Docs`提供Builder模式构建各种类型的文档数据：
 
 ```java
-// 1. 创建构建器
-Docs.DocBuilder builder = Docs.builder();
-
-// 2. 添加普通文本
-builder.addStr("contractNo", "HT20240115001")
-       .addStr("partyA", "甲方公司名称")
-       .addStr("partyB", "乙方公司名称");
-
-// 3. 添加带样式的文本
-builder.addStrColor("amount", "¥100,000.00", "FF0000")  // 红色字体
-       .addStrLink("website", "访问官网", "https://example.com");
-
-// 4. 添加图片
-builder.addImgLocal("logo", "/path/to/logo.png", 100, 50)  // 本地图片
-       .addImgInputUrl("qrcode", "https://example.com/qr.png", 200, 200)  // 网络图片
-       .addImgInputStream("signature", inputStream, 150, 80);  // 图片流
-
-// 5. 添加表格
-String[] headers = {"订单号", "商品名称", "数量", "金额"};
-List<Order> orders = orderService.list();
-builder.addTable("orderTable", "90%", headers, orders, order -> {
-    return new String[]{
-        order.getOrderNo(),
-        order.getProductName(),
-        String.valueOf(order.getQuantity()),
-        order.getAmount().toString()
-    };
-});
-
-// 6. 添加列表
-List<String> items = Arrays.asList("项目1", "项目2", "项目3");
-builder.addList("itemList", items);
-
-// 7. 获取参数Map
-Map<String, Object> templateData = builder.create();
+@Service
+public class ContractService {
+    
+    @Autowired
+    private DocReplaceService docReplaceService;
+    
+    /**
+     * 生成合同文档
+     */
+    public void generateContract(String orderId, OutputStream outputStream) {
+        // 查询订单数据
+        Order order = orderService.findById(orderId);
+        
+        // 使用Docs构建器构建文档数据
+        Map<String, Object> data = Docs.builder()
+            // 添加普通文本
+            .addStr("orderNo", order.getOrderNo())
+            .addStr("customerName", order.getCustomerName())
+            .addStr("amount", order.getAmount().toString())
+            
+            // 添加带颜色的文本
+            .addStrColor("status", "已付款", "00AA00")  // 绿色
+            
+            // 添加带链接的文本
+            .addStrLink("contractUrl", "查看合同详情", 
+                "http://example.com/contract/" + orderId)
+            
+            // 添加本地图片（公司Logo）
+            .addImgLocal("companyLogo", "/images/logo.png", 100, 50)
+            
+            // 添加网络图片
+            .addImgInputUrl("qrCode", 
+                "http://example.com/qr/" + orderId, 80, 80)
+            
+            // 添加表格
+            .addTable("orderItems", "90%", 
+                new String[]{"产品名称", "数量", "单价", "小计"},
+                order.getItems(),
+                item -> new String[]{
+                    item.getProductName(),
+                    item.getQuantity().toString(),
+                    item.getPrice().toString(),
+                    item.getSubtotal().toString()
+                })
+            
+            // 添加列表
+            .addList("terms", List.of(
+                "本合同一式两份",
+                "双方签字盖章后生效",
+                "有效期一年"
+            ))
+            
+            .create();  // 获取最终的Map
+        
+        // 加载模板并替换
+        try (InputStream templateStream = getClass()
+                .getResourceAsStream("/templates/contract.docx")) {
+            docReplaceService.replace(templateStream, outputStream, data);
+        }
+    }
+}
 ```
 
-**DocBuilder 方法详解：**
+**Docs.Builder常用方法：**
 
-| 方法 | 说明 | 模板语法 | 参数 |
-|------|------|---------|------|
-| `addStr(key, value)` | 添加普通文本 | `{{key}}` | key: 占位符<br>value: 文本值 |
-| `addStrColor(key, value, color)` | 添加彩色文本 | `{{key}}` | color: 颜色代码（如FF0000） |
-| `addStrLink(key, value, link)` | 添加链接文本 | `{{key}}` | link: 超链接地址 |
-| `addImgLocal(key, url, w, h)` | 添加本地图片 | `{{@key}}` | url: 本地路径<br>w/h: 宽高 |
-| `addImgInputUrl(key, url, w, h)` | 添加网络图片 | `{{@key}}` | url: 网络URL |
-| `addImgInputStream(key, is, w, h)` | 添加图片流 | `{{@key}}` | is: InputStream |
-| `addTable(key, width, headers, list, fn)` | 添加表格 | `{{#key}}` | width: 宽度百分比<br>fn: 数据转换函数 |
-| `addList(key, list)` | 添加无序列表 | `{{*key}}` | list: 字符串列表 |
-| `addList(key, format, list)` | 添加有序列表 | `{{*key}}` | format: 编号格式 |
+| 方法 | 模板标记 | 说明 |
+|------|---------|------|
+| `addStr(key, value)` | `{{key}}` | 添加普通文本 |
+| `addStrColor(key, value, color)` | `{{key}}` | 添加带颜色的文本 |
+| `addStrLink(key, value, link)` | `{{key}}` | 添加带超链接的文本 |
+| `addImgLocal(key, url, w, h)` | `{{@key}}` | 添加本地图片 |
+| `addImgInputStream(key, stream, w, h)` | `{{@key}}` | 添加图片流 |
+| `addImgInputUrl(key, url, w, h)` | `{{@key}}` | 添加网络图片 |
+| `addTable(key, width, head, list, func)` | `{{#key}}` | 添加表格 |
+| `addList(key, list)` | `{{*key}}` | 添加无序列表 |
+| `addList(key, format, list)` | `{{*key}}` | 添加有序列表 |
 
-#### 11.4 使用示例
+**2. 基础模板替换（不使用Docs）**
 
-**场景1：生成合同文档并下载**
+如果只需要简单的文本替换，可以直接使用Map：
+
+```java
+@Service
+public class SimpleContractService {
+    
+    @Autowired
+    private DocReplaceService docReplaceService;
+    
+    public void generateSimpleContract(OutputStream outputStream) {
+        // 直接使用Map（适合简单场景）
+        Map<String, Object> data = new HashMap<>();
+        data.put("orderNo", "ORD2024001");
+        data.put("customerName", "张三");
+        data.put("amount", "10000");
+        
+        try (InputStream templateStream = getClass()
+                .getResourceAsStream("/templates/simple_contract.docx")) {
+            docReplaceService.replace(templateStream, outputStream, data);
+        }
+    }
+}
+```
+
+**3. 直接下载文档（推荐）**
 
 ```java
 @RestController
@@ -4156,23 +3348,21 @@ public class ContractController {
     @Autowired
     private DocReplaceService docReplaceService;
     
+    /**
+     * 下载合同文档
+     */
     @GetMapping("/download/{orderId}")
-    public void downloadContract(@PathVariable String orderId, HttpServletResponse response) {
-        // 1. 查询订单数据
+    public void downloadContract(@PathVariable String orderId) {
         Order order = orderService.findById(orderId);
         
-        // 2. 构建模板数据
-        Map<String, Object> data = Docs.builder()
-            .addStr("contractNo", order.getContractNo())
-            .addStr("partyA", order.getPartyA())
-            .addStr("partyB", order.getPartyB())
-            .addStrColor("amount", "¥" + order.getAmount(), "FF0000")
-            .addStr("signDate", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")))
-            .create();
+        Map<String, Object> data = new HashMap<>();
+        data.put("orderNo", order.getOrderNo());
+        data.put("customerName", order.getCustomerName());
+        data.put("amount", order.getAmount());
         
-        // 3. 一行代码完成：加载模板 + 替换 + HTTP响应
+        // 一行代码完成：加载模板 → 替换数据 → 设置响应头 → 浏览器下载
         docReplaceService.replaceResponse(
-            "合同_" + order.getContractNo(),
+            "合同_" + order.getOrderNo(),
             "/templates/contract.docx",
             data
         );
@@ -4180,7 +3370,7 @@ public class ContractController {
 }
 ```
 
-**场景2：生成证书并上传OSS**
+**4. 批量生成证书**
 
 ```java
 @Service
@@ -4189,29 +3379,61 @@ public class CertificateService {
     @Autowired
     private DocReplaceService docReplaceService;
     
+    /**
+     * 批量生成结业证书
+     */
+    public List<ByteArrayOutputStream> batchGenerateCertificates(List<User> users) {
+        List<ByteArrayOutputStream> documents = new ArrayList<>();
+        
+        for (User user : users) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("userName", user.getName());
+            data.put("courseName", "Java高级编程");
+            data.put("completeDate", LocalDate.now().format(
+                DateTimeFormatter.ofPattern("yyyy年MM月dd日")
+            ));
+            
+            // 生成证书文档
+            ByteArrayOutputStream outputStream = docReplaceService.replaceAndGetOutputStream(
+                "/templates/certificate.docx",
+                data
+            );
+            
+            documents.add(outputStream);
+        }
+        
+        return documents;
+    }
+}
+```
+
+**5. 上传到OSS**
+
+```java
+@Service
+public class ReportService {
+    
+    @Autowired
+    private DocReplaceService docReplaceService;
+    
     @Autowired
     private OssService ossService;
     
-    public String generateCertificate(String userId) {
-        // 1. 查询用户数据
-        User user = userService.findById(userId);
+    /**
+     * 生成月度报告并上传到OSS
+     */
+    public String generateAndUploadReport(String month) {
+        // 准备报告数据
+        Map<String, Object> data = buildReportData(month);
         
-        // 2. 构建模板数据
-        Map<String, Object> data = Docs.builder()
-            .addStr("userName", user.getName())
-            .addStr("courseName", "Java高级编程")
-            .addStr("completeDate", LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")))
-            .addImgLocal("seal", "/images/seal.png", 100, 100)
-            .create();
-        
-        // 3. 生成文档并获取输入流
+        // 生成文档并获取输入流
         ByteArrayInputStream inputStream = docReplaceService.replaceAndGetInputStream(
-            "/templates/certificate.docx",
+            "/templates/monthly_report.docx",
             data
         );
         
-        // 4. 上传到OSS
-        String objectKey = "certificates/" + userId + ".docx";
+        // 上传到OSS
+        String objectKey = "reports/" + month + ".docx";
         ossService.upload(objectKey, inputStream);
         
         return objectKey;
@@ -4219,647 +3441,1210 @@ public class CertificateService {
 }
 ```
 
-**场景3：生成包含表格的报告**
-
-```java
-@GetMapping("/report/monthly")
-public void downloadMonthlyReport(HttpServletResponse response) {
-    // 1. 查询月度数据
-    List<MonthlyData> dataList = reportService.getMonthlyData();
-    
-    // 2. 构建模板数据
-    String[] headers = {"日期", "销售额", "订单数", "客单价"};
-    Map<String, Object> data = Docs.builder()
-        .addStr("reportTitle", "2024年1月销售报告")
-        .addStr("period", "2024-01-01 至 2024-01-31")
-        .addTable("dataTable", "95%", 12, headers, dataList, item -> {
-            return new String[]{
-                item.getDate(),
-                item.getSalesAmount().toString(),
-                String.valueOf(item.getOrderCount()),
-                item.getAvgAmount().toString()
-            };
-        })
-        .addList("summary", Arrays.asList(
-            "本月销售额环比增长15%",
-            "订单数同比增长20%",
-            "客单价保持稳定"
-        ))
-        .create();
-    
-    // 3. 生成并下载
-    docReplaceService.replaceResponse(
-        "月度销售报告_202401",
-        "/templates/monthly_report.docx",
-        data
-    );
-}
-```
-
-#### 11.5 DocReplaceService 方法详解
-
-**提供4种便捷方法：**
-
-```java
-public interface DocReplaceService {
-    
-    /**
-     * 1. 基础替换：从输入流读取模板，输出到指定流
-     */
-    void replace(InputStream inputStream, OutputStream outputStream, Map<String, Object> values);
-    
-    /**
-     * 2. HTTP响应下载：从流加载模板
-     */
-    default void replaceResponse(String name, InputStream inputStream, Map<String, Object> values);
-    
-    /**
-     * 3. HTTP响应下载：从resources加载模板（最常用）
-     */
-    default void replaceResponse(String name, String templatePath, Map<String, Object> values);
-    
-    /**
-     * 4. 返回输入流：用于上传OSS、发送邮件等
-     */
-    default ByteArrayInputStream replaceAndGetInputStream(String templatePath, Map<String, Object> values);
-    
-    /**
-     * 5. 返回输出流：用于获取字节数组
-     */
-    default ByteArrayOutputStream replaceAndGetOutputStream(String templatePath, Map<String, Object> values);
-}
-```
-
-#### 11.6 模板文件放置
-
-**模板文件应放在 resources 目录下：**
-
-```
-src/main/resources/
-├── templates/
-│   ├── contract.docx          # 合同模板
-│   ├── certificate.docx       # 证书模板
-│   └── monthly_report.docx    # 报告模板
-└── images/
-    ├── logo.png               # Logo图片
-    └── seal.png               # 印章图片
-```
-
-**加载方式：**
-
-```java
-// 方式1：直接传路径（推荐）
-docReplaceService.replaceResponse("合同", "/templates/contract.docx", data);
-
-// 方式2：手动加载流
-InputStream inputStream = getClass().getResourceAsStream("/templates/contract.docx");
-docReplaceService.replaceResponse("合同", inputStream, data);
-```
-
-#### 11.7 完整示例：合同生成系统
-
-**步骤1：准备Word模板**
-
-在 Word 中创建 `contract.docx`，使用以下占位符：
-
-```
-合 同 编 号：{{contractNo}}
-
-甲    方：{{partyA}}
-乙    方：{{partyB}}
-
-合同金额：{{amount}}
-签订日期：{{signDate}}
-
-甲方签字：{{@partyASignature}}
-乙方签字：{{@partyBSignature}}
-
-公司盖章：{{@companySeal}}
-```
-
-**步骤2：实现合同服务**
+**6. 自定义文档服务**
 
 ```java
 @Service
-public class ContractGenerationService {
+public class CustomDocService implements DocReplaceService {
     
     @Autowired
-    private DocReplaceService docReplaceService;
+    private DocTemplateReplaceManager templateManager;
     
-    @Autowired
-    private SignatureService signatureService;
+    @Override
+    public void replace(InputStream inputStream, OutputStream outputStream, Map<String, Object> values) {
+        // 添加业务逻辑：数据校验
+        validateData(values);
+        
+        // 添加业务逻辑：权限检查
+        checkPermission();
+        
+        // 调用模板管理器进行替换
+        templateManager.replace(inputStream, outputStream, values);
+    }
     
-    /**
-     * 生成合同文档
-     */
-    public byte[] generateContract(String orderId) {
-        // 1. 查询订单信息
-        Order order = orderService.findById(orderId);
-        
-        // 2. 获取电子签名
-        InputStream partyASignature = signatureService.getSignature(order.getPartyAUserId());
-        InputStream partyBSignature = signatureService.getSignature(order.getPartyBUserId());
-        
-        // 3. 构建模板数据
-        Map<String, Object> data = Docs.builder()
-            .addStr("contractNo", order.getContractNo())
-            .addStr("partyA", order.getPartyA())
-            .addStr("partyB", order.getPartyB())
-            .addStrColor("amount", "¥" + order.getAmount(), "FF0000")
-            .addStr("signDate", order.getSignDate().format(DateTimeFormatter.ofPattern("yyyy年MM月dd日")))
-            .addImgInputStream("partyASignature", partyASignature, 150, 80)
-            .addImgInputStream("partyBSignature", partyBSignature, 150, 80)
-            .addImgLocal("companySeal", "/images/seal.png", 100, 100)
-            .create();
-        
-        // 4. 生成文档并返回字节数组
-        ByteArrayOutputStream outputStream = docReplaceService.replaceAndGetOutputStream(
-            "/templates/contract.docx",
-            data
-        );
-        
-        return outputStream.toByteArray();
+    private void validateData(Map<String, Object> values) {
+        if (!values.containsKey("orderNo")) {
+            throw new IllegalArgumentException("订单号不能为空");
+        }
+    }
+    
+    private void checkPermission() {
+        // 权限校验逻辑
     }
 }
 ```
 
-**步骤3：Controller提供下载**
+**模板占位符格式：**
+
+在Word模板中使用 `${变量名}` 作为占位符：
+
+```
+合同编号：${orderNo}
+客户名称：${customerName}
+合同金额：${amount}元
+签订日期：${signDate}
+```
+
+**高级功能示例：**
+
+**1. 动态表格**
+
+在Word模板中插入表格，第一行作为表头，使用 `{{var}}` 标记循环数据：
+
+```java
+// 准备表格数据
+List<Map<String, Object>> orderItems = new ArrayList<>();
+orderItems.add(Map.of("productName", "产品A", "quantity", 10, "price", 100));
+orderItems.add(Map.of("productName", "产品B", "quantity", 5, "price", 200));
+
+Map<String, Object> data = new HashMap<>();
+data.put("orderItems", orderItems);  // 对应模板中的 {{orderItems}}
+
+docReplaceService.replaceResponse("订单详情", "/templates/order.docx", data);
+```
+
+**模板设计：**
+
+| 产品名称 | 数量 | 单价 |
+|---------|------|------|
+| {{orderItems.productName}} | {{orderItems.quantity}} | {{orderItems.price}} |
+
+poi-tl会自动根据数据行数复制表格行。
+
+**2. 图片插入**
+
+```java
+import com.deepoove.poi.data.Pictures;
+
+// 从文件路径加载图片
+PictureRenderData picture = Pictures.ofLocal("/path/to/logo.png")
+    .size(100, 100)  // 设置尺寸
+    .create();
+
+Map<String, Object> data = new HashMap<>();
+data.put("companyLogo", picture);  // 对应模板中的 ${companyLogo}
+
+docReplaceService.replaceResponse("公司文档", "/templates/company.docx", data);
+```
+
+**3. 富文本（带样式）**
+
+```java
+import com.deepoove.poi.data.Texts;
+
+// 创建带样式的文本
+TextRenderData styledText = Texts.of("重要提示")
+    .color("FF0000")  // 红色
+    .bold()           // 加粗
+    .fontSize(14)     // 字号
+    .create();
+
+Map<String, Object> data = new HashMap<>();
+data.put("notice", styledText);  // 对应模板中的 ${notice}
+
+docReplaceService.replaceResponse("通知文档", "/templates/notice.docx", data);
+```
+
+**4. 条件显示**
+
+在模板中使用 `?var` 实现条件判断：
+
+```
+${?hasDiscount}折扣信息：${discountAmount}元${/hasDiscount}
+```
+
+```java
+Map<String, Object> data = new HashMap<>();
+data.put("hasDiscount", true);   // 控制是否显示
+data.put("discountAmount", 50);
+
+docReplaceService.replaceResponse("订单", "/templates/order.docx", data);
+```
+
+**5. 嵌套对象**
+
+```java
+// 嵌套对象
+Map<String, Object> customer = new HashMap<>();
+customer.put("name", "张三");
+customer.put("phone", "13800138000");
+
+Map<String, Object> address = new HashMap<>();
+address.put("province", "广东省");
+address.put("city", "深圳市");
+customer.put("address", address);
+
+Map<String, Object> data = new HashMap<>();
+data.put("customer", customer);
+
+// 模板中使用：${customer.name}、${customer.address.city}
+docReplaceService.replaceResponse("客户信息", "/templates/customer.docx", data);
+```
+
+**6. 循环列表（非表格）**
+
+```java
+// 准备列表数据
+List<String> tags = List.of("Java", "Spring Boot", "MyBatis");
+
+Map<String, Object> data = new HashMap<>();
+data.put("tags", tags);  // 对应模板中的 {{tags}}
+
+// 模板中使用：{{tags}} 会生成多行文本
+docReplaceService.replaceResponse("技能清单", "/templates/skills.docx", data);
+```
+
+**适用场景：**
+- 合同生成：根据订单数据动态生成合同文档
+- 证书打印：批量生成培训证书、荣誉证书
+- 报表导出：将业务数据填充到Word模板中
+- 发票生成：自动生成电子发票
+
+---
+
+## 12. simple-common-xxljob
+
+### 模块介绍
+
+XXL-JOB定时任务模块封装，支持分布式任务调度、失败重试。
+
+### 核心功能
+
+| 功能分类 | 接口/组件 | 说明 |
+|---------|----------|------|
+| 任务调度 | `XxlJobSpringExecutor` | XXL-JOB执行器 |
+| 任务注解 | `@XxlJob` | 定时任务注解 |
+| 配置类 | `XxlJobConfig` | XXL-JOB配置管理 |
+
+### 集成方式
+
+**步骤1：添加依赖**
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-xxljob</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+**步骤2：配置XXL-JOB（必须）**
+
+```yaml
+xxl:
+  job:
+    # 是否开启XXL-JOB（默认true）
+    open: true
+    # XXL-JOB Admin地址
+    admin-addresses: http://127.0.0.1:8080/xxl-job-admin
+    # AccessToken（与Admin配置一致）
+    access-token: default_token
+    executor:
+      # 执行器AppName
+      appname: xxl-job-executor-sample
+      # 执行器端口（默认9999）
+      port: 9999
+      # 日志路径
+      log-path: /data/applogs/xxl-job/jobhandler
+      # 日志保留天数（默认30）
+      log-retention-days: 30
+```
+
+**重要说明：**
+- 需要先在XXL-JOB Admin后台创建执行器和任务
+- `appname` 必须与Admin后台配置的执衎器名称一致
+- `access-token` 必须与Admin后台配置一致
+- 任务方法必须使用 `@XxlJob` 注解标注
+
+### 使用示例
+
+**1. 定义定时任务**
+
+```java
+@Component
+public class SampleTask {
+    
+    /**
+     * 简单任务
+     */
+    @XxlJob("demoJobHandler")
+    public void demoJobHandler() throws Exception {
+        log.info("定时任务执行");
+        
+        // 业务逻辑
+        doSomething();
+    }
+    
+    /**
+     * 分片广播任务
+     */
+    @XxlJob("shardingJobHandler")
+    public void shardingJobHandler() throws Exception {
+        // 分片参数
+        int shardIndex = XxlJobHelper.getShardIndex();
+        int shardTotal = XxlJobHelper.getShardTotal();
+        
+        log.info("分片参数：当前分片={}, 总分片={}", shardIndex, shardTotal);
+        
+        // 根据分片参数处理数据
+        List<Data> dataList = getDataByShard(shardIndex, shardTotal);
+        for (Data data : dataList) {
+            processData(data);
+        }
+    }
+    
+    /**
+     * 带参数的任务
+     */
+    @XxlJob("paramJobHandler")
+    public void paramJobHandler() throws Exception {
+        // 获取任务参数
+        String param = XxlJobHelper.getJobParam();
+        log.info("任务参数: {}", param);
+        
+        // 解析参数并执行业务
+        Map<String, Object> params = JsonUtils.parse(param, Map.class);
+        executeBusiness(params);
+    }
+}
+```
+
+**2. 任务日志**
+
+```java
+@XxlJob("logJobHandler")
+public void logJobHandler() throws Exception {
+    // 记录任务日志
+    XxlJobHelper.log("任务开始执行");
+    
+    try {
+        // 业务逻辑
+        doSomething();
+        
+        XxlJobHelper.log("任务执行成功");
+        XxlJobHelper.handleSuccess();
+    } catch (Exception e) {
+        XxlJobHelper.log("任务执行失败: {}", e.getMessage());
+        XxlJobHelper.handleFail(e.getMessage());
+    }
+}
+```
+
+**3. 任务阻塞策略**
+
+在XXL-JOB管理后台配置：
+- **单机串行**：调度请求进入单机执行队列后，串行执行
+- **丢弃后续调度**：调度请求进入单机执行队列后，发现之前的调度还未执行完，则丢弃本次调度
+- **覆盖之前调度**：调度请求进入单机执行队列后，发现之前的调度还未执行完，则终止之前的调度并执行本次调度
+
+---
+
+## 13. simple-common-logs
+
+### 模块介绍
+
+高性能日志采集与传输模块，采用TCP + Protobuf协议，client/proto/server三模块架构。客户端通过拦截器自动采集HTTP请求日志，异步批量发送到服务端，服务端通过WAL机制保证日志不丢失。
+
+**架构特点：**
+- **Fire-and-Forget模式**：客户端发送后不等待响应，提升吞吐量
+- **异步批量处理**：减少网络IO次数，提高传输效率
+- **WAL预写日志**：服务端故障恢复，保证日志不丢失
+- **Protobuf序列化**：二进制协议，体积小、解析快
+
+---
+
+### 子模块
+
+| 子模块 | 说明 |
+|--------|------|
+| simple-common-logs-client | 日志客户端，负责采集HTTP请求日志并异步发送 |
+| simple-common-logs-proto | Protobuf协议定义（LogDataEvent） |
+| simple-common-logs-server | 日志服务端，负责接收、缓冲、持久化日志 |
+
+---
+
+### 核心功能
+
+| 功能分类 | 接口/组件 | 说明 |
+|---------|----------|------|
+| **日志拦截器** | `LogInterceptor` | **自动拦截HTTP请求，采集日志数据** |
+| **日志过滤器** | `LogFilter` | **包装HttpServletRequest，缓存请求体** |
+| **日志服务** | `LogService` | **日志发送接口** |
+| **缓冲管理器** | `BufferedLogManager` | **异步批量发送日志到服务端** |
+| **用户信息管理** | `LogUserManager` | **获取当前登录用户信息** |
+| **日志保存管理器** | `AbsLogsSaveManager` | **服务端抽象类，实现日志持久化** |
+| **WAL机制** | 预写日志 | **保证日志不丢失，支持故障恢复** |
+
+---
+
+### 集成方式（客户端）
+
+#### 步骤1：添加依赖
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-logs-client</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+#### 步骤2：配置日志服务器地址（必须）
+
+```yaml
+simple:
+  logs:
+    client:
+      # ========== 基本配置 ==========
+      # 日志服务器地址（必填）
+      host: 127.0.0.1
+      # 日志服务器端口（必填）
+      port: 9999
+      
+      # ========== 性能关键配置 ==========
+      # TCP连接池大小（默认10）
+      # ⚠️ 重要：影响并发发送能力，高并发场景建议调大至50-100
+      pool-size: 10
+      
+      # 缓冲队列容量（默认1000）
+      # ⚠️ 重要：内存占用 = 队列容量 × 平均日志大小
+      # 如果设置过大可能导致OOM，过小会导致日志丢弃
+      buffer-capacity: 1000
+      
+      # 批量发送间隔，单位毫秒（默认500）
+      # ⚠️ 重要：越小实时性越好，但网络IO次数增加
+      # 推荐值：500-2000ms
+      send-interval: 500
+      
+      # 降级文件目录（默认./logs/fallback）
+      # 当服务端不可用时，日志会写入本地文件
+      fallback-dir: ./logs/fallback
+```
+
+**性能调优建议：**
+
+| 场景 | pool-size | buffer-capacity | send-interval | 说明 |
+|------|-----------|-----------------|---------------|------|
+| 低并发（<100 QPS） | 10 | 1000 | 1000 | 默认配置即可 |
+| 中并发（100-1000 QPS） | 30 | 5000 | 500 | 适当增加连接池和队列 |
+| 高并发（>1000 QPS） | 50-100 | 10000 | 200-500 | 需要较大的连接池和队列 |
+
+**⚠️ 注意事项：**
+- `buffer-capacity` 过大会占用大量内存（每条日志约1-5KB）
+- `send-interval` 过小会增加网络IO次数，影响性能
+- `pool-size` 应该根据并发量调整，避免连接不足导致阻塞
+
+#### 步骤3：实现用户信息管理器（可选，推荐）
+
+继承 `DefaultLogUserManager`，定义如何获取当前登录用户信息：
+
+```java
+@Component
+public class CustomLogUserManager extends DefaultLogUserManager {
+    
+    @Override
+    public String loginNickName() {
+        // 从登录上下文获取用户昵称
+        LoginUser user = SecurityUtils.getLoginUser();
+        return user != null ? user.getNickName() : "匿名用户";
+    }
+    
+    @Override
+    public String loginUserId() {
+        // 从登录上下文获取用户ID
+        LoginUser user = SecurityUtils.getLoginUser();
+        return user != null ? user.getUserId() : null;
+    }
+}
+```
+
+**重要说明：**
+- 如果不实现，日志中的用户信息将显示为null和“-”，或者显示测试用户
+- 框架通过`LogInterceptor`自动拦截Controller方法，无需手动调用
+- `LogFilter`会自动包装HttpServletRequest，缓存请求体以便读取JSON参数
+
+---
+
+### 集成方式（服务端）
+
+#### 步骤1：添加依赖
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-logs-server</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+#### 步骤2：配置日志服务器（必须）
+
+```yaml
+simple:
+  logs:
+    server:
+      # ========== 基本配置 ==========
+      # TCP监听端口（默认9999）
+      port: 9999
+      
+      # ========== 性能关键配置 ==========
+      # 队列容量（默认10000）
+      # ⚠️ 重要：决定服务端能缓冲多少条日志
+      # 内存占用 = 队列容量 × 平均日志大小（约1-5KB/条）
+      # 10000条约占用10-50MB内存
+      queue-capacity: 10000
+      
+      # 批量处理大小（默认500）
+      # ⚠️ 重要：每次持久化的日志数量
+      # 越大吞吐量越高，但延迟增加
+      # 推荐值：200-1000
+      batch-size: 500
+      
+      # 批量处理间隔，单位毫秒（默认1000）
+      # ⚠️ 重要：即使未达到batch-size，也会定时触发持久化
+      # 越小实时性越好，但数据库压力增大
+      # 推荐值：500-2000ms
+      batch-interval: 1000
+      
+      # ========== WAL配置 ==========
+      # 是否启用WAL预写日志（默认true）
+      # ⚠️ 重要：禁用后性能提升，但服务端崩溃时会丢失未持久化的日志
+      wal-enabled: true
+      
+      # WAL文件目录（默认./logs/wal）
+      wal-dir: ./logs/wal
+      
+      # WAL文件大小限制（默认10MB）
+      # ⚠️ 重要：单个WAL文件达到此大小后会滚动创建新文件
+      wal-file-size-limit: 10485760
+```
+
+**性能调优建议：**
+
+| 场景 | queue-capacity | batch-size | batch-interval | wal-enabled | 说明 |
+|------|----------------|------------|----------------|-------------|------|
+| 低并发（<100 QPS） | 5000 | 200 | 1000 | true | 默认配置即可 |
+| 中并发（100-1000 QPS） | 10000 | 500 | 500 | true | 适当增加批处理大小 |
+| 高并发（>1000 QPS） | 20000-50000 | 1000 | 200-500 | false | 可考虑禁用WAL提升性能 |
+| 极致性能 | 50000+ | 2000 | 100-200 | false | 牺牲可靠性换取性能 |
+
+**⚠️ 性能影响因素：**
+
+1. **queue-capacity**：
+   - 过小：日志可能丢失（队列满时新日志会被丢弃）
+   - 过大：占用大量内存，GC压力增大
+
+2. **batch-size**：
+   - 过小：频繁调用持久化方法，数据库压力大
+   - 过大：延迟增加，内存占用增多
+
+3. **batch-interval**：
+   - 过小：频繁触发持久化，CPU和IO压力大
+   - 过大：日志实时性差
+
+4. **wal-enabled**：
+   - true：保证日志不丢失，但每次写入都要刷盘，性能下降30%-50%
+   - false：性能最佳，但服务端崩溃时会丢失未持久化的日志
+
+**推荐配置：**
+- 生产环境：`wal-enabled=true`，保证数据可靠性
+- 测试环境：`wal-enabled=false`，追求性能
+- 高吞吐场景：增大`batch-size`和`queue-capacity`，减小`batch-interval`
+
+#### 步骤3：实现日志持久化逻辑（必须）
+
+继承 `AbsLogsSaveManager`，定义日志的持久化存储逻辑：
+
+```java
+@Component
+public class MyLogsSaveManager extends AbsLogsSaveManager {
+    
+    @Autowired
+    private LogTcpServerProperties properties;
+    
+    @Autowired
+    private ElasticsearchRestTemplate esTemplate;
+    
+    @Override
+    protected LogTcpServerProperties getProperties() {
+        return properties;
+    }
+    
+    @Override
+    protected void persistence(List<LogDataEvent> logsToSave) {
+        // 将日志批量保存到Elasticsearch
+        List<IndexQuery> queries = new ArrayList<>();
+        
+        for (LogDataEvent event : logsToSave) {
+            IndexQuery query = new IndexQueryBuilder()
+                .withId(event.getTraceId())
+                .withObject(event)
+                .build();
+            queries.add(query);
+        }
+        
+        // 批量索引
+        esTemplate.bulkIndex(queries, IndexCoordinates.of("app-logs"));
+        
+        log.info("批量保存日志到ES，数量: {}", logsToSave.size());
+    }
+}
+```
+
+**重要说明：**
+- `persistence()` 方法必须保证幂等性（WAL恢复可能重放已成功的日志）
+- 建议使用批量操作提升性能（如ES的bulkIndex、数据库的batchInsert）
+- 如果持久化失败，框架会自动写入WAL文件，后续会重试
+
+### 使用示例
+
+**1. 客户端自动日志收集**
+
+框架通过`LogInterceptor`自动拦截所有HTTP请求，无需手动调用：
+
+```java
+// 开发者无需编写任何代码，框架自动处理
+// LogInterceptor.preHandle() - 记录开始时间、生成TraceId
+// LogInterceptor.afterCompletion() - 采集日志并发送
+```
+
+**工作流程：**
+
+1. **LogFilter** 包装HttpServletRequest，缓存请求体
+2. **LogInterceptor.preHandle()** 生成TraceId，记录开始时间
+3. **执行业务逻辑**
+4. **LogInterceptor.afterCompletion()** 调用`LogService.send()`采集日志
+5. **DefaultLogService** 构建LogDataEvent对象
+6. **BufferedLogManager** 异步入队，批量发送到服务端
+
+**2. 日志数据结构**
+
+`LogDataEvent`包含以下字段：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| traceId | String | 全局唯一追踪ID |
+| userId | String | 操作用户ID |
+| nickname | String | 用户昵称 |
+| operUrl | String | 请求URL |
+| method | String | HTTP方法 |
+| operIp | String | 客户端IP |
+| operParam | String | 请求参数（JSON格式） |
+| title | String | 接口描述（从@Operation注解获取） |
+| status | int | HTTP状态码 |
+| errorMsg | String | 错误消息 |
+| errorData | String | 异常堆栈 |
+| requestTime | long | 请求耗时（毫秒） |
+| createTimestamp | long | 创建时间戳 |
+
+**3. 服务端日志持久化**
+
+服务端接收客户端发送的日志后，通过`AbsLogsSaveManager`进行持久化：
+
+```java
+@Component
+public class DatabaseLogsSaveManager extends AbsLogsSaveManager {
+    
+    @Autowired
+    private LogTcpServerProperties properties;
+    
+    @Autowired
+    private SysOperLogMapper operLogMapper;
+    
+    @Override
+    protected LogTcpServerProperties getProperties() {
+        return properties;
+    }
+    
+    @Override
+    protected void persistence(List<LogDataEvent> logsToSave) {
+        // 转换为数据库实体
+        List<SysOperLog> operLogs = logsToSave.stream()
+            .map(this::convertToEntity)
+            .collect(Collectors.toList());
+        
+        // 批量插入数据库
+        operLogMapper.insertBatch(operLogs);
+        
+        log.info("批量保存日志到数据库，数量: {}", operLogs.size());
+    }
+    
+    private SysOperLog convertToEntity(LogDataEvent event) {
+        SysOperLog log = new SysOperLog();
+        log.setTraceId(event.getTraceId());
+        log.setUserId(event.getUserId());
+        log.setNickname(event.getNickname());
+        log.setOperUrl(event.getOperUrl());
+        log.setMethod(event.getMethod());
+        log.setOperIp(event.getOperIp());
+        log.setOperParam(event.getOperParam());
+        log.setTitle(event.getTitle());
+        log.setStatus(event.getStatus());
+        log.setErrorMsg(event.getErrorMsg());
+        log.setErrorData(event.getErrorData());
+        log.setRequestTime(event.getRequestTime());
+        log.setCreateTime(new Date(event.getCreateTimestamp() * 1000));
+        return log;
+    }
+}
+```
+
+**4. WAL机制说明**
+
+WAL（Write-Ahead Logging）预写日志机制保证日志不丢失：
+
+- **正常流程**：日志入队 → 批量取出 → 持久化成功
+- **队列满**：日志直接写入WAL文件 → 定时任务恢复
+- **持久化失败**：失败的批次写入WAL文件 → 定时任务重试
+- **进程崩溃**：重启后自动扫描WAL目录 → 恢复未持久化的日志
+
+**WAL文件特点：**
+- 每行一个JSON格式的LogDataEvent
+- 批量flush（每100条或1秒）
+- 持久化成功后自动删除WAL文件
+- 支持多文件轮转
+
+---
+
+## 14. simple-common-annex
+
+### 模块介绍
+
+附件管理模块，基于S3协议的对象存储封装，**支持通过配置在MinIO和阿里云OSS之间无缝切换**。使用统一的S3Manager接口，底层自动适配不同的存储服务。
+
+**核心功能：**
+- **存储服务切换**：通过配置项`simple.annex.type`在MINIO和OSS之间切换
+- 文件上传（支持MultipartFile和InputStream）
+- 文件下载（直接写入响应或返回输入流）
+- 文件删除
+- 文件校验（MD5摘要算法）
+- 公开/私有访问控制
+- 预签名URL生成（临时访问链接）
+- 自动创建Bucket（根据应用名称和访问类型）
+
+**架构特点：**
+- **统一接口**：S3Manager接口屏蔽底层存储差异
+- **自动初始化**：根据配置自动初始化AmazonS3、MinioClient、OSSClient
+- **智能路由**：DefaultS3Handler根据AnnexType枚举自动选择对应的客户端
+- **路径风格**：MinIO使用Path Style，OSS使用Virtual Hosted Style
+
+---
+
+### 集成方式
+
+#### 步骤1：添加依赖
+
+```xml
+<dependency>
+    <groupId>com.simple.common</groupId>
+    <artifactId>simple-common-annex</artifactId>
+    <version>${version}</version>
+</dependency>
+```
+
+#### 步骤2：配置存储服务（必须）
+
+**方案一：使用MinIO（默认）**
+
+```yaml
+simple:
+  annex:
+    # ========== 存储服务类型 ==========
+    # 可选值：MINIO（默认）、OSS
+    # ⚠️ 重要：通过此配置在MinIO和阿里云OSS之间切换
+    type: MINIO
+    
+    # ========== MinIO配置 ==========
+    # MinIO服务端点
+    server-url: http://localhost:9000
+    # AccessKey
+    access-key: minioadmin
+    # SecretKey
+    access-secret: minioadmin
+    # 区域（MinIO默认us-east-1）
+    region: us-east-1
+    
+    # ========== 通用配置 ==========
+    # 预签名URL过期时间，单位分钟（默认30）
+    expire-time: 30
+    # 摘要算法类型（MD5或NONE，默认MD5）
+    algorithm: MD5
+```
+
+**方案二：使用阿里云OSS**
+
+```yaml
+simple:
+  annex:
+    # ========== 存储服务类型 ==========
+    # 切换到阿里云OSS
+    type: OSS
+    
+    # ========== 阿里云OSS配置 ==========
+    # OSS Endpoint（如：https://oss-cn-hangzhou.aliyuncs.com）
+    server-url: https://oss-cn-hangzhou.aliyuncs.com
+    # AccessKey ID
+    access-key: your_access_key_id
+    # AccessKey Secret
+    access-secret: your_access_key_secret
+    # 区域（如：cn-hangzhou）
+    region: cn-hangzhou
+    
+    # ========== 通用配置 ==========
+    expire-time: 30
+    algorithm: MD5
+```
+
+**配置说明：**
+
+| 配置项 | 类型 | 必填 | 默认值 | 说明 |
+|--------|------|------|--------|------|
+| type | AnnexType | 是 | MINIO | 存储服务类型：MINIO或OSS |
+| server-url | String | 是 | - | 服务端点地址 |
+| access-key | String | 是 | - | AccessKey ID |
+| access-secret | String | 是 | - | AccessKey Secret |
+| region | String | 否 | us-east-1 | 区域标识 |
+| expire-time | Integer | 否 | 30 | 预签名URL过期时间（分钟） |
+| algorithm | Algorithm | 否 | MD5 | 文件摘要算法 |
+
+**⚠️ 重要注意事项：**
+
+1. **type配置决定底层客户端**：
+   - `type: MINIO` → 使用MinioClient + AmazonS3（Path Style）
+   - `type: OSS` → 使用OSSClient + AmazonS3（Virtual Hosted Style）
+
+2. **endpoint格式差异**：
+   - MinIO：`http://localhost:9000`
+   - OSS：`https://oss-cn-hangzhou.aliyuncs.com`
+
+3. **region配置**：
+   - MinIO：默认`us-east-1`
+   - OSS：根据实际区域填写，如`cn-hangzhou`、`cn-beijing`
+
+4. **Bucket命名规则**：
+   - 自动生成：`{applicationName}-{shareType}`（小写）
+   - 例如：`user-service-public`、`order-service-private`
+
+5. **安全建议**：
+   - 建议将`access-key`和`access-secret`配置在环境变量或配置中心
+   - 不要硬编码在代码中
+
+---
+
+### 使用示例
+
+**1. 文件上传**
 
 ```java
 @RestController
-@RequestMapping("/api/contract")
-public class ContractController {
+@RequestMapping("/annex")
+public class AnnexController {
     
     @Autowired
-    private ContractGenerationService contractService;
+    private AnnexService annexService;
     
-    @GetMapping("/generate/{orderId}")
-    public void generateAndDownload(@PathVariable String orderId, HttpServletResponse response) {
-        byte[] contractBytes = contractService.generateContract(orderId);
+    /**
+     * 上传文件
+     */
+    @PostMapping("/upload")
+    public R<UploadResponse> upload(@RequestParam("file") MultipartFile file) {
+        UploadResponse response = annexService.upload(
+            file,
+            "user-service",      // 应用名称（用于生成Bucket）
+            "avatars",           // 包名（可选，用于组织文件目录）
+            ShareType.PUBLIC     // 访问类型：PUBLIC或PRIVATE
+        );
+        return R.ok(response);
+    }
+}
+```
+
+**上传后的文件路径示例：**
+- MinIO：`http://localhost:9000/user-service-public/avatars/jpg/uuid.jpg`
+- OSS：`https://user-service-public.oss-cn-hangzhou.aliyuncs.com/avatars/jpg/uuid.jpg`
+
+**2. 获取文件访问URL**
+
+```java
+/**
+ * 获取预签名URL（适用于私有文件）
+ */
+@GetMapping("/url")
+public R<String> getUrl(@RequestParam String objectUrl) {
+    // 生成有效期为30分钟的临时访问链接
+    String url = annexService.generateUrl(objectUrl);
+    return R.ok(url);
+}
+```
+
+**预签名URL示例：**
+```
+https://user-service-private.oss-cn-hangzhou.aliyuncs.com/avatars/jpg/uuid.jpg?
+X-Amz-Algorithm=AWS4-HMAC-SHA256&
+X-Amz-Credential=...&
+X-Amz-Date=...&
+X-Amz-Expires=1800&
+X-Amz-SignedHeaders=...&
+X-Amz-Signature=...
+```
+
+**3. 文件下载（直接写入响应）**
+
+```java
+/**
+ * 下载文件（直接返回给浏览器）
+ */
+@GetMapping("/download")
+public void download(@RequestParam String objectUrl, HttpServletResponse response) {
+    // 框架自动设置Content-Disposition和文件名
+    annexService.writeGetObjectResponse(objectUrl);
+}
+```
+
+**4. 文件下载（返回输入流）**
+
+```java
+/**
+ * 下载文件并处理（适用于需要二次处理的场景）
+ */
+@GetMapping("/download/stream")
+public void downloadStream(@RequestParam String objectUrl) throws IOException {
+    try (InputStream inputStream = ((S3Manager) annexService).download(objectUrl)) {
+        // 读取文件内容
+        byte[] data = inputStream.readAllBytes();
         
-        // 设置响应头
-        response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
-        response.setHeader("Content-Disposition", "attachment; filename=\"contract_" + orderId + ".docx\"");
-        response.setContentLength(contractBytes.length);
-        
-        // 写入响应
-        try (OutputStream os = response.getOutputStream()) {
-            os.write(contractBytes);
-            os.flush();
-        }
+        // 进行业务处理，如：图片压缩、水印添加等
+        // ...
     }
 }
 ```
+
+**5. 删除文件**
+
+```java
+/**
+ * 删除文件
+ */
+@DeleteMapping("/delete")
+public R<Void> delete(@RequestParam String objectUrl) {
+    annexService.delete(objectUrl);
+    return R.ok();
+}
+```
+
+**6. UploadResponse返回字段**
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| name | String | 原始文件名 |
+| totalSize | long | 文件大小（字节） |
+| algorithmValue | String | MD5摘要值（用于验证文件完整性） |
+| algorithmType | Algorithm | 摘要算法类型 |
+| suffix | String | 文件扩展名（不带点） |
+| saveUrl | String | 文件完整URL |
+| shareType | ShareType | 访问类型（PUBLIC/PRIVATE） |
+| applicationName | String | 应用名称 |
+| isTrue | Boolean | 文件是否已存在（配合UploadFunction使用） |
 
 ---
 
-### 12. simple-common-excel（Excel处理模块）
+### 高级特性
 
-Excel处理模块，**支持EasyExcel和Apache POI双引擎**，提供**读取、写入、导出**功能。
+#### 1. 存储服务切换原理
 
-#### 核心功能
-
-| 功能分类 | 接口/组件 | 说明 |
-|---------|----------|------|
-| EasyExcel读取 | `EasyExcelReadService` | 基于阿里巴巴EasyExcel的流式读取，内存占用低 |
-| EasyExcel写入 | `EasyExcelWriteService` | 基于EasyExcel的快速写入 |
-| POI读取 | `PoiReadService` | 基于Apache POI的灵活读取 |
-| POI写入 | `PoiWriteService` | 基于POI的高级写入，支持复杂样式 |
-
-#### 12.1 EasyExcel读取示例
+框架在`DefaultS3Handler.afterPropertiesSet()`中根据配置初始化三个客户端：
 
 ```java
-@Autowired
-private EasyExcelReadService readService;
-
-@PostMapping("/import/users")
-public R importUsers(@RequestParam("file") MultipartFile file) {
-    List<UserDTO> userList = new ArrayList<>();
-    
-    readService.read(file, 1, UserDTO.class, new ReadListener<UserDTO>() {
-        @Override
-        public void invoke(UserDTO data, AnalysisContext context) {
-            userList.add(data);
-        }
-        
-        @Override
-        public void doAfterAllAnalysed(AnalysisContext context) {
-            userService.saveBatch(userList);
-            log.info("导入成功，共{}条数据", userList.size());
-        }
-    });
-    
-    return R.ok("导入成功");
-}
-```
-
-#### 12.2 EasyExcel写入示例
-
-```java
-@Autowired
-private EasyExcelWriteService writeService;
-
-@GetMapping("/export/users")
-public void exportUsers(HttpServletResponse response) {
-    List<UserDTO> users = userService.list();
-    
-    writeService.exportResponse(
-        users,
-        UserDTO.class,
-        "用户列表"
-    );
-}
-```
-
-#### 12.3 POI写入示例（复杂报表）
-
-```java
-@Autowired
-private PoiWriteService poiWriteService;
-
-@GetMapping("/export/orders")
-public void exportOrders(HttpServletResponse response) {
-    List<OrderDTO> orders = orderService.list();
-    
-    String[] headers = {"订单号", "商品名称", "数量", "金额"};
-    Integer[] widths = {20, 30, 10, 15};
-    
-    poiWriteService.exportResponse(
-        (rowNum, order) -> new Object[]{
-            order.getOrderNo(),
-            order.getProductName(),
-            order.getQuantity(),
-            order.getAmount()
-        },
-        orders,
-        headers,
-        widths,
-        1000,  // 每个Sheet最多1000行
-        "订单列表"
-    );
-}
-```
-
----
-
-### 13. simple-common-annex（附件管理模块）
-
-附件管理模块，**基于S3协议实现**，支持MinIO、阿里云OSS、AWS S3等存储服务。
-
-#### 核心功能
-
-| 功能分类 | 接口/组件 | 说明 |
-|---------|----------|------|
-| 附件服务 | `AnnexService` | 附件上传、下载、删除接口 |
-| S3附件服务 | `S3AnnexService` | 基于S3协议的实现 |
-| S3管理器 | `S3Manager` | S3操作管理器 |
-| 上传响应DTO | `UploadResponse` | 上传结果封装 |
-| 共享类型枚举 | `ShareType` | PUBLIC（公开）或 PRIVATE（私有） |
-| 算法枚举 | `Algorithm` | MD5等文件校验算法 |
-| 上传函数 | `UploadFunction` | 自定义上传逻辑 |
-
-#### 13.1 使用示例
-
-**上传文件：**
-
-```java
-@Autowired
-private AnnexService annexService;
-
-@PostMapping("/upload/avatar")
-public R<UploadResponse> uploadAvatar(@RequestParam MultipartFile file) {
-    UploadResponse response = annexService.upload(
-        file,
-        "user-service",     // 应用名称
-        "avatars",          // 包名（目录）
-        ShareType.PUBLIC    // 公开访问
-    );
-    
-    return R.ok(response);
-}
-```
-
-**生成临时访问URL：**
-
-```java
-// 为私有文件生成临时访问链接（默认有效期由配置决定）
-String url = annexService.generateUrl(objectUrl);
-```
-
-**删除文件：**
-
-```java
-annexService.delete(objectUrl);
-```
-
----
-
-### 14. simple-common-ai（AI集成模块）
-
-AI集成模块，提供大语言模型调用能力。
-
-> **注**：该模块处于开发阶段，具体功能待完善。
-
----
-
-### 15. simple-common-alibaba（阿里云服务集成）
-
-阿里云服务集成模块。
-
-> **注**：该模块用于整合阿里云相关服务（如短信、OSS等），具体功能由各子模块提供。
-
----
-
-### 16. simple-common-mp（微信公众号模块）
-
-微信公众号模块，提供微信消息处理、菜单管理等功能。
-
-> **注**：该模块基于微信官方SDK封装，简化公众号开发流程。
-
----
-
-## 核心扩展机制说明
-
-### 一、责任链模式扩展
-
-框架大量使用责任链模式，通过实现 `BasProcessService` 接口并返回对应的枚举值来扩展功能。
-
-#### 扩展步骤
-
-1. **实现接口或继承抽象类（建议先创立节点，例如AbsLoginErrorProcess。具体的任务再集成AbsLoginErrorProcess）**
-2. **实现 `getProcess()` 方法**，返回对应的枚举值
-3. **实现业务逻辑方法**
-4. **添加 `@Component` 注解**，让Spring自动扫描
-
-#### 示例：自定义认证处理
-
-```java
-@Component
-public class CustomAuthProcess implements AuthProcess {
-    
-    @Override
-    public DefaultKindProcess getProcess() {
-        return AuthInterceptorKindProcess.CHECK_TOKEN;
-    }
-    
-    @Override
-    public void execute(HttpServletRequest request, HttpServletResponse response, 
-                       String token, String path, String ipAddr) {
-        // 自定义认证逻辑
-    }
-}
-```
-
-### 二、抽象基类扩展
-
-对于复杂的功能，框架提供了抽象基类，简化扩展过程。
-
-#### 扩展示例：自定义登录错误处理
-
-```java
-@Component
-public class CustomLoginErrorProcess extends AbsLoginErrorProcess {
-    
-    @Override
-    public LoginErrorKindProcess getProcess() {
-        return LoginErrorKindProcess.ACCOUNT_ERROR;
-    }
-    
-    @Override
-    protected String getLoginKey(ClientDetails clientDetails, Object adapter, String ip) {
-        // 自定义登录标识key
-        return ((LoginRequest) adapter).getUsername();
-    }
-    
-    @Override
-    protected String getKeyPrefix() {
-        return "login:error:";
-    }
-}
-```
-
-**注意**：`AbsLoginErrorProcess` 已经实现了 `checkErrorNum()`、`recordError()`、`clearError()` 方法，子类只需实现三个抽象方法：
-- `getProcess()` - 返回处理器类型
-- `getLoginKey()` - 获取登录标识
-- `getKeyPrefix()` - 获取Redis key前缀
-
-### 三、配置类扩展
-
-通过继承配置抽象类，自定义框架行为。
-
-#### 扩展示例：自定义客户端权限配置
-
-```java
-@Configuration
-public class MyAuthConfig extends AbsClientAuthConfig {
-    
-    @Override
-    protected void configure(ClientAuthInfo clientAuthInfo) {
-        // 开启全局登录校验
-        clientAuthInfo.openLogin();
-        
-        // 配置白名单
-        clientAuthInfo.antMatchers("/api/public/**").permitAll();
-        
-        // 配置角色权限
-        clientAuthInfo.antMatchers("/api/admin/**").onlyRole("admin");
-    }
-}
-```
-
----
-
-## 快速开始
-
-### 1. 引入依赖
-
-在 `pom.xml` 中添加父POM：
-
-```xml
-<parent>
-    <groupId>com.simple</groupId>
-    <artifactId>simple-common</artifactId>
-    <version>1.0.0</version>
-</parent>
-```
-
-按需引入模块：
-
-```xml
-<!-- 核心模块（必选） -->
-<dependency>
-    <groupId>com.simple</groupId>
-    <artifactId>simple-common-core</artifactId>
-</dependency>
-
-<!-- 认证授权模块 -->
-<dependency>
-    <groupId>com.simple</groupId>
-    <artifactId>simple-common-auth-client</artifactId>
-</dependency>
-
-<!-- Redis缓存模块 -->
-<dependency>
-    <groupId>com.simple</groupId>
-    <artifactId>simple-common-redis</artifactId>
-</dependency>
-```
-
-### 2. 配置文件
-
-```yaml
-spring:
-  application:
-    name: my-application
-  
-  # Redis配置
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 0
-
-# Simple-Common配置
-simple:
-  auth:
-    server-url: http://localhost:8000  # 认证服务器地址
-    login-error-number: 5              # 登录失败最大次数
-    login-error-time: 86400            # 失败计次时间窗口（秒）
-  
-  thread:
-    core-size: 10                      # 线程池核心线程数
-    max-size: 100                      # 最大线程数
-    queue-capacity: 1000               # 队列容量
-```
-
-### 3. 启动类
-
-```java
-@SpringBootApplication
-public class Application {
-    public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
-    }
-}
-```
-
----
-
-## 最佳实践
-
-### 1. 认证授权配置
-
-✅ **推荐做法**：
-
-```java
-@Configuration
-public class AuthConfig extends AbsClientAuthConfig {
-    @Override
-    protected void configure(ClientAuthInfo info) {
-        // 明确开启所需功能
-        info.openLogin();
-        info.openAuthentication();
-        
-        // 精确配置白名单
-        info.antMatchers("/api/public/**").permitAll();
-        
-        // 细化权限控制
-        info.antMatchers("/api/admin/**").onlyRole("admin");
-    }
-}
-```
-
-❌ **避免做法**：
-
-```java
-// 不要放行所有接口
-info.antMatchers("/**").permitAll();
-```
-
-### 2. 缓存使用
-
-✅ **推荐做法**：
-
-```java
-// 使用有意义的key前缀
-cacheManager.set("user:profile:" + userId, profile, 30, MINUTES);
-
-// 设置合理的过期时间
-cacheManager.set("hot:data", data, 5, MINUTES);  // 热点数据短过期
-cacheManager.set("config:global", config, 24, HOURS);  // 配置长过期
-```
-
-### 3. 责任链扩展
-
-✅ **推荐做法**：
-
-```java
-// 实现getProcess()方法，返回正确的枚举
 @Override
-public DefaultKindProcess getProcess() {
-    return LoginErrorKindProcess.ACCOUNT_ERROR;
-}
+public void afterPropertiesSet() {
+    // 1. 初始化AmazonS3（通用客户端）
+    amazonS3 = AmazonS3ClientBuilder.standard()
+        .withCredentials(credential)
+        .withEndpointConfiguration(endpointConfiguration)
+        .withPathStyleAccessEnabled(annexProperties.getType() == AnnexType.MINIO) // MinIO使用Path Style
+        .build();
 
-// 继承抽象基类，复用通用逻辑
-public class CustomProcess extends AbsLoginErrorProcess {
-    // 只需实现抽象方法
+    // 2. 初始化MinioClient（仅MinIO需要，用于创建公共桶）
+    minioClient = MinioClient.builder()
+        .endpoint(annexProperties.getServerUrl())
+        .credentials(annexProperties.getAccessKey(), annexProperties.getAccessSecret())
+        .build();
+
+    // 3. 初始化OSSClient（仅OSS需要）
+    ossClient = new OSSClientBuilder().build(
+        annexProperties.getServerUrl(), 
+        annexProperties.getAccessKey(), 
+        annexProperties.getAccessSecret()
+    );
 }
 ```
 
-❌ **避免做法**：
+**上传时的自动路由：**
 
 ```java
-// 不要忘记实现getProcess()方法
-// 不要直接实现接口而不继承抽象基类（会丢失通用逻辑）
+@Override
+public String upload(...) {
+    var bucketName = buildBucketName(applicationName, shareType);
+    
+    // 根据type配置选择创建Bucket的方式
+    if (annexProperties.getType() == AnnexType.MINIO) {
+        createMinioBucket(bucketName, shareType);  // 使用MinioClient
+    } else {
+        createOssBucket(bucketName, shareType);    // 使用OSSClient
+    }
+    
+    // 统一使用AmazonS3上传文件
+    uploadToS3(bucketName, inputStream, key, fileName, acl);
+    return annexProperties.getServerUrl() + "/" + bucketName + "/" + key;
+}
 ```
+
+#### 2. Bucket自动管理
+
+框架会根据应用名称和访问类型自动创建Bucket：
+
+- **Bucket命名规则**：`{applicationName}-{shareType}`（小写）
+- **自动创建**：首次上传时自动检查并创建Bucket
+- **权限设置**：
+  - PUBLIC：设置公共读策略
+  - PRIVATE：保持私有
+
+**MinIO公共桶策略：**
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": ["*"]},
+      "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+      "Resource": ["arn:aws:s3:::user-service-public"]
+    },
+    {
+      "Effect": "Allow",
+      "Principal": {"AWS": ["*"]},
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::user-service-public/*"]
+    }
+  ]
+}
+```
+
+#### 3. 文件路径组织
+
+上传的文件会按照以下规则组织路径：
+
+```
+{bucketName}/{packageName}/{suffix}/{uuid}.{suffix}
+```
+
+**示例：**
+- 上传头像：`user-service-public/avatars/jpg/abc123.jpg`
+- 上传文档：`order-service-private/documents/pdf/def456.pdf`
+
+如果不指定`packageName`，则直接使用：`{bucketName}/{suffix}/{uuid}.{suffix}`
+
+#### 4. 文件去重机制
+
+通过`UploadFunction`可以在上传前检查文件是否已存在：
+
+```java
+@Service
+public class FileUploadService {
+    
+    @Autowired
+    private AnnexService annexService;
+    
+    public UploadResponse uploadWithCheck(MultipartFile file, String md5) {
+        return annexService.upload(
+            file.getOriginalFilename(),
+            "user-service",
+            "avatars",
+            ShareType.PUBLIC,
+            file.getInputStream(),
+            // 自定义校验逻辑
+            (response) -> {
+                // 检查数据库中是否已有相同MD5的文件
+                boolean exists = fileRepository.existsByMd5(md5);
+                if (exists) {
+                    response.setIsTrue(true);  // 标记文件已存在
+                    response.setExtension("跳过上传");
+                    return true;  // 返回true表示跳过上传
+                }
+                return false;  // 返回false表示继续上传
+            }
+        );
+    }
+}
+```
+
+---
+
+## 附录
+
+### A. 配置项说明
+
+### B. 常见问题
+
+### C. 版本历史
+
+---
+
+## 开源协议
+
+本项目采用 [MIT License](LICENSE) 开源协议。
 
 ---
 
 ## 贡献指南
 
-欢迎提交 Issue 和 Pull Request！
+我们欢迎社区贡献！如果您想为 Simple-Common 做出贡献，请：
 
-### 开发规范
-
-1. **代码风格**：遵循阿里巴巴Java开发手册
-2. **注释规范**：所有公共接口必须有Javadoc注释
-3. **命名规范**：
-   - service后缀：核心功能接口
-   - manager后缀：内部支撑接口
-   - Process后缀：责任链接口
-   - Abs前缀：抽象基类
-
-### 提交流程
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+1. **Fork** 本仓库
+2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+5. 开启一个 **Pull Request**
 
----
-
-## License
-
-MIT License
+**开发规范：**
+- 遵循阿里巴巴 Java 开发手册
+- 代码必须通过编译检查
+- 新增功能需要编写单元测试
+- 保持代码风格一致
 
 ---
 
 ## 联系方式
 
-- **作者**：
+- **项目主页**: [GitHub Repository](https://github.com/your-repo/simple-common)
+- **问题反馈**: [Issues](https://github.com/your-repo/simple-common/issues)
+- **邮箱**: your-email@example.com
 
 ---
 
 ## 致谢
 
-感谢以下开源项目的支持：
+Simple-Common 框架的发展离不开以下优秀开源项目的支持：
 
-- [Spring Boot](https://spring.io/projects/spring-boot)
-- [Redisson](https://github.com/redisson/redisson)
-- [RabbitMQ](https://www.rabbitmq.com/)
-- [XXL-JOB](https://github.com/xuxueli/xxl-job)
+### 核心框架
+
+- **[Spring Boot](https://spring.io/projects/spring-boot)** - 应用开发框架
+  - Copyright (c) Pivotal Software, Inc.
+  - Licensed under Apache License 2.0
+
+- **[Spring Cloud](https://spring.io/projects/spring-cloud)** - 微服务框架
+  - Copyright (c) Pivotal Software, Inc.
+  - Licensed under Apache License 2.0
+
+- **[MyBatis-Plus](https://baomidou.com/)** - MyBatis 增强工具
+  - Copyright (c) baomidou
+  - Licensed under Apache License 2.0
+
+### 数据存储
+
+- **[Redis](https://redis.io/)** - 内存数据库
+  - Copyright (c) Redis Ltd.
+  - Licensed under BSD 3-Clause
+
+- **[Redisson](https://redisson.org/)** - Redis Java 客户端
+  - Copyright (c) Nikita Koksharov
+  - Licensed under Apache License 2.0
+
+- **[PostgreSQL](https://www.postgresql.org/)** / **[MySQL](https://www.mysql.com/)** - 关系型数据库
+  - PostgreSQL: Copyright (c) The PostgreSQL Global Development Group
+  - MySQL: Copyright (c) Oracle Corporation
+
+### 消息队列
+
+- **[RabbitMQ](https://www.rabbitmq.com/)** - 消息代理
+  - Copyright (c) VMware, Inc. or its affiliates
+  - Licensed under Mozilla Public License 2.0
+
+- **[Spring AMQP](https://spring.io/projects/spring-amqp)** - AMQP 支持
+  - Copyright (c) Pivotal Software, Inc.
+  - Licensed under Apache License 2.0
+
+### 文档与 API
+
+- **[Swagger/OpenAPI](https://swagger.io/)** - API 文档生成
+  - Copyright (c) SmartBear Software
+  - Licensed under Apache License 2.0
+
+- **[SpringDoc](https://springdoc.org/)** - OpenAPI 3 集成
+  - Copyright (c) springdoc
+  - Licensed under Apache License 2.0
+
+### 数据处理
+
+- **[EasyExcel](https://easyexcel.opensource.alibaba.com/)** - Excel 处理
+  - Copyright (c) Alibaba Group
+  - Licensed under Apache License 2.0
+
+- **[Apache POI](https://poi.apache.org/)** - Office 文档处理
+  - Copyright (c) The Apache Software Foundation
+  - Licensed under Apache License 2.0
+
+- **[Hutool](https://hutool.cn/)** - Java 工具类库
+  - Copyright (c) looly
+  - Licensed under MIT License
+
+### 对象存储
+
+- **[MinIO](https://min.io/)** - 高性能对象存储
+  - Copyright (c) MinIO, Inc.
+  - Licensed under GNU AGPL v3
+
+- **[AWS SDK for Java](https://aws.amazon.com/sdk-for-java/)** - AWS S3 SDK
+  - Copyright (c) Amazon.com, Inc. or its affiliates
+  - Licensed under Apache License 2.0
+
+### 日志与监控
+
+- **[Protobuf](https://developers.google.com/protocol-buffers)** - 数据序列化
+  - Copyright (c) Google LLC
+  - Licensed under BSD 3-Clause
+
+- **[Elasticsearch](https://www.elastic.co/elasticsearch)** - 搜索引擎（可选）
+  - Copyright (c) Elasticsearch BV
+  - Licensed under Elastic License 2.0 / SSPL
+
+### AI 与大模型
+
+- **[Spring AI Alibaba](https://sca.aliyun.com/ai/)** - AI 应用开发框架
+  - Copyright (c) Alibaba Group
+  - Licensed under Apache License 2.0
+
+- **[通义千问](https://tongyi.aliyun.com/qianwen/)** - 大语言模型
+  - Copyright (c) Alibaba Group
+
+### 其他依赖
+
+- **[Lombok](https://projectlombok.org/)** - 代码简化工具
+  - Copyright (c) The Project Lombok Authors
+  - Licensed under MIT License
+
+- **[Jackson](https://github.com/FasterXML/jackson)** - JSON 处理
+  - Copyright (c) FasterXML
+  - Licensed under Apache License 2.0
+
+- **[Netty](https://netty.io/)** - 网络应用框架
+  - Copyright (c) The Netty Project
+  - Licensed under Apache License 2.0
+
+- **[Caffeine](https://github.com/ben-manes/caffeine)** - 高性能缓存库
+  - Copyright (c) Ben Manes
+  - Licensed under Apache License 2.0
+
+感谢以上所有开源项目的作者和贡献者，正是你们的辛勤工作让 Simple-Common 成为可能！
 
 ---
 
-**如果这个项目对您有帮助，请给个Star！**
+## Star History
+
+如果这个项目对您有帮助，请给我们一个 ⭐ Star！
+
+[![Star History Chart](https://api.star-history.com/svg?repos=your-repo/simple-common&type=Date)](https://star-history.com/#your-repo/simple-common&Date)
+
+---
+
+**Made with ❤️ by Simple-Common Team**
