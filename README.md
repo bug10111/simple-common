@@ -313,9 +313,13 @@ Token为空？→ 是 → 抛出未登录异常
 - ✅ **流式API**：通过`ClientAuthInfo`提供流畅的配置方式
 - ✅ **ThreadLocal管理**：自动管理用户上下文生命周期
 
-#### 🌟 亮点特性：Redis与本地缓存自由切换
+##### 核心功能扩展
 
-**Auth模块支持通过配置项一键切换缓存类型！**无需修改代码，只需调整配置文件。
+**1. Redis与本地缓存自由切换**
+
+Auth模块支持通过配置项一键切换缓存类型，无需修改代码。
+
+**所属模块：** simple-common-auth-client
 
 **配置方式：**
 
@@ -463,9 +467,11 @@ Set<String> scopes = user.getScopes();
 Object extension = user.getExtension();
 ```
 
-#### 🌟 亮点特性：签名密钥统一管理
+**2. 签名密钥统一管理**
 
-**SignSecretManager 提供签名密钥的统一管理！**与 JWT 密钥管理保持一致的设计模式。
+SignSecretManager 提供签名密钥的统一管理，与 JWT 密钥管理保持一致的设计模式。
+
+**所属模块：** simple-common-auth-client（密钥管理）、simple-common-auth-server（密钥更新）
 
 **核心优势：**
 - ✅ **统一存储** - 密钥存储在 CacheManager 中，支持 Redis/Local 切换
@@ -634,9 +640,11 @@ java.lang.IllegalStateException: 从授权中心获取签名密钥失败: 连接
 
 ---
 
-#### 🌟 亮点特性：JWT 密钥管理
+**3. JWT 密钥管理**
 
-**JwtSecretManager 提供 JWT 密钥的统一管理！**支持服务端集中管理，客户端自动同步。
+JwtSecretManager 提供 JWT 密钥的统一管理，支持服务端集中管理，客户端自动同步。
+
+**所属模块：** simple-common-auth-client（密钥同步）、simple-common-auth-server（密钥管理）
 
 **核心优势：**
 - ✅ **集中管理** - 服务端统一生成和管理 JWT 密钥
@@ -774,9 +782,11 @@ java.lang.IllegalStateException: 从授权中心获取JWT密钥失败: 连接超
 
 ---
 
-#### 🌟 亮点特性：Token 刷新并发优化
+**4. Token 刷新并发优化**
 
-**DefaultLoginService 采用优化的 Token 刷新策略！**避免并发场景下的认证失败问题。
+DefaultLoginService 采用优化的 Token 刷新策略，避免并发场景下的认证失败问题。
+
+**所属模块：** simple-common-auth-server
 
 **核心优势：**
 - ✅ **先加后删** - 先生成新 Token 并保存，再删除旧 Token
@@ -844,9 +854,11 @@ public Map<String, String> refresh(String refreshTokenStr) {
 
 ---
 
-#### 🌟 亮点特性：Cookie 安全增强
+**5. Cookie 安全增强**
 
-**CookieProcessingHandlerInterceptor 采用响应头方式设置 Cookie 属性！**确保跨容器兼容性和安全性。
+CookieProcessingHandlerInterceptor 采用响应头方式设置 Cookie 属性，确保跨容器兼容性和安全性。
+
+**所属模块：** simple-common-auth-client
 
 **核心优势：**
 - ✅ **标准兼容** - 使用 Set-Cookie 响应头，符合 HTTP 标准
@@ -930,7 +942,7 @@ simple:
 
 ---
 
----#### 2.2 simple-common-auth-server（服务端模块）
+#### 2.2 simple-common-auth-server（服务端模块）
 
 认证服务器模块，负责用户认证、Token颁发、OAuth2授权。
 
@@ -938,27 +950,30 @@ simple:
 
 | 功能分类 | 接口/组件 | 说明 |
 |---------|----------|------|
-| 登录服务 | `LoginService` | 用户登录、登出 |
-| Token管理 | `TokenManager` | Token创建、刷新、验证 |
+| 登录服务 | `LoginService` | 用户登录、登出、Token刷新 |
+| Token管理 | `TokenManager` | Token创建、验证、解析 |
 | 客户端管理 | `ClientManager` | OAuth2客户端信息管理 |
-| 登录错误处理 | `LoginErrorProcess` | 登录失败次数限制 |
-| 登录成功处理 | `LoginSucProcess` | 登录成功后处理 |
+| 登录错误处理 | `LoginErrorProcess` | 登录失败次数限制与锁定 |
+| 登录成功处理 | `LoginSucProcess` | 登录成功后置处理 |
 | JWT密钥管理 | `JwtSecretManager` | JWT密钥生成和管理 |
-| **权限管理** | **`PermissionManageService`** | **角色权限管理，支持事件驱动实时同步** |
+| 权限管理 | `PermissionManageService` | 角色权限管理，支持事件驱动实时同步 |
 
 ##### 责任链模式
 
-**登录错误处理责任链**：
+**1. 登录错误处理责任链**
+
+登录失败时，通过责任链记录失败次数，达到阈值后锁定账号或IP。
+
+**责任链枚举定义：**
 
 ```java
-// 责任链枚举定义
 public enum LoginErrorKindProcess implements DefaultKindProcess {
     ACCOUNT_ERROR("基于账号的登录失败计数", true, 1),
     IP_ERROR("基于IP的登录失败计数", true, 2);
 }
 ```
 
-**自定义登录错误处理**：继承 `AbsLoginErrorProcess`
+**自定义登录错误处理：**继承 `AbsLoginErrorProcess`
 
 ```java
 @Component
@@ -973,7 +988,7 @@ public class CustomLoginErrorProcess extends AbsLoginErrorProcess {
     }
     
     /**
-     * 获取登录标识key（如账号、IP 等）
+     * 获取登录标识key（如账号、IP等）
      */
     @Override
     protected String getLoginKey(ClientDetails clientDetails, Object adapter, String ip) {
@@ -1002,17 +1017,20 @@ public class CustomLoginErrorProcess extends AbsLoginErrorProcess {
 | `getLoginKey()` | 获取登录标识key | **必须实现** | clientDetails, adapter, ip |
 | `getKeyPrefix()` | 获取Redis key前缀 | **必须实现** | - |
 
-**登录成功处理责任链**：
+**2. 登录成功处理责任链**
+
+登录成功后，通过责任链执行保存用户信息、记录日志等后置操作。
+
+**责任链枚举定义：**
 
 ```java
-// 责任链枚举定义
 public enum LoginSucKindProcess implements DefaultKindProcess {
     SAVE_INFO("保存用户信息", true, 1),
     LOGIN_LOG("登陆日志", true, 2);
 }
 ```
 
-**自定义登录成功处理**：实现 `LoginSucProcess` 接口
+**自定义登录成功处理：**实现 `LoginSucProcess` 接口
 
 ```java
 @Component
@@ -1031,9 +1049,156 @@ public class CustomLoginSucProcess implements LoginSucProcess {
 }
 ```
 
-#### 🌟 亮点特性：权限管理服务与事件同步
+##### 扩展指南
 
-**PermissionManageService 提供完整的权限管理能力！**支持角色权限的增删改查，并通过事件总线实时同步到所有客户端。
+**1. 如何扩展新的登录方式**
+
+框架支持多种登录方式（密码登录、短信登录等），通过 `LoginTypeAdapter` 枚举和 `LoginManager` 实现扩展。
+
+**步骤1：定义登录请求对象**
+
+```java
+@Data
+public class WechatLoginRequest {
+    private String code;      // 微信授权码
+    private String state;     // 状态参数
+}
+```
+
+**步骤2：创建登录管理器**
+
+```java
+@Component
+public class WechatLoginManager implements LoginManager {
+    
+    @Autowired
+    private UserService userService;
+    
+    @Autowired
+    private TokenManager tokenManager;
+    
+    @Override
+    public TokenData login(Object adapter, ClientDetails clientDetails) {
+        WechatLoginRequest request = (WechatLoginRequest) adapter;
+        
+        // 1. 调用微信API获取用户信息
+        String openId = wechatService.getOpenId(request.getCode());
+        
+        // 2. 查询或创建用户
+        User user = userService.getByOpenId(openId);
+        if (user == null) {
+            user = userService.createByWechat(openId);
+        }
+        
+        // 3. 构建Token数据
+        TokenData tokenData = new TokenData();
+        tokenData.setUserId(user.getId());
+        tokenData.setUsername(user.getUsername());
+        tokenData.setRoles(user.getRoles());
+        tokenData.setScopes(clientDetails.getScopes());
+        
+        return tokenData;
+    }
+    
+    @Override
+    public LoginTypeAdapter getLoginType() {
+        return LoginTypeAdapter.WECHAT; // 需要在枚举中添加WECHAT
+    }
+}
+```
+
+**步骤3：在枚举中添加登录类型**
+
+```java
+public enum LoginTypeAdapter {
+    PASSWORD("密码登录"),
+    SMS("短信登录"),
+    WECHAT("微信登录");  // 新增
+    
+    private final String desc;
+}
+```
+
+**步骤4：调用登录接口**
+
+```java
+@RestController
+@RequestMapping("/auth")
+public class AuthController {
+    
+    @Autowired
+    private LoginService loginService;
+    
+    @PostMapping("/wechat/login")
+    public R<Map<String, String>> wechatLogin(@RequestBody WechatLoginRequest request) {
+        Map<String, String> tokens = loginService.login(request, LoginTypeAdapter.WECHAT);
+        return R.ok(tokens);
+    }
+}
+```
+
+**2. 如何自定义登录成功处理**
+
+例如：发送登录通知、积分奖励、更新最后登录时间等。
+
+```java
+@Component
+public class NotificationLoginSucProcess implements LoginSucProcess {
+    
+    @Autowired
+    private NotificationService notificationService;
+    
+    @Override
+    public DefaultKindProcess getProcess() {
+        // 在 LoginSucKindProcess 枚举中添加 NOTIFICATION
+        return LoginSucKindProcess.NOTIFICATION;
+    }
+    
+    @Override
+    public void execute(TokenData tokenData) {
+        // 发送登录通知
+        notificationService.sendLoginNotification(
+            tokenData.getUserId(),
+            tokenData.getUsername(),
+            LocalDateTime.now()
+        );
+    }
+}
+```
+
+**3. 如何自定义登录失败处理**
+
+例如：基于设备指纹的失败计数、发送告警通知等。
+
+```java
+@Component
+public class DeviceLoginErrorProcess extends AbsLoginErrorProcess {
+    
+    @Override
+    public LoginErrorKindProcess getProcess() {
+        // 在 LoginErrorKindProcess 枚举中添加 DEVICE_ERROR
+        return LoginErrorKindProcess.DEVICE_ERROR;
+    }
+    
+    @Override
+    protected String getLoginKey(ClientDetails clientDetails, Object adapter, String ip) {
+        LoginRequest request = (LoginRequest) adapter;
+        // 使用设备指纹作为标识
+        return request.getDeviceFingerprint();
+    }
+    
+    @Override
+    protected String getKeyPrefix() {
+        return "login:error:device:";
+    }
+}
+```
+
+**6. 权限管理服务与事件同步**
+
+PermissionManageService 提供完整的权限管理能力，支持角色权限的增删改查，并通过事件总线实时同步到所有客户端。
+
+**所属模块：** simple-common-auth-server
 
 **核心优势：**
 - ✅ **事件携带完整数据** - 零HTTP请求，直接同步
