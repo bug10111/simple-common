@@ -2,7 +2,11 @@
 
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3-brightgreen)
-![License](https://img.shields.io/badge/License-MIT-blue)
+![License](https://img.shields.io/badge/License-Apache--2.0-blue)
+
+> **开源协议**：本项目采用 Apache License 2.0 开源协议，可自由使用、修改和分发。
+>
+> **项目性质**：这是一个完全开源的通用技术框架，适用于各类 Java 项目开发。
 
 ## 🚀 项目简介
 
