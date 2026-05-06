@@ -12,6 +12,7 @@ import com.simple.common.cache.common.factory.LocalCacheFactory;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.SignUtils;
 import com.simple.common.eventbus.common.service.EventBusService;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -42,7 +43,7 @@ public class DefaultSignManager implements SignManager {
     /**
      * 专门用于 nonce 防重放的本地缓存（与业务缓存分离，确保高性能）。
      */
-    private final Cache<String, String> nonceCache;
+    private Cache<String, String> nonceCache;
 
     /**
      * 签名密钥缓存 Key
@@ -50,11 +51,13 @@ public class DefaultSignManager implements SignManager {
     private static final String SIGN_SECRET_KEY = "auth:sign:secret:current";
 
     /**
-     * 构造器注入，使用 @Qualifier 指定签名专用的 CacheManager。
+     * 依赖注入完成后初始化 nonce 缓存。
      */
-    public DefaultSignManager() {
+    @PostConstruct
+    public void init() {
         // 初始化 nonce 缓存，容量和过期时间从配置读取
         this.nonceCache = LocalCacheFactory.getInstance().createCache("sign:nonce", spec -> spec.maximumSize(10000).expireAfterWrite(signProperties.getCacheTime()));
+        log.info("签名管理器初始化完成，nonce 缓存过期时间: {}s", signProperties.getCacheTime());
     }
 
     /**

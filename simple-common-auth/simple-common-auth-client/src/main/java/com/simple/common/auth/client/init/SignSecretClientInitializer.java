@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class SignSecretInitializer implements ApplicationRunner {
+public class SignSecretClientInitializer implements ApplicationRunner {
 
     @Autowired(required = false)
     private SignManager signManager;

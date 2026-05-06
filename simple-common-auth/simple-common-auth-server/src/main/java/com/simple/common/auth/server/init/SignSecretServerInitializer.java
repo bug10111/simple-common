@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class SignSecretInitializer implements ApplicationRunner {
+public class SignSecretServerInitializer implements ApplicationRunner {
 
     @Autowired(required = false)
     private SignManager signManager;

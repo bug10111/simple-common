@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class JwtSecretInitializer implements ApplicationRunner {
+public class JwtSecretServerInitializer implements ApplicationRunner {
 
     @Autowired(required = false)
     private TokenManager tokenManager;

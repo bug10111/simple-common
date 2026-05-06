@@ -26,7 +26,7 @@ import java.util.Map;
  */
 @Slf4j
 @Component
-public class JwtSecretInitializer implements ApplicationRunner {
+public class JwtSecretClientInitializer implements ApplicationRunner {
 
     @Autowired
     private TokenManager tokenManager;
