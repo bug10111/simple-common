@@ -60,3 +60,44 @@ trigger: always_on
 - **覆盖自定义注解与接口**：文档**必须**包含所有自定义注解（Annotation）和封装接口的详细说明及使用示例。
 - **示例代码可运行**：所有示例代码**必须**基于真实的 API，确保用户可以直接复制使用。
 - **结构规范**：**必须**按模块介绍、核心功能表格、继承实现方式、扩展举例、使用示例的顺序组织。
+
+## 5. @HasAuthority 权限字段命名强制规范
+- **命名规则**：@HasAuthority 注解的权限字段**必须**严格遵循以下转换规则：
+  1. 取 Controller 类的 `@RequestMapping` 路径（类级别）
+  2. 拼接方法级别的 `@GetMapping`/`@PostMapping` 等路径
+  3. 将完整路径中的 `/` 替换为 `:`
+  4. **排除**路由传参部分（如 `/{id}` 等 PathVariable 参数）
+
+- **强制示例**：
+  ```java
+  // Controller: @RequestMapping("sys/department")
+  
+  // ✅ 正确：@GetMapping("tree") → sys:department:tree
+  @HasAuthority("sys:department:tree")
+  public R<List<DepartmentTreeResponse>> tree(@RequestParam(required = false) String parentId) { ... }
+  
+  // ✅ 正确：@PostMapping("create") → sys:department:create
+  @HasAuthority("sys:department:create")
+  public R<String> create(@RequestBody @Validated CreateDepartmentRequest createRequest) { ... }
+  
+  // ✅ 正确：@GetMapping("find/{id}") → sys:department:find（排除/{id}）
+  @HasAuthority("sys:department:find")
+  public R<InfoDepartmentResponse> findOne(@PathVariable String id) { ... }
+  
+  // ❌ 错误：不能写成 sys:department:list（如果实际路径是 /list）
+  // ❌ 错误：不能包含路径变量 sys:department:find:id
+  ```
+
+- **典型场景对照表**：
+  | Controller 路径 | 方法路径 | 完整路径 | 权限字段 |
+  |----------------|---------|---------|----------|
+  | sys/department | list | sys/department/list | sys:department:list |
+  | sys/department | find/{id} | sys/department/find | sys:department:find |
+  | sys/department | create | sys/department/create | sys:department:create |
+  | sys/department | update/{id} | sys/department/update | sys:department:update |
+  | sys/department | deletes | sys/department/deletes | sys:department:deletes |
+  | sys/department | tree | sys/department/tree | sys:department:tree |
+  | sys/sys-menu | create | sys/sys-menu/create | sys:sys-menu:create |
+  | sys/department-role | deletes | sys/department-role/deletes | sys:department-role:deletes |
+
+- **违规处理**：任何不符合此规范的权限字段都**必须**修正，这是强制性要求。
