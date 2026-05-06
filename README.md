@@ -741,7 +741,7 @@ simple:
 | JWT密钥管理 | `JwtSecretManager` | JWT密钥生成和管理 |
 | 权限管理 | `PermissionManageService` | 角色权限管理，支持事件驱动实时同步 |
 
-### 集成方式
+#### 集成方式
 
 **步骤1：添加依赖**
 
@@ -886,7 +886,7 @@ public class RoleManagementService {
 - 调用 `updateRolePermission()` 等方法后，会自动发布事件通知所有客户端刷新缓存
 - 客户端通过事件监听器自动接收权限变更并更新本地缓存
 
-### 扩展示例
+#### 扩展示例
 
 **1. 扩展新的登录方式（短信登录）**
 
