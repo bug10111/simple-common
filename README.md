@@ -708,6 +708,445 @@ public class ApiClient {
 }
 ```
 
+**前端签名构建流程（JavaScript）：**
+
+前端需要按照以下步骤构建签名，确保与服务端验签逻辑一致：
+
+```javascript
+class ApiClient {
+    constructor(baseUrl, secretKey) {
+        this.baseUrl = baseUrl;
+        this.secretKey = secretKey;  // 从服务端获取的签名密钥
+    }
+    
+    /**
+     * 发送带签名的 POST 请求
+     */
+    async postWithSign(path, data, excludeFields = []) {
+        // 1. 生成时间戳和随机数
+        const timestamp = Date.now().toString();
+        const nonce = crypto.randomUUID().replace(/-/g, '');
+        
+        // 2. 构建业务参数字符串（排除敏感字段）
+        const businessStr = this.buildBusinessString(data, excludeFields);
+        
+        // 3. 构建完整的待签名字符串
+        // 格式: field1=value1&field2=value2&X-TIMESTAMP=timestamp&X-NONCE=nonce
+        const message = `${businessStr}&X-TIMESTAMP=${timestamp}&X-NONCE=${nonce}`;
+        
+        // 4. 生成 HMAC-SHA256 签名（Base64编码）
+        const signature = await this.generateSignature(message, this.secretKey);
+        
+        // 5. 发送请求
+        const response = await fetch(`${this.baseUrl}${path}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-SIGN': signature,
+                'X-TIMESTAMP': timestamp,
+                'X-NONCE': nonce,
+                'Authorization': 'Bearer ' + this.getAccessToken()
+            },
+            body: JSON.stringify(data)
+        });
+        
+        return response.json();
+    }
+    
+    /**
+     * 构建业务参数字符串
+     * - 按字段名 ASCII 码升序排序
+     * - 对 value 进行 URL 编码（RFC 3986 标准）
+     * - 排除指定字段
+     */
+    buildBusinessString(params, excludeFields = []) {
+        // 过滤掉需要排除的字段和空值
+        const filtered = Object.keys(params)
+            .filter(key => !excludeFields.includes(key))
+            .reduce((obj, key) => {
+                obj[key] = params[key] != null ? params[key].toString() : '';
+                return obj;
+            }, {});
+        
+        // 按字段名 ASCII 排序
+        const sortedKeys = Object.keys(filtered).sort();
+        
+        // 拼接成 field=value&field=value 格式
+        return sortedKeys
+            .map(key => `${key}=${this.urlEncode(filtered[key])}`)
+            .join('&');
+    }
+    
+    /**
+     * URL 编码（RFC 3986 标准）
+     * 与服务端 SignUtils.urlEncode 保持一致
+     */
+    urlEncode(value) {
+        return encodeURIComponent(value)
+            .replace(/\+/g, '%20')      // 空格编码为 %20
+            .replace(/%21/g, '!')       // ! 不编码
+            .replace(/%27/g, "'")       // ' 不编码
+            .replace(/%28/g, '(')       // ( 不编码
+            .replace(/%29/g, ')')       // ) 不编码
+            .replace(/%7E/g, '~');      // ~ 不编码
+    }
+    
+    /**
+     * 生成 HMAC-SHA256 签名
+     */
+    async generateSignature(message, secretKey) {
+        const encoder = new TextEncoder();
+        const keyData = encoder.encode(secretKey);
+        const messageData = encoder.encode(message);
+        
+        // 导入密钥
+        const key = await crypto.subtle.importKey(
+            'raw',
+            keyData,
+            { name: 'HMAC', hash: 'SHA-256' },
+            false,
+            ['sign']
+        );
+        
+        // 生成签名
+        const signature = await crypto.subtle.sign('HMAC', key, messageData);
+        
+        // 转换为 Base64
+        return btoa(String.fromCharCode(...new Uint8Array(signature)));
+    }
+    
+    getAccessToken() {
+        return localStorage.getItem('accessToken');
+    }
+}
+
+// 使用示例
+const apiClient = new ApiClient('https://api.example.com', 'a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6');
+
+// 创建用户（排除 password 字段不参与签名）
+const result = await apiClient.postWithSign('/api/user/create', {
+    username: '张三',
+    email: 'zhangsan@example.com',
+    phone: '13800138000',
+    password: '123456'  // 这个字段不会参与签名
+}, ['password']);
+
+console.log(result);
+```
+
+**重要注意事项：**
+
+1. **字段排序**：必须按字段名 ASCII 码升序排序
+2. **URL 编码**：必须使用 RFC 3986 标准（与服务端一致）
+3. **排除字段**：敏感字段（如 password）不参与签名
+4. **时间戳格式**：必须是毫秒级时间戳字符串
+5. **Nonce 唯一性**：每次请求必须生成新的 UUID
+6. **签名算法**：HMAC-SHA256，结果 Base64 编码
+7. **请求头名称**：必须与服务端配置一致（X-SIGN、X-TIMESTAMP、X-NONCE）
+
+---
+
+#### 金融级安全通信方案（混合加密 + 数字签名）
+
+对于高安全性要求的场景（如金融支付、敏感数据传输），采用**混合加密 + 数字签名**方案。
+
+##### 核心流程说明
+
+1. **先计算签名**：用发送方的私钥对规范化后的原文（或数据的哈希）签名，得到签名值 S
+2. **对称加密**：生成一个临时的对称密钥 K（如 AES-256），对「原始数据 + 签名值 S」进行加密，得到密文 C
+3. **非对称加密对称密钥**：用接收方的公钥对 K 进行加密，得到加密后的密钥 EK
+4. **打包并 Base64 编码**：将 EK 和 C 打包（JSON 结构），然后进行 Base64 编码，便于传输
+5. **接收方解码并解密**：Base64 解码 → 用自己的私钥解密 EK 得到 K → 用 K 解密密文 C 得到「原始数据 + 签名 S」
+6. **验证签名**：用发送方的公钥验证签名 S 是否匹配原始数据
+
+##### 完整流程图
+
+```mermaid
+sequenceDiagram
+    participant Client as 发送方 (Client)
+    participant Server as 接收方 (Server)
+    
+    Note over Client: 【准备阶段】
+    Client->>Client: 1. 准备业务数据 D
+    Client->>Client: 2. 生成 timestamp<br/>(当前时间戳)
+    Client->>Client: 3. 生成 nonce<br/>(UUID，防重放)
+    
+    Note over Client: 【签名阶段 - 保证完整性和身份认证】
+    Client->>Client: 4. 规范化签名字符串 M<br/>M = sort(D) + timestamp + nonce
+    Client->>Client: 5. 计算哈希 H = SHA256(M)<br/>或用 SM3(国密)
+    Client->>Client: 6. 用发送方私钥 SK_A 签名 H<br/>→ Sign_A (RSA-SHA256 或 SM2)
+    
+    Note over Client: 【对称加密阶段 - 保证机密性】
+    Client->>Client: 7. 生成临时对称密钥 K<br/>(AES-256-GCM 或 SM4-GCM)
+    Client->>Client: 8. 生成随机 IV<br/>(初始化向量，12字节)
+    Client->>Client: 9. 用 K + IV 加密 (D + Sign_A)<br/>→ 密文 C (AEAD模式)
+    
+    Note over Client: 【非对称加密阶段 - 安全传输对称密钥】
+    Client->>Client: 10. 用接收方公钥 PK_B 加密 K<br/>→ EK (RSA-OAEP 或 SM2)
+    
+    Note over Client: 【打包阶段】
+    Client->>Client: 11. 构建数据包 Package:<br/>{encryptedKey, ciphertext, iv,<br/>algorithm, keyAlgorithm, signAlgorithm}
+    Client->>Client: 12. Base64 编码 Package<br/>→ encodedPackage
+    Client->>Server: 13. HTTP POST /api/secure/data<br/>Headers: X-Timestamp, X-Nonce<br/>Body: {data: encodedPackage}
+    
+    Note over Server: 【接收解码阶段】
+    Server->>Server: 14. Base64 解码<br/>→ Package
+    Server->>Server: 15. 提取 EK, C, IV, 算法标识
+    
+    Note over Server: 【密钥解封阶段】
+    Server->>Server: 16. 用接收方私钥 SK_B 解密 EK<br/>→ K (RSA-OAEP 或 SM2)
+    
+    Note over Server: 【解密阶段】
+    Server->>Server: 17. 用 K + IV 解密 C<br/>→ (D + Sign_A)<br/>(AES-GCM 或 SM4-GCM)
+    
+    Note over Server: 【验签阶段】
+    Server->>Server: 18. 重新构建 M' = sort(D) + timestamp + nonce
+    Server->>Server: 19. 计算哈希 H' = SHA256(M')
+    Server->>Server: 20. 用发送方公钥 PK_A 验证 Sign_A<br/>verify(PK_A, H', Sign_A)
+    
+    Note over Server: 【防重放检查】
+    Server->>Server: 21. 检查 timestamp 是否在时间窗口内<br/>(默认 ±5 分钟)
+    Server->>Server: 22. 检查 nonce 是否已使用<br/>(Redis/Caffeine 缓存，TTL 5分钟)
+    
+    alt 验签通过且防重放检查通过
+        Note over Server: 【业务处理】
+        Server->>Server: 23. 执行业务逻辑
+        Server-->>Client: 24. 返回响应（可选：同样加密）
+    else 验签失败或重放攻击
+        Server-->>Client: 拒绝请求，返回错误
+    end
+```
+
+##### Java 实现示例
+
+**发送方（客户端）：**
+
+```java
+@Service
+public class SecureApiClient {
+    
+    @Autowired
+    private CryptoUtil cryptoUtil;
+    
+    /**
+     * 发送金融级安全请求
+     */
+    public String sendSecureRequest(String apiUrl, Object businessData, 
+                                     PrivateKey senderPrivateKey,
+                                     PublicKey receiverPublicKey) throws Exception {
+        
+        // 1. 准备数据
+        String timestamp = String.valueOf(System.currentTimeMillis());
+        String nonce = IdUtils.getFastSimpleUUID();
+        String jsonData = JsonUtils.toJsonStr(businessData);
+        
+        // 2. 构建待签名字符串
+        String message = jsonData + "&" + timestamp + "&" + nonce;
+        
+        // 3. 数字签名（使用发送方私钥）
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        byte[] signature = CryptoUtil.sign(
+            CryptoUtil.AsymmetricAlgorithmType.RSA_OAEP, 
+            senderPrivateKey, 
+            messageBytes
+        );
+        String signBase64 = Base64.getEncoder().encodeToString(signature);
+        
+        // 4. 生成临时对称密钥（AES-256）
+        String symmetricKey = CryptoUtil.generateSymmetricKeyStr(
+            CryptoUtil.SymmetricAlgorithmType.AES_GCM
+        );
+        
+        // 5. 加密数据 + 签名
+        String plaintext = jsonData + "|" + signBase64;  // 用 | 分隔
+        String ciphertext = CryptoUtil.encryptStr(
+            CryptoUtil.SymmetricAlgorithmType.AES_GCM,
+            symmetricKey,
+            plaintext
+        );
+        
+        // 6. 提取 IV（AES-GCM 的 IV 在密文前 12 字节）
+        byte[] cipherBytes = Base64.getDecoder().decode(ciphertext);
+        byte[] iv = Arrays.copyOfRange(cipherBytes, 0, 12);
+        String ivBase64 = Base64.getEncoder().encodeToString(iv);
+        
+        // 7. 用接收方公钥加密对称密钥
+        byte[] keyBytes = symmetricKey.getBytes(StandardCharsets.UTF_8);
+        byte[] encryptedKey = CryptoUtil.encrypt(
+            CryptoUtil.AsymmetricAlgorithmType.RSA_OAEP,
+            receiverPublicKey,
+            keyBytes
+        );
+        String encryptedKeyBase64 = Base64.getEncoder().encodeToString(encryptedKey);
+        
+        // 8. 构建数据包
+        Map<String, String> package = new HashMap<>();
+        package.put("encryptedKey", encryptedKeyBase64);
+        package.put("ciphertext", ciphertext);
+        package.put("iv", ivBase64);
+        package.put("algorithm", "AES-GCM");
+        package.put("keyAlgorithm", "RSA-OAEP");
+        package.put("signAlgorithm", "RSA-SHA256");
+        
+        String packageJson = JsonUtils.toJsonStr(package);
+        String encodedPackage = Base64.getEncoder().encodeToString(
+            packageJson.getBytes(StandardCharsets.UTF_8)
+        );
+        
+        // 9. 发送 HTTP 请求
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Timestamp", timestamp);
+        headers.set("X-Nonce", nonce);
+        
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("data", encodedPackage);
+        
+        HttpEntity<Map<String, String>> entity = new HttpEntity<>(requestBody, headers);
+        ResponseEntity<String> response = restTemplate.postForEntity(apiUrl, entity, String.class);
+        
+        return response.getBody();
+    }
+}
+```
+
+**接收方（服务端）：**
+
+```java
+@Service
+public class SecureApiService {
+    
+    @Autowired
+    private CacheManager cacheManager;  // 用于 nonce 防重放
+    
+    @Autowired
+    private SignProperties signProperties;
+    
+    /**
+     * 处理金融级安全请求
+     */
+    public Object processSecureRequest(String encodedPackage, 
+                                        String timestamp, 
+                                        String nonce,
+                                        PrivateKey receiverPrivateKey,
+                                        PublicKey senderPublicKey) throws Exception {
+        
+        // 1. Base64 解码
+        byte[] packageBytes = Base64.getDecoder().decode(encodedPackage);
+        String packageJson = new String(packageBytes, StandardCharsets.UTF_8);
+        Map<String, String> package = JsonUtils.toJsonObj(packageJson, Map.class);
+        
+        // 2. 提取参数
+        String encryptedKeyBase64 = package.get("encryptedKey");
+        String ciphertext = package.get("ciphertext");
+        String ivBase64 = package.get("iv");
+        
+        // 3. 解密密钥（使用接收方私钥）
+        byte[] encryptedKeyBytes = Base64.getDecoder().decode(encryptedKeyBase64);
+        byte[] keyBytes = CryptoUtil.decrypt(
+            CryptoUtil.AsymmetricAlgorithmType.RSA_OAEP,
+            receiverPrivateKey,
+            encryptedKeyBytes
+        );
+        String symmetricKey = new String(keyBytes, StandardCharsets.UTF_8);
+        
+        // 4. 解密数据（使用对称密钥）
+        String plaintext = CryptoUtil.decryptStr(
+            CryptoUtil.SymmetricAlgorithmType.AES_GCM,
+            symmetricKey,
+            ciphertext
+        );
+        
+        // 5. 分离数据和签名
+        String[] parts = plaintext.split("\\|");
+        String jsonData = parts[0];
+        String signBase64 = parts[1];
+        
+        // 6. 验证签名（使用发送方公钥）
+        String message = jsonData + "&" + timestamp + "&" + nonce;
+        byte[] messageBytes = message.getBytes(StandardCharsets.UTF_8);
+        byte[] signature = Base64.getDecoder().decode(signBase64);
+        
+        boolean isValid = CryptoUtil.verify(
+            CryptoUtil.AsymmetricAlgorithmType.RSA_OAEP,
+            senderPublicKey,
+            messageBytes,
+            signature
+        );
+        
+        if (!isValid) {
+            throw new SecurityException("签名验证失败");
+        }
+        
+        // 7. 防重放检查 - 时间戳
+        long ts = Long.parseLong(timestamp);
+        long now = System.currentTimeMillis();
+        long diff = Math.abs(now - ts);
+        if (diff > signProperties.getDefaultTimeWindowMs()) {
+            throw new SecurityException("请求已过期");
+        }
+        
+        // 8. 防重放检查 - nonce
+        String existingNonce = cacheManager.get("nonce:" + nonce);
+        if (existingNonce != null) {
+            throw new SecurityException("重复请求");
+        }
+        cacheManager.set("nonce:" + nonce, "1", 300);  // TTL 5分钟
+        
+        // 9. 解析业务数据
+        Object businessData = JsonUtils.toJsonObj(jsonData, Object.class);
+        
+        // 10. 执行业务逻辑
+        return handleBusinessLogic(businessData);
+    }
+    
+    private Object handleBusinessLogic(Object data) {
+        // 实际业务处理
+        return data;
+    }
+}
+```
+
+##### 金融级安全要素
+
+**1. 签名原文规范化**
+
+按字段名 ASCII 码升序排序，排除敏感字段，对 value 进行 URL 编码（RFC 3986），追加 `&X-TIMESTAMP={timestamp}&X-NONCE={nonce}`。
+
+示例：`amount=100&from=ACC01&nonce=abc123&timestamp=1700000000&to=ACC02`
+
+**2. 签名算法**
+
+先对规范化后的原文计算哈希（SHA-256 或 SM3），再对哈希值签名。常用算法：RSA-SHA256、SM2withSM3。
+
+**3. 对称加密模式**
+
+使用 AEAD 模式（AES-GCM 或 SM4-GCM），同时提供加密和完整性校验。必须使用随机 IV（12字节），禁止复用。
+
+**4. 密钥层级管理**
+
+| 密钥类型 | 生命周期 | 存储位置 |
+|---------|---------|----------|
+| 发送方私钥 SK_A | 1年轮换 | HSM/密钥管理系统 |
+| 接收方公钥 PK_B | - | 证书/公开分发 |
+| 临时对称密钥 K | 每次请求生成 | 内存（用完即弃） |
+| 初始化向量 IV | 每次请求生成 | 随密文传输 |
+
+**关键原则：**对称密钥 K 一次一密，接收方私钥存储在 HSM 中。
+
+**5. 传输格式标准**
+
+推荐使用 JWE + JWS 嵌套或 PKCS#7/CMS 标准。本方案采用自定义 JSON 结构简化实现。
+
+##### 密钥管理
+
+| 密钥类型 | 存储位置 | 轮换周期 |
+|---------|---------|----------|
+| 发送方私钥 SK_A | HSM/密钥管理系统 | 1年 |
+| 接收方公钥 PK_B | 证书/公开分发 | - |
+| 临时对称密钥 K | 内存（单次请求） | 每次请求 |
+| 初始化向量 IV | 随密文传输 | 每次请求 |
+
 **3. 缓存类型切换**
 
 ```yaml
