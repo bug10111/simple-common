@@ -108,7 +108,7 @@ public interface TokenManager {
      * // 定时任务：每月轮换密钥
      * @Scheduled(cron = "0 0 0 1 * ?") // 每月1号零点执行
      * public void rotateJwtSecret() {
-     *     // 生成新密钥
+     *     // 生成新密钥（内部委托给SecretKeyManager）
      *     String newSecret = tokenManager.generateSecret();
      *     
      *     // 添加新密钥并广播到所有客户端
@@ -119,14 +119,14 @@ public interface TokenManager {
      * 
      * // 或者手动触发轮换
      * public void manualRotate() {
-     *     String secret = JJwtUtils.createSecret(); // 生成64位随机密钥
+     *     String secret = tokenManager.generateSecret();
      *     tokenManager.addSecret(secret);
      * }
      * }</pre>
      *
      * <h3>密钥轮换最佳实践：</h3>
      * <ol>
-     *   <li>生成新密钥（至少64位随机字符串）</li>
+     *   <li>调用 generateSecret() 生成新密钥（内部委托给SecretKeyManager）</li>
      *   <li>调用 addSecret() 添加新密钥并广播</li>
      *   <li>等待一段时间（如7天），确保所有旧Token过期</li>
      *   <li>可选：清理过期的旧密钥</li>
@@ -134,8 +134,7 @@ public interface TokenManager {
      *
      * @param secret JWT签名密钥，建议使用强随机字符串（至少64字符）
      * @throws IllegalArgumentException 当密钥为空或长度不足时抛出异常
-     * @see com.simple.common.auth.client.util.JJwtUtils#createSecret() 生成JJWT密钥
-     * @see com.simple.common.auth.client.util.JwtUtils#createJWTSignerStr() 生成Hutool JWT密钥
+     * @see #generateSecret() 生成新密钥
      */
     void addSecret(String secret);
 
@@ -143,7 +142,13 @@ public interface TokenManager {
      * 生成新的JWT签名密钥
      * <p>
      * 便捷方法，自动生成符合安全要求的随机密钥字符串。
-     * 不同实现可能生成不同长度的密钥（JJWT需要64位，Hutool需要64位）。
+     * </p>
+     *
+     * <h3>设计说明：</h3>
+     * <p>
+     * 此方法保留在 TokenManager 中是为了保持 API 向后兼容。
+     * 在服务端应用中，密钥生成逻辑由 SecretKeyManager 统一管理，
+     * 通过 EventBus 事件同步到所有客户端。
      * </p>
      *
      * <h3>使用示例：</h3>
@@ -155,7 +160,7 @@ public interface TokenManager {
      * tokenManager.addSecret(secret);
      * }</pre>
      *
-     * @return 生成的随机密钥字符串
+     * @return 生成的随机密钥字符串（至少64位）
      */
     String generateSecret();
 

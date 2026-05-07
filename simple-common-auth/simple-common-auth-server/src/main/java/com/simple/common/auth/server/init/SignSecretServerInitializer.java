@@ -1,6 +1,7 @@
 package com.simple.common.auth.server.init;
 
 import com.simple.common.auth.client.common.manager.sign.SignManager;
+import com.simple.common.auth.server.common.manager.secret.SignSecretManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.ApplicationArguments;
@@ -10,7 +11,7 @@ import org.springframework.stereotype.Component;
 /**
  * 签名密钥初始化器（服务端）
  * <p>
- * 应用启动时自动生成签名密钥并缓存，然后发布事件通知所有客户端。
+ * 应用启动时通过SignSecretManager生成签名密钥并缓存，然后发布事件通知所有客户端。
  * 仅在服务端模式下执行。
  * </p>
  *
@@ -20,8 +21,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class SignSecretServerInitializer implements ApplicationRunner {
 
-    @Autowired(required = false)
+    @Autowired
     private SignManager signManager;
+
+    @Autowired
+    private SignSecretManager signSecretManager;
 
     /**
      * 应用启动后执行
@@ -30,16 +34,10 @@ public class SignSecretServerInitializer implements ApplicationRunner {
      */
     @Override
     public void run(ApplicationArguments args) {
-        if (signManager == null) {
-            log.debug("签名管理器未配置，跳过初始化");
-            return;
-        }
 
         try {
-            // 生成新密钥
-            String newSecret = signManager.generateSecret();
+            String newSecret = signSecretManager.generate();
             signManager.addSecret(newSecret);
-            
             log.info("签名密钥初始化成功: {}", maskSecret(newSecret));
         } catch (Exception e) {
             log.error("签名密钥初始化失败", e);

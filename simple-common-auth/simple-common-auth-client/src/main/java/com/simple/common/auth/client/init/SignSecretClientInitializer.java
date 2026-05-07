@@ -2,8 +2,8 @@ package com.simple.common.auth.client.init;
 
 import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
-import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.exchange.AuthCenterHttpClient;
+import com.simple.common.auth.client.util.SignSecretUtils;
 import com.simple.common.core.exception.DefaultExceptionEnum;
 import com.simple.common.core.response.R;
 import com.simple.common.core.utils.JsonUtils;
@@ -29,9 +29,6 @@ import java.util.Map;
 public class SignSecretClientInitializer implements ApplicationRunner {
 
     @Autowired(required = false)
-    private SignManager signManager;
-
-    @Autowired(required = false)
     private ClientAuthInfo clientAuthInfo;
 
     @Autowired(required = false)
@@ -46,41 +43,40 @@ public class SignSecretClientInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         // 仅客户端模式执行
         if (clientAuthInfo == null || !clientAuthInfo.getClient()) {
-            log.debug("非客户端模式，跳过签名密钥初始化");
             return;
         }
 
-        if (signManager == null || authCenterHttpClient == null) {
-            String errorMsg = "签名管理器或HTTP客户端未加载，无法初始化签名密钥";
+        if (authCenterHttpClient == null) {
+            String errorMsg = "HTTP客户端未加载，无法初始化签名密钥";
             log.error(errorMsg);
             throw new IllegalStateException(errorMsg);
         }
 
         try {
             log.info("开始从授权中心拉取签名密钥...");
-            
+
             HttpResponse response = authCenterHttpClient.getSignSecret();
             String body = response.body();
-            
+
             R<?> r = JsonUtils.toJsonObj(body, R.class);
             if (!DefaultExceptionEnum.OK.getCode().equals(r.getCode())) {
                 String errorMsg = String.format("从授权中心获取签名密钥失败: %s", r.getMessage());
                 log.error(errorMsg);
                 throw new IllegalStateException(errorMsg);
             }
-            
+
             Map<String, String> data = JsonUtils.toJsonObj(r.getData().toString(), Map.class);
             String secret = data.get("secret");
-            
+
             if (secret == null || secret.isEmpty()) {
                 String errorMsg = "授权中心返回的签名密钥为空";
                 log.error(errorMsg);
                 throw new IllegalStateException(errorMsg);
             }
-            
-            signManager.addSecret(secret);
+
+            SignSecretUtils.saveSecret(secret);
             log.info("签名密钥初始化成功");
-            
+
         } catch (IllegalStateException e) {
             // 重新抛出业务异常，终止应用启动
             throw e;

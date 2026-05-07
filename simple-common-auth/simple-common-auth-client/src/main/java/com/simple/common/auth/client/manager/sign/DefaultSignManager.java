@@ -5,9 +5,9 @@ import cn.hutool.core.util.ObjUtil;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.event.SecretEvent;
-import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
+import com.simple.common.auth.client.util.SignSecretUtils;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.SignUtils;
@@ -15,7 +15,6 @@ import com.simple.common.eventbus.common.service.EventBusService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,10 +25,6 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 public class DefaultSignManager implements SignManager {
-
-    @Autowired
-    @Qualifier("signCacheManager")
-    private CacheManager cacheManager;
 
     @Autowired
     private SignProperties signProperties;
@@ -44,11 +39,6 @@ public class DefaultSignManager implements SignManager {
      * 专门用于 nonce 防重放的本地缓存（与业务缓存分离，确保高性能）。
      */
     private Cache<String, String> nonceCache;
-
-    /**
-     * 签名密钥缓存 Key
-     */
-    private static final String SIGN_SECRET_KEY = "auth:sign:secret:current";
 
     /**
      * 依赖注入完成后初始化 nonce 缓存。
@@ -104,8 +94,7 @@ public class DefaultSignManager implements SignManager {
     @Override
     public String signWeb(String message) {
         AssertUtils.notEmpty(message, "签名内容不能为空");
-        String key = getCurrentSecret();
-        AssertUtils.notEmpty(key, "签名密钥未初始化");
+        String key = SignSecretUtils.getSecret();
         return SignUtils.signWeb(message, key);
     }
 
@@ -121,21 +110,8 @@ public class DefaultSignManager implements SignManager {
         if (ObjUtil.isEmpty(message) || ObjUtil.isEmpty(signature)) {
             return false;
         }
-        String key = getCurrentSecret();
-        if (key == null) {
-            log.warn("签名密钥未初始化，验证失败");
-            return false;
-        }
+        String key = SignSecretUtils.getSecret();
         return SignUtils.verifyWeb(message, signature, key);
-    }
-
-    /**
-     * 获取当前签名密钥
-     *
-     * @return 签名密钥
-     */
-    private String getCurrentSecret() {
-        return cacheManager.get(SIGN_SECRET_KEY);
     }
 
     /**
@@ -147,18 +123,19 @@ public class DefaultSignManager implements SignManager {
     public void addSecret(String secret) {
         AssertUtils.notEmpty(secret, "签名密钥不能为空");
 
-        // 缓存到本地
-        cacheManager.set(SIGN_SECRET_KEY, secret);
+        // 保存到工具类
+        SignSecretUtils.saveSecret(secret);
 
         // 发布事件，通知所有客户端同步（仅服务端执行）
-        if (clientAuthInfo != null && !clientAuthInfo.getClient() && eventBusService != null) {
+        if (!clientAuthInfo.getClient()) {
             SecretEvent event = new SecretEvent();
             event.setSecret(secret);
             event.setOperation(SecretEvent.Operation.ADD);
+            event.setSecretType(SecretEvent.SecretType.SIGN); // 指定为签名密钥
             eventBusService.push(event);
             log.info("签名密钥已添加并发布事件");
         } else {
-            log.debug("签名密钥已添加到本地缓存");
+            log.debug("签名密钥已更新到本地");
         }
     }
 
@@ -169,6 +146,8 @@ public class DefaultSignManager implements SignManager {
      */
     @Override
     public String generateSecret() {
+        // 委托给SignSecretManager生成密钥（仅Server端配置）
+        // Client端保留此方法用于向后兼容，实际不应调用
         return IdUtil.fastSimpleUUID();
     }
 
@@ -180,8 +159,6 @@ public class DefaultSignManager implements SignManager {
      */
     @Override
     public String getKey() {
-        String key = getCurrentSecret();
-        AssertUtils.notEmpty(key, "签名密钥未初始化");
-        return key;
+        return SignSecretUtils.getSecret();
     }
 }

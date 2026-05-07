@@ -4,7 +4,10 @@ import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.SmUtil;
-import cn.hutool.crypto.asymmetric.*;
+import cn.hutool.crypto.asymmetric.AsymmetricCrypto;
+import cn.hutool.crypto.asymmetric.KeyType;
+import cn.hutool.crypto.asymmetric.SM2;
+import cn.hutool.crypto.asymmetric.SignAlgorithm;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.hutool.crypto.digest.Digester;
 import cn.hutool.crypto.symmetric.AES;
@@ -316,7 +319,7 @@ public class CryptoUtil {
     /**
      * 将公钥转换为PEM格式字符串
      */
-    private static String getPublicKeyPem(PublicKey publicKey) {
+    public static String getPublicKeyPem(PublicKey publicKey) {
         try {
             // 获取X.509编码格式
             byte[] encoded = publicKey.getEncoded();
@@ -330,7 +333,7 @@ public class CryptoUtil {
     /**
      * 将私钥转换为PEM格式字符串
      */
-    private static String getPrivateKeyPem(PrivateKey privateKey) {
+    public static String getPrivateKeyPem(PrivateKey privateKey) {
         try {
             // 获取PKCS#8编码格式
             byte[] encoded = privateKey.getEncoded();
@@ -344,7 +347,7 @@ public class CryptoUtil {
     /**
      * 从PEM字符串恢复公钥
      */
-    private static PublicKey getPublicKeyFromPem(String pem) {
+    public static PublicKey getPublicKeyFromPem(String pem) {
         try {
             // 移除PEM头部和尾部
             String base64 = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
@@ -364,7 +367,7 @@ public class CryptoUtil {
     /**
      * 从PEM字符串恢复私钥
      */
-    private static PrivateKey getPrivateKeyFromPem(String pem) {
+    public static PrivateKey getPrivateKeyFromPem(String pem) {
         try {
             // 移除PEM头部和尾部
             String base64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");

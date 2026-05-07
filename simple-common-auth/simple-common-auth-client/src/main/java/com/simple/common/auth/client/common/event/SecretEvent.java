@@ -23,12 +23,23 @@ public class SecretEvent {
     //操作类型
     private Operation operation;
 
+    //密钥类型（JWT或SIGN）
+    private SecretType secretType;
+
     /**
      * 操作类型枚举
      */
     public enum Operation {
         ADD, //添加
-        UPDATE, //更新
+        UPDATE, //更新,
+    }
+
+    /**
+     * 密钥类型枚举
+     */
+    public enum SecretType {
+        JWT,   // JWT签名密钥
+        SIGN   // API签名密钥
     }
 
 }

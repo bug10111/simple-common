@@ -14,9 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
-import java.time.Duration;
-import java.util.concurrent.TimeUnit;
-
 /**
  * Created by IntelliJ IDEA
  * Description: redisson分布式锁的默认实现
@@ -42,7 +39,7 @@ public class DefaultRedissonLockService extends RedissonLockService {
         RLock lock = redisson.getLock(key);
 
         //        //设置过期时间（时间后自动释放锁）
-        //        lock.lock(10, TimeUnit.SECONDS);
+//                lock.lock(10, TimeUnit.SECONDS);
 
         //30秒刷新一次，自动续时间
         lock.lock();

@@ -108,10 +108,13 @@ public interface SignManager {
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
+     * @Autowired
+     * private SignSecretManager signSecretManager;
+     * 
      * // 定时任务：每月轮换密钥
      * @Scheduled(cron = "0 0 0 1 * ?") // 每月1号零点执行
      * public void rotateSignSecret() {
-     *     // 生成新密钥
+     *     // 生成新密钥（内部委托给SignSecretManager）
      *     String newSecret = signManager.generateSecret();
      *     
      *     // 添加新密钥并广播到所有客户端
@@ -123,6 +126,7 @@ public interface SignManager {
      *
      * @param secret 签名密钥，建议使用强随机字符串（至少32字符）
      * @throws IllegalArgumentException 当密钥为空时抛出异常
+     * @see #generateSecret() 生成新密钥
      */
     void addSecret(String secret);
 
@@ -130,6 +134,13 @@ public interface SignManager {
      * 生成新的签名密钥
      * <p>
      * 便捷方法，自动生成符合安全要求的随机密钥字符串。
+     * </p>
+     *
+     * <h3>设计说明：</h3>
+     * <p>
+     * 此方法保留在 SignManager 中是为了保持 API 向后兼容。
+     * 在服务端应用中，密钥生成逻辑由 SignSecretManager 统一管理，
+     * 通过 EventBus 事件同步到所有客户端。
      * </p>
      *
      * <h3>使用示例：</h3>
@@ -141,7 +152,7 @@ public interface SignManager {
      * signManager.addSecret(secret);
      * }</pre>
      *
-     * @return 生成的随机密钥字符串
+     * @return 生成的随机密钥字符串（至少32位）
      */
     String generateSecret();
 

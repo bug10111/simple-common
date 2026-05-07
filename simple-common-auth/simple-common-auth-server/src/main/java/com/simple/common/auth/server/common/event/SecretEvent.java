@@ -34,6 +34,9 @@ public class SecretEvent {
     //事件类型（兼容旧代码）
     private String eventType;
 
+    //密钥类型（JWT或SIGN）
+    private SecretType secretType;
+
     /**
      * 操作类型枚举
      */
@@ -41,6 +44,14 @@ public class SecretEvent {
         ADD, //添加
         UPDATE, //更新
         DELETE //删除
+    }
+
+    /**
+     * 密钥类型枚举
+     */
+    public enum SecretType {
+        JWT,   // JWT签名密钥
+        SIGN   // API签名密钥
     }
 
 }

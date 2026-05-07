@@ -59,10 +59,11 @@ public class JJwtTokenManager extends AbsTokenManager {
         JJwtUtils.saveSecret(secret);
 
         // 发布事件，通知所有客户端同步
-        if (!clientAuthInfo.getClient() && eventBusService != null) {
+        if (!clientAuthInfo.getClient()) {
             SecretEvent event = new SecretEvent();
             event.setSecret(secret);
             event.setOperation(SecretEvent.Operation.ADD);
+            event.setSecretType(SecretEvent.SecretType.JWT); // 指定为JWT密钥
             eventBusService.push(event);
             log.info("JJWT密钥已添加并发布事件，密钥长度: {}", secret.length());
         } else {

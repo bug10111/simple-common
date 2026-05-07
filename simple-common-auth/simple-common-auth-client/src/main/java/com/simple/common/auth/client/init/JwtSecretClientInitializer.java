@@ -46,7 +46,6 @@ public class JwtSecretClientInitializer implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         // 仅客户端模式执行
         if (clientAuthInfo == null || !clientAuthInfo.getClient()) {
-            log.debug("非客户端模式，跳过JWT密钥初始化");
             return;
         }
 

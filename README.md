@@ -738,7 +738,8 @@ simple:
 | 客户端管理 | `ClientManager` | OAuth2客户端信息管理 |
 | 登录错误处理 | `LoginErrorProcess` | 登录失败次数限制与锁定 |
 | 登录成功处理 | `LoginSucProcess` | 登录成功后置处理 |
-| JWT密钥管理 | `JwtSecretManager` | JWT密钥生成和管理 |
+| JWT密钥管理 | `SecretKeyManager` | JWT签名密钥生成和管理，支持自定义实现（如从数据库加载） |
+| 签名密钥管理 | `SignSecretManager` | API签名密钥生成和管理，支持自定义实现（如从数据库加载） |
 | 权限管理 | `PermissionManageService` | 角色权限管理，支持事件驱动实时同步 |
 
 #### 集成方式
@@ -1142,6 +1143,121 @@ public class RolePermissionService {
     }
 }
 ```
+
+**5. 密钥管理架构说明**
+
+simple-common-auth 采用 **Server端集中管理密钥** 的架构设计，通过 EventBus 事件同步到所有 Client 端。
+
+#### 5.1 JWT签名密钥管理
+
+**架构流程图：**
+
+```
+Server端                          EventBus                    Client端
+┌──────────────┐                                          ┌──────────────┐
+│              │                                          │              │
+│ SecretKey    │  1. 生成/加载密钥                         │              │
+│  Manager     │         ↓                                │              │
+│              │  2. TokenManager.addSecret()             │              │
+│              │         ↓                                │              │
+│              │  3. 广播 SecretEvent                     │  4. 监听事件  │
+│              │ ─────────────────────────────────────►  │  5. 缓存密钥  │
+│              │                                          │              │
+└──────────────┘                                          └──────────────┘
+```
+
+**默认实现：**
+
+框架提供 `SecretKeyManager` 接口和 `DefaultSecretKeyManager` 默认实现，应用启动时自动生成64位随机密钥并广播到所有客户端。
+
+**自定义实现（从数据库加载）：**
+
+```java
+@Component
+public class DatabaseSecretKeyManager implements SecretKeyManager {
+    
+    @Autowired
+    private SecretKeyMapper secretKeyMapper;
+    
+    @Override
+    public String generate() {
+        // 从数据库查询当前有效的密钥
+        SecretKeyEntity entity = secretKeyMapper.selectCurrentKey();
+        if (entity == null) {
+            // 如果不存在，生成新密钥并保存
+            entity = new SecretKeyEntity();
+            entity.setSecretValue(RandomStringUtils.randomAlphanumeric(64));
+            entity.setCreateTime(LocalDateTime.now());
+            entity.setStatus(1); // 启用
+            secretKeyMapper.insert(entity);
+        }
+        return entity.getSecretValue();
+    }
+}
+```
+
+**密钥轮换定时任务：**
+
+```java
+@Component
+@Slf4j
+public class JwtSecretRotationTask {
+    
+    @Autowired
+    private TokenManager tokenManager;
+    
+    @Autowired
+    private SecretKeyManager secretKeyManager;
+    
+    /**
+     * 每月1号零点执行密钥轮换
+     */
+    @Scheduled(cron = "0 0 0 1 * ?")
+    public void rotateJwtSecret() {
+        // 生成新密钥（可以从数据库加载）
+        String newSecret = secretKeyManager.generate();
+        
+        // 添加新密钥并广播到所有客户端
+        tokenManager.addSecret(newSecret);
+        
+        log.info("JWT密钥已轮换");
+    }
+}
+```
+
+#### 5.2 API签名密钥管理
+
+签名密钥管理与 JWT 密钥管理采用相同的架构设计：
+
+**自定义实现（从配置中心加载）：**
+
+```java
+@Component
+public class ConfigCenterSignSecretManager implements SignSecretManager {
+    
+    @Autowired
+    private ConfigClient configClient; // Nacos/Apollo等配置中心客户端
+    
+    @Override
+    public String generate() {
+        // 从配置中心读取密钥
+        String secret = configClient.getProperty("api.sign.secret.key");
+        if (secret == null || secret.isEmpty()) {
+            // 如果配置不存在，生成新密钥并写入配置中心
+            secret = RandomStringUtils.randomAlphanumeric(32);
+            configClient.setProperty("api.sign.secret.key", secret);
+        }
+        return secret;
+    }
+}
+```
+
+**重要说明：**
+
+- ✅ **SecretKeyManager 和 SignSecretManager 仅在 Server 端配置**
+- ✅ Client 端不生成密钥，只负责接收和缓存
+- ✅ 密钥由 Server 端统一管理，通过 EventBus 自动同步
+- ✅ 集成方在 Server 端自定义实现，支持数据库、配置中心等多种来源
 
 ---
 
