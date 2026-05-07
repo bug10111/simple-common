@@ -35,9 +35,7 @@ public class CsrfTokenController {
     @Autowired
     private CsrfService csrfService;
 
-    @Operation(summary = "获取CSRF Token", parameters = {
-                    @Parameter(name = "path", description = "目标接口path")
-    })
+    @Operation(summary = "获取CSRF Token", parameters = { @Parameter(name = "path", description = "目标接口path") })
     @GetMapping("/generate")
     public R<Object> generateCsrfToken(String path) {
         SecureRandom random = new SecureRandom();

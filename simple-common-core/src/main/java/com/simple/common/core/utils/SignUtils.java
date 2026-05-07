@@ -151,6 +151,35 @@ public class SignUtils {
         return calculatedSignature.equals(signature);
     }
 
+    /**
+     * URL编码（RFC 3986标准）
+     * <p>
+     * 对字符串进行URL编码，遵循RFC 3986标准，与主流API服务端保持一致。
+     * 特殊处理：保留字符 ! ' ( ) ~ 不进行编码，空格编码为 %20 而非 +。
+     * </p>
+     *
+     * <h3>编码规则：</h3>
+     * <ul>
+     *   <li>字母数字和 - _ . ~ 不编码</li>
+     *   <li>空格编码为 %20（而非 +）</li>
+     *   <li>保留字符 ! ' ( ) ~ 不编码</li>
+     *   <li>其他特殊字符进行百分号编码</li>
+     * </ul>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * String encoded = SignUtils.urlEncode("Hello World!");
+     * // 结果: "Hello%20World!"
+     * 
+     * String encoded2 = SignUtils.urlEncode("test@example.com");
+     * // 结果: "test%40example.com"
+     * }</pre>
+     *
+     * @param value 待编码的字符串
+     * @return URL编码后的字符串
+     * @throws RuntimeException 当编码失败时抛出异常
+     * @see java.net.URLEncoder#encode(String, String)
+     */
     private static String urlEncode(String value) {
         try {
             return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20") // 保持与API服务端一致
