@@ -2,7 +2,6 @@ package com.simple.common.auth.server.manager.secret;
 
 import cn.hutool.core.util.IdUtil;
 import com.simple.common.auth.server.common.manager.secret.SignSecretManager;
-import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 /**
@@ -27,7 +26,6 @@ import org.springframework.stereotype.Component;
  *
  * @author qty
  */
-@Primary
 @Component
 public class DefaultSignSecretManager implements SignSecretManager {
 
