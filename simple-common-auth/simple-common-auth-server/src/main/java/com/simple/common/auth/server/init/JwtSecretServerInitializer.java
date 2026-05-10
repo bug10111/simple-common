@@ -1,17 +1,22 @@
 package com.simple.common.auth.server.init;
 
+import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
-import com.simple.common.auth.server.common.manager.secret.SecretKeyManager;
+import com.simple.common.auth.server.common.manager.secret.UnifiedSecretManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.ApplicationArguments;
-import org.springframework.boot.ApplicationRunner;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
+import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 
+import java.util.Map;
+
 /**
- * JWT密钥初始化器（服务端）
+ * 密钥初始化器（服务端）
  * <p>
- * 应用启动时通过SecretKeyManager生成JWT密钥并缓存，然后发布事件通知所有客户端。
+ * 应用启动时通过UnifiedSecretManager为默认项目生成JWT和SIGN密钥并缓存，
+ * 然后发布事件通知所有客户端。
  * 仅在服务端模式下执行。
  * </p>
  *
@@ -19,28 +24,42 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class JwtSecretServerInitializer implements ApplicationRunner {
+public class JwtSecretServerInitializer implements ApplicationListener<ApplicationReadyEvent>, Ordered {
 
     @Autowired
     private TokenManager tokenManager;
 
     @Autowired
-    private SecretKeyManager secretKeyManager;
+    private SignManager signManager;
+
+    @Autowired
+    private UnifiedSecretManager unifiedSecretManager;
 
     /**
-     * 应用启动后执行
+     * 应用完全就绪后执行（确保事件处理器已注册）
      *
-     * @param args 应用参数
+     * @param event 应用就绪事件
      */
     @Override
-    public void run(ApplicationArguments args) {
+    public void onApplicationEvent(ApplicationReadyEvent event) {
 
         try {
-            String newSecret = secretKeyManager.generate();
-            tokenManager.addSecret(newSecret);
-            log.info("JWT密钥初始化成功: {}", maskSecret(newSecret));
+            // 为默认项目生成双密钥
+            Map<String, String> secrets = unifiedSecretManager.getSecrets("default");
+            
+            String jwtSecret = secrets.get("jwt");
+            String signSecret = secrets.get("sign");
+            
+            // 加载JWT密钥（不广播）
+            tokenManager.addSecret(jwtSecret, false);
+            log.info("JWT密钥初始化成功: {}", maskSecret(jwtSecret));
+            
+            // 加载SIGN密钥（不广播）
+            signManager.addSecret(signSecret, false);
+            log.info("SIGN密钥初始化成功: {}", maskSecret(signSecret));
+            
         } catch (Exception e) {
-            log.error("JWT密钥初始化失败", e);
+            log.error("密钥初始化失败", e);
         }
     }
 
@@ -55,5 +74,11 @@ public class JwtSecretServerInitializer implements ApplicationRunner {
             return "****";
         }
         return secret.substring(0, 4) + "****" + secret.substring(secret.length() - 4);
+    }
+
+    @Override
+    public int getOrder() {
+        // 在 EventHandlerInit 之后执行，确保事件处理器已注册
+        return Ordered.LOWEST_PRECEDENCE;
     }
 }

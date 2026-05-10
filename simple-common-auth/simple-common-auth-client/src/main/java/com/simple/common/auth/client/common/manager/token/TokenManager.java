@@ -91,7 +91,7 @@ public interface TokenManager {
     /**
      * 添加JWT签名密钥
      * <p>
-     * 将新的JWT签名密钥添加到本地缓存，并发布事件通知所有客户端同步更新密钥。
+     * 将新的JWT签名密钥添加到本地缓存。
      * 此方法用于密钥轮换(Key Rotation)场景，确保新旧密钥平滑过渡。
      * </p>
      *
@@ -99,7 +99,7 @@ public interface TokenManager {
      * <ul>
      *   <li><strong>定期轮换密钥</strong>：建议集成方每30天轮换一次密钥，提高系统安全性</li>
      *   <li><strong>保留旧密钥</strong>：新密钥添加后，旧密钥仍会保留一段时间以验证已签发的Token</li>
-     *   <li><strong>客户端同步</strong>：调用此方法会自动通过EventBus广播事件，所有客户端会同步更新密钥</li>
+     *   <li><strong>客户端同步</strong>：当broadcast=true时，会通过EventBus广播事件，所有客户端会同步更新密钥</li>
      *   <li><strong>密钥强度</strong>：建议使用至少64位的强随机字符串作为密钥</li>
      * </ul>
      *
@@ -112,31 +112,32 @@ public interface TokenManager {
      *     String newSecret = tokenManager.generateSecret();
      *     
      *     // 添加新密钥并广播到所有客户端
-     *     tokenManager.addSecret(newSecret);
+     *     tokenManager.addSecret(newSecret, true);
      *     
      *     log.info("JWT密钥已轮换，新密钥: {}", newSecret.substring(0, 8) + "...");
      * }
      * 
-     * // 或者手动触发轮换
-     * public void manualRotate() {
-     *     String secret = tokenManager.generateSecret();
-     *     tokenManager.addSecret(secret);
+     * // 服务端启动时加载密钥（不广播）
+     * public void loadJwtSecret() {
+     *     String secret = unifiedSecretManager.getSecrets(projectCode).get("jwt");
+     *     tokenManager.addSecret(secret, false); // 不广播
      * }
      * }</pre>
      *
      * <h3>密钥轮换最佳实践：</h3>
      * <ol>
      *   <li>调用 generateSecret() 生成新密钥（内部委托给SecretKeyManager）</li>
-     *   <li>调用 addSecret() 添加新密钥并广播</li>
+     *   <li>调用 addSecret(secret, true) 添加新密钥并广播</li>
      *   <li>等待一段时间（如7天），确保所有旧Token过期</li>
      *   <li>可选：清理过期的旧密钥</li>
      * </ol>
      *
-     * @param secret JWT签名密钥，建议使用强随机字符串（至少64字符）
+     * @param secret   JWT签名密钥，建议使用强随机字符串（至少64字符）
+     * @param broadcast 是否广播事件，true=广播到所有客户端，false=仅本地加载
      * @throws IllegalArgumentException 当密钥为空或长度不足时抛出异常
      * @see #generateSecret() 生成新密钥
      */
-    void addSecret(String secret);
+    void addSecret(String secret, boolean broadcast);
 
     /**
      * 生成新的JWT签名密钥

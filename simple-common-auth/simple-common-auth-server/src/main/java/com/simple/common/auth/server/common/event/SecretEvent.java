@@ -16,6 +16,9 @@ import lombok.Setter;
 @Event(targets = EventConstant.TARGET_ALL_X)
 public class SecretEvent {
 
+    //项目编码（spring.application.name），用于标识密钥所属项目
+    private String projectCode;
+
     //客户端ID（可选，用于客户端级别的秘钥管理）
     private String clientId;
 

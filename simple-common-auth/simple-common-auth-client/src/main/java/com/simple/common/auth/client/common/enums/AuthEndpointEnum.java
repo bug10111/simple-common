@@ -17,13 +17,25 @@ public enum AuthEndpointEnum {
 
     /**
      * 获取当前签名密钥
+     * @deprecated 已废弃，请使用 {@link #UNIFIED_SECRETS} 统一获取双密钥
      */
+    @Deprecated
     SIGN_SECRET("/auth/api/sign/secret", "GET"),
 
     /**
      * 获取当前 JWT 密钥
+     * @deprecated 已废弃，请使用 {@link #UNIFIED_SECRETS} 统一获取双密钥
      */
-    JWT_SECRET("/auth/api/jwt/secret", "GET");
+    @Deprecated
+    JWT_SECRET("/auth/api/jwt/secret", "GET"),
+
+    /**
+     * 统一获取双密钥（JWT + SIGN）
+     * <p>
+     * 推荐使用此接口，一次性获取JWT和SIGN两种密钥。
+     * </p>
+     */
+    UNIFIED_SECRETS("/auth/api/secrets", "GET");
 
     private final String path;
     private final String method;

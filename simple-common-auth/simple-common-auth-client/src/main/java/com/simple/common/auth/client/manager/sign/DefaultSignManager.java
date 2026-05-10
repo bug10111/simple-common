@@ -9,6 +9,7 @@ import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
 import com.simple.common.auth.client.util.SignSecretUtils;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
+import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.SignUtils;
 import com.simple.common.eventbus.common.service.EventBusService;
@@ -34,6 +35,9 @@ public class DefaultSignManager implements SignManager {
 
     @Autowired(required = false)
     private EventBusService eventBusService;
+
+    @Autowired
+    private ApplicationProperties applicationProperties;
 
     /**
      * 专门用于 nonce 防重放的本地缓存（与业务缓存分离，确保高性能）。
@@ -115,27 +119,30 @@ public class DefaultSignManager implements SignManager {
     }
 
     /**
-     * 添加签名密钥并发布事件
+     * 添加签名密钥
      *
-     * @param secret 签名密钥
+     * @param secret   签名密钥
+     * @param broadcast 是否广播事件
      */
     @Override
-    public void addSecret(String secret) {
+    public void addSecret(String secret, boolean broadcast) {
         AssertUtils.notEmpty(secret, "签名密钥不能为空");
 
         // 保存到工具类
         SignSecretUtils.saveSecret(secret);
 
-        // 发布事件，通知所有客户端同步（仅服务端执行）
-        if (!clientAuthInfo.getClient()) {
+        // 发布事件，通知所有客户端同步（仅当broadcast=true且为服务端模式时）
+        if (broadcast && !clientAuthInfo.getClient()) {
+            String projectCode = applicationProperties.getName();
             SecretEvent event = new SecretEvent();
+            event.setProjectCode(projectCode); // 设置项目编码
             event.setSecret(secret);
             event.setOperation(SecretEvent.Operation.ADD);
             event.setSecretType(SecretEvent.SecretType.SIGN); // 指定为签名密钥
             eventBusService.push(event);
-            log.info("签名密钥已添加并发布事件");
+            log.info("签名密钥已添加并发布事件 [{}]", projectCode);
         } else {
-            log.debug("签名密钥已更新到本地");
+            log.debug("SIGN密钥已加载到本地，不广播");
         }
     }
 

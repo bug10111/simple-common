@@ -17,6 +17,9 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class SecretEvent {
 
+    //项目编码（spring.application.name），用于标识密钥所属项目
+    private String projectCode;
+
     //秘钥
     private String secret;
 

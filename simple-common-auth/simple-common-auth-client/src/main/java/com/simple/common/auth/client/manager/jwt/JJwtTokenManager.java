@@ -5,6 +5,7 @@ import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.event.SecretEvent;
 import com.simple.common.auth.client.common.manager.token.AbsTokenManager;
 import com.simple.common.auth.client.util.JJwtUtils;
+import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.eventbus.common.service.EventBusService;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,9 @@ public class JJwtTokenManager extends AbsTokenManager {
     @Autowired
     private ClientAuthInfo clientAuthInfo;
 
+    @Autowired
+    private ApplicationProperties applicationProperties;
+
     @Override
     public String create(Map<String, Object> headers, Map<String, Object> payload) {
         return JJwtUtils.createToken(headers, payload);
@@ -51,23 +55,25 @@ public class JJwtTokenManager extends AbsTokenManager {
     }
 
     @Override
-    public void addSecret(String secret) {
+    public void addSecret(String secret, boolean broadcast) {
         AssertUtils.notEmpty(secret, "JWT密钥不能为空");
         AssertUtils.isTrue(secret.length() >= 64, "JWT密钥长度至少为64位，当前长度: " + secret.length());
 
         // 缓存到本地
         JJwtUtils.saveSecret(secret);
 
-        // 发布事件，通知所有客户端同步
-        if (!clientAuthInfo.getClient()) {
+        // 发布事件，通知所有客户端同步（仅当broadcast=true且为服务端模式时）
+        if (broadcast && !clientAuthInfo.getClient()) {
+            String projectCode = applicationProperties.getName();
             SecretEvent event = new SecretEvent();
+            event.setProjectCode(projectCode); // 设置项目编码
             event.setSecret(secret);
             event.setOperation(SecretEvent.Operation.ADD);
             event.setSecretType(SecretEvent.SecretType.JWT); // 指定为JWT密钥
             eventBusService.push(event);
-            log.info("JJWT密钥已添加并发布事件，密钥长度: {}", secret.length());
+            log.info("JJWT密钥已添加并发布事件 [{}]，密钥长度: {}", projectCode, secret.length());
         } else {
-            log.warn("EventBusService未注入，无法广播密钥更新事件");
+            log.debug("JWT密钥已加载到本地，不广播");
         }
     }
 
