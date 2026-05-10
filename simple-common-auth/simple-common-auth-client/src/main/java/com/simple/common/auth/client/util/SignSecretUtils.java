@@ -25,7 +25,6 @@ public class SignSecretUtils {
         AssertUtils.notEmpty(secret, "签名密钥不能为空");
         AssertUtils.isTrue(secret.length() >= 32, "签名密钥长度至少为32位，当前长度: " + secret.length());
         secretRef.set(secret);
-        log.info("签名密钥已更新");
     }
 
     /**

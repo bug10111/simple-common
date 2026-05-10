@@ -1,5 +1,6 @@
 package com.simple.common.auth.client.common.manager.token;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -89,55 +90,59 @@ public interface TokenManager {
     }
 
     /**
-     * 添加JWT签名密钥
+     * 添加JWT签名密钥（支持指定目标项目）
      * <p>
-     * 将新的JWT签名密钥添加到本地缓存。
-     * 此方法用于密钥轮换(Key Rotation)场景，确保新旧密钥平滑过渡。
+     * 用于多租户场景，服务端可以为指定的客户端项目添加密钥并广播。
      * </p>
-     *
-     * <h3>重要提示：</h3>
-     * <ul>
-     *   <li><strong>定期轮换密钥</strong>：建议集成方每30天轮换一次密钥，提高系统安全性</li>
-     *   <li><strong>保留旧密钥</strong>：新密钥添加后，旧密钥仍会保留一段时间以验证已签发的Token</li>
-     *   <li><strong>客户端同步</strong>：当broadcast=true时，会通过EventBus广播事件，所有客户端会同步更新密钥</li>
-     *   <li><strong>密钥强度</strong>：建议使用至少64位的强随机字符串作为密钥</li>
-     * </ul>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
-     * // 定时任务：每月轮换密钥
-     * @Scheduled(cron = "0 0 0 1 * ?") // 每月1号零点执行
-     * public void rotateJwtSecret() {
-     *     // 生成新密钥（内部委托给SecretKeyManager）
-     *     String newSecret = tokenManager.generateSecret();
-     *     
-     *     // 添加新密钥并广播到所有客户端
-     *     tokenManager.addSecret(newSecret, true);
-     *     
-     *     log.info("JWT密钥已轮换，新密钥: {}", newSecret.substring(0, 8) + "...");
-     * }
+     * // OAuth Server 为指定客户端项目添加密钥
+     * String projectCode = "xiaoyue_app"; // 目标客户端的projectCode
+     * String jwtSecret = unifiedSecretManager.getSecrets(projectCode).get("jwt");
+     * tokenManager.addSecret(jwtSecret, projectCode, true);
      * 
-     * // 服务端启动时加载密钥（不广播）
-     * public void loadJwtSecret() {
-     *     String secret = unifiedSecretManager.getSecrets(projectCode).get("jwt");
-     *     tokenManager.addSecret(secret, false); // 不广播
-     * }
+     * // 或者一次广播给多个客户端
+     * List<String> targetCodes = Arrays.asList("xiaoyue_web", "xiaoyue_app", "xiaoyue_admin");
+     * tokenManager.addSecret(jwtSecret, targetCodes, true);
+     * 
+     * // 本地加载密钥（不广播）
+     * tokenManager.addSecret(secret, null, false);
      * }</pre>
      *
-     * <h3>密钥轮换最佳实践：</h3>
-     * <ol>
-     *   <li>调用 generateSecret() 生成新密钥（内部委托给SecretKeyManager）</li>
-     *   <li>调用 addSecret(secret, true) 添加新密钥并广播</li>
-     *   <li>等待一段时间（如7天），确保所有旧Token过期</li>
-     *   <li>可选：清理过期的旧密钥</li>
-     * </ol>
-     *
-     * @param secret   JWT签名密钥，建议使用强随机字符串（至少64字符）
-     * @param broadcast 是否广播事件，true=广播到所有客户端，false=仅本地加载
-     * @throws IllegalArgumentException 当密钥为空或长度不足时抛出异常
-     * @see #generateSecret() 生成新密钥
+     * @param secret           JWT签名密钥
+     * @param targetProjectCode 目标项目编码（即client_name），用于标识该密钥属于哪个项目；传null表示当前项目
+     * @param broadcast        是否广播事件
+     * @throws IllegalArgumentException 当密钥为空、长度不足时抛出异常
      */
-    void addSecret(String secret, boolean broadcast);
+    void addSecret(String secret, String targetProjectCode, boolean broadcast);
+
+    /**
+     * 添加JWT签名密钥（支持指定多个目标项目）
+     * <p>
+     * 用于多租户场景，一次广播给多个客户端项目，避免重复发送事件。
+     * </p>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * // OAuth Server 为多个客户端项目添加密钥（一次广播）
+     * List<String> targetCodes = Arrays.asList("xiaoyue_web", "xiaoyue_app", "xiaoyue_admin");
+     * String jwtSecret = unifiedSecretManager.getSecrets(targetCodes.get(0)).get("jwt");
+     * tokenManager.addSecret(jwtSecret, targetCodes, true);
+     * }</pre>
+     *
+     * @param secret            JWT签名密钥
+     * @param targetProjectCodes 目标项目编码集合（即client_name列表）
+     * @param broadcast         是否广播事件
+     * @throws IllegalArgumentException 当密钥为空、长度不足或targetProjectCodes为空时抛出异常
+     */
+    default void addSecret(String secret, List<String> targetProjectCodes, boolean broadcast) {
+        // 默认实现：将List转换为单个projectCode调用
+        String targetCode = (targetProjectCodes != null && !targetProjectCodes.isEmpty()) 
+            ? targetProjectCodes.get(0) 
+            : null;
+        addSecret(secret, targetCode, broadcast);
+    }
 
     /**
      * 生成新的JWT签名密钥

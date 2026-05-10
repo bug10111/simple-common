@@ -12,6 +12,8 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+
 /**
  * Created with IntelliJ IDEA
  * 秘钥事件处理器
@@ -32,7 +34,6 @@ public class SecretEventHandler {
     public void onSecretChange(SecretEvent event) {
         String secret = event.getSecret();
         SecretEvent.SecretType secretType = event.getSecretType();
-        String eventProjectCode = event.getProjectCode();
         String currentProjectCode = applicationProperties.getName();
         
         // 如果没有指定密钥类型，记录警告并忽略
@@ -41,9 +42,27 @@ public class SecretEventHandler {
             return;
         }
         
-        // 如果事件中指定了projectCode，且与当前项目不匹配，则忽略
-        if (StringUtils.hasText(eventProjectCode) && !eventProjectCode.equals(currentProjectCode)) {
-            log.debug("接收到其他项目 [{}] 的密钥事件，当前项目 [{}]，忽略处理", eventProjectCode, currentProjectCode);
+        // 判断当前客户端是否应该处理该事件
+        boolean shouldProcess = false;
+        
+        // 优先使用targetProjectCodes集合（多租户场景）
+        List<String> targetProjectCodes = event.getTargetProjectCodes();
+        if (targetProjectCodes != null && !targetProjectCodes.isEmpty()) {
+            // 如果当前项目的client_name在目标集合中，则处理
+            shouldProcess = targetProjectCodes.contains(currentProjectCode);
+        } else {
+            // 兼容旧逻辑：使用单个projectCode
+            String eventProjectCode = event.getProjectCode();
+            if (StringUtils.hasText(eventProjectCode)) {
+                shouldProcess = eventProjectCode.equals(currentProjectCode);
+            } else {
+                // 如果都没有指定，默认处理（单项目场景）
+                shouldProcess = true;
+            }
+        }
+        
+        if (!shouldProcess) {
+            log.debug("接收到其他项目的密钥事件，当前项目 [{}]，忽略处理", currentProjectCode);
             return;
         }
         

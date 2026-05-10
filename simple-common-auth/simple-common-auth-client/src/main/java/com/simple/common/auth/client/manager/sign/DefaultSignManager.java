@@ -18,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * 默认签名管理器实现。
  *
@@ -119,13 +121,30 @@ public class DefaultSignManager implements SignManager {
     }
 
     /**
-     * 添加签名密钥
+     * 添加签名密钥（支持指定目标项目）
      *
-     * @param secret   签名密钥
-     * @param broadcast 是否广播事件
+     * @param secret           签名密钥
+     * @param targetProjectCode 目标项目编码
+     * @param broadcast        是否广播事件
      */
     @Override
-    public void addSecret(String secret, boolean broadcast) {
+    public void addSecret(String secret, String targetProjectCode, boolean broadcast) {
+        // 将单个projectCode转换为集合
+        List<String> targetCodes = (targetProjectCode != null && !targetProjectCode.isEmpty()) 
+            ? List.of(targetProjectCode) 
+            : null;
+        addSecret(secret, targetCodes, broadcast);
+    }
+
+    /**
+     * 添加签名密钥（支持指定多个目标项目）
+     *
+     * @param secret            签名密钥
+     * @param targetProjectCodes 目标项目编码集合
+     * @param broadcast         是否广播事件
+     */
+    @Override
+    public void addSecret(String secret, List<String> targetProjectCodes, boolean broadcast) {
         AssertUtils.notEmpty(secret, "签名密钥不能为空");
 
         // 保存到工具类
@@ -133,16 +152,17 @@ public class DefaultSignManager implements SignManager {
 
         // 发布事件，通知所有客户端同步（仅当broadcast=true且为服务端模式时）
         if (broadcast && !clientAuthInfo.getClient()) {
-            String projectCode = applicationProperties.getName();
             SecretEvent event = new SecretEvent();
-            event.setProjectCode(projectCode); // 设置项目编码
+            event.setTargetProjectCodes(targetProjectCodes); // 设置目标项目编码集合
             event.setSecret(secret);
             event.setOperation(SecretEvent.Operation.ADD);
             event.setSecretType(SecretEvent.SecretType.SIGN); // 指定为签名密钥
             eventBusService.push(event);
-            log.info("签名密钥已添加并发布事件 [{}]", projectCode);
-        } else {
-            log.debug("SIGN密钥已加载到本地，不广播");
+            
+            String targetDesc = (targetProjectCodes != null && !targetProjectCodes.isEmpty()) 
+                ? targetProjectCodes.toString() 
+                : applicationProperties.getName();
+            log.info("签名密钥已添加并发布事件，目标项目: {}", targetDesc);
         }
     }
 

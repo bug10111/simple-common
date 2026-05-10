@@ -28,7 +28,6 @@ public class JJwtUtils {
     public static void saveSecret(String secret) {
         SecretKey newKey = Keys.hmacShaKeyFor(secret.getBytes());
         keyRef.set(newKey);
-        log.info("JWT密钥已更新");
     }
 
     /**

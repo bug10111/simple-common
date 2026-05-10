@@ -5,6 +5,8 @@ import com.simple.common.eventbus.common.annotation.Event;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 /**
  * Created with IntelliJ IDEA
  * 秘钥事件
@@ -17,8 +19,11 @@ import lombok.experimental.Accessors;
 @Accessors(chain = true)
 public class SecretEvent {
 
-    //项目编码（spring.application.name），用于标识密钥所属项目
+    //项目编码（spring.application.name），用于标识密钥所属项目（单个）
     private String projectCode;
+
+    //目标项目编码集合（用于多租户场景，支持一次广播给多个客户端）
+    private List<String> targetProjectCodes;
 
     //秘钥
     private String secret;

@@ -51,11 +51,11 @@ public class JwtSecretServerInitializer implements ApplicationListener<Applicati
             String signSecret = secrets.get("sign");
             
             // 加载JWT密钥（不广播）
-            tokenManager.addSecret(jwtSecret, false);
+            tokenManager.addSecret(jwtSecret, (String) null, false);
             log.info("JWT密钥初始化成功: {}", maskSecret(jwtSecret));
             
             // 加载SIGN密钥（不广播）
-            signManager.addSecret(signSecret, false);
+            signManager.addSecret(signSecret, (String) null, false);
             log.info("SIGN密钥初始化成功: {}", maskSecret(signSecret));
             
         } catch (Exception e) {
