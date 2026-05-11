@@ -2,8 +2,10 @@ package com.simple.common.auth.server.manager;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.server.common.entity.TokenData;
 import com.simple.common.auth.server.common.manager.user.LoginUserOperationManager;
+import com.simple.common.core.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,6 +26,9 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     @Autowired
     @Qualifier("authCacheManager")
     private CacheManager cacheManager;
+
+    @Autowired
+    private AuthProperties authProperties;
 
     /**
      * 保存用户登录信息（包括用户详情、权限关联等）。
@@ -94,9 +99,13 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         if (loginRole == null || loginRole.isEmpty()) {
             return Collections.emptyMap();
         }
+        
+        String projectCode = authProperties.getProjectCode();
+        AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
+        
         Map<Object, Map<Object, Object>> result = new HashMap<>();
         for (String role : loginRole) {
-            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
+            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
             if (perms != null && !perms.isEmpty()) {
                 result.put(role, perms);
             }
@@ -127,9 +136,12 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         if (authority == null || authority.length == 0) return true;
         if (loginRole == null || loginRole.isEmpty()) return false;
 
+        String projectCode = authProperties.getProjectCode();
+        AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
+
         // 直接通过 CacheManager 查询权限（由配置决定使用 Redis 或 Local）
         for (String role : loginRole) {
-            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
+            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
             if (perms != null) {
                 for (String auth : authority) {
                     if (perms.containsKey(auth)) return true;

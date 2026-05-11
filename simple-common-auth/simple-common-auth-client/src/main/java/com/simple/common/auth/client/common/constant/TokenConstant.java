@@ -1,5 +1,7 @@
 package com.simple.common.auth.client.common.constant;
 
+import com.simple.common.core.utils.AssertUtils;
+
 /**
  * Created with IntelliJ IDEA
  *
@@ -104,12 +106,20 @@ public class TokenConstant {
     }
 
     /**
-     * 获取登录用户的权限信息key
+     * 获取登录用户的权限信息key（按项目维度）
+     * <p>
+     * 支持项目维度的权限隔离，缓存 key 格式为：login:auth:{roleKey}:{projectCode}
+     * 一个角色可能属于多个项目模块，因此 roleKey 在前便于按角色查询。
+     * </p>
      *
-     * @param key key
+     * @param roleKey     角色标识，如 "admin"、"editor"
+     * @param projectCode 项目编码，如 "xiaoyue"、"erp_system"
+     * @return 权限缓存 key
      */
-    public static String getAuthKey(String key) {
-        return TokenConstant.userAuthKey + ":" + key;
+    public static String getAuthKey(String roleKey, String projectCode) {
+        AssertUtils.notEmpty(roleKey, "角色标识不能为空");
+        AssertUtils.notEmpty(projectCode, "项目编码不能为空");
+        return TokenConstant.userAuthKey + ":" + roleKey + ":" + projectCode;
     }
 
     /**

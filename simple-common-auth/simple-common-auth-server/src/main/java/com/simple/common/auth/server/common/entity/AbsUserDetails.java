@@ -54,4 +54,5 @@ public class AbsUserDetails {
     //帐户是否可用：1-可用，0-删除用户
     @JsonIgnore
     private int isEnabled = 1;
+
 }

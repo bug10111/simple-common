@@ -3,6 +3,7 @@ package com.simple.common.auth.client.common.properties;
 import com.simple.common.auth.client.common.enums.CacheTypeEnum;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -51,6 +52,34 @@ public class AuthProperties {
 
     //缓存类型，默认使用Redis缓存
     private CacheTypeEnum cacheType = CacheTypeEnum.REDIS;
+
+    //权限缓存过期时间（单位：秒），默认24小时
+    private Integer permissionCacheExpire = 60 * 60 * 24;
+
+    //项目编码（可选），用于权限隔离。如果不配置，将自动使用 Spring Application Name
+    private String projectCode;
+
+    @Autowired(required = false)
+    private com.simple.common.core.common.properties.ApplicationProperties applicationProperties;
+
+    /**
+     * 获取项目编码
+     * <p>
+     * 优先使用配置的 projectCode，如果未配置则自动使用 Spring Application Name。
+     * </p>
+     *
+     * @return 项目编码
+     */
+    public String getProjectCode() {
+        if (projectCode != null && !projectCode.isEmpty()) {
+            return projectCode;
+        }
+        // 自动使用 Spring Application Name
+        if (applicationProperties != null && applicationProperties.getName() != null) {
+            return applicationProperties.getName();
+        }
+        throw new IllegalStateException("项目编码未配置，请在 application.yml 中配置 simple.auth.project-code 或 spring.application.name");
+    }
 
     /**
      * 获取登录失败保存的key

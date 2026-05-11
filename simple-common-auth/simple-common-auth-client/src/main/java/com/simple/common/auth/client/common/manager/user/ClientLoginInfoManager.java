@@ -5,6 +5,7 @@ import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.client.exchange.AuthCenterHttpClient;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.common.service.jwt.CoreLoginUserService;
@@ -40,6 +41,9 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     @Autowired
     private AuthCenterHttpClient authCenterHttpClient;
 
+    @Autowired
+    private AuthProperties authProperties;
+
     @Override
     public Map<Object, Object> getUserInfo(String key) {
         Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getUserInfoKey(key));
@@ -74,10 +78,13 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 cacheManager.expire(userTokenKey, times);
 
                 Map<?, ?> authMap = JsonUtils.toJsonObj(response.get(TokenConstant.userAuthName).toString(), Map.class);
+                String projectCode = authProperties.getProjectCode();
+                AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
+                
                 for (Object obj : authMap.keySet()) {
                     String roleKey = obj.toString();
                     Map<Object, Object> auth = JsonUtils.toJsonObj(authMap.get(roleKey).toString(), Map.class);
-                    String authKey = TokenConstant.getAuthKey(roleKey);
+                    String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
                     cacheManager.hashPutAll(authKey, auth);
                     cacheManager.expire(authKey, times);
                 }
@@ -90,10 +97,13 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
 
     @Override
     public Map<Object, Map<Object, Object>> getAuthorities(HashSet<String> loginRole) {
+        String projectCode = authProperties.getProjectCode();
+        AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
+        
         Map<Object, Map<Object, Object>> map = new HashMap<>();
         if (loginRole != null) {
             for (String role : loginRole) {
-                Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getAuthKey(role));
+                Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
                 if (ObjUtil.isNotEmpty(entries)) {
                     map.put(role, entries);
                 }
@@ -118,11 +128,14 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
             return true;
         }
 
+        String projectCode = authProperties.getProjectCode();
+        AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
+
         // 直接通过 CacheManager 查询权限（由配置决定使用 Redis 或 Local）
         if (loginRole != null) {
             for (String role : loginRole) {
                 for (String perm : authority) {
-                    Boolean has = cacheManager.hashHasKey(TokenConstant.getAuthKey(role), perm);
+                    Boolean has = cacheManager.hashHasKey(TokenConstant.getAuthKey(role, projectCode), perm);
                     if (Boolean.TRUE.equals(has)) {
                         return true;
                     }
