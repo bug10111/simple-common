@@ -167,7 +167,11 @@ public class DefaultLoginService implements LoginService {
         if (!loginManager.support(adapter)) {
             AssertUtils.error("登陆失败", "登录失败！ LoginService 实现校验失败！");
         }
-        return checkUserState(loginManager.login(clientDetails, adapter));
+        
+        // 执行登录流程（AbsLoginManager 会自动执行完整流程）
+        AbsUserDetails absUserDetails = loginManager.login(clientDetails, adapter);
+        
+        return checkUserState(absUserDetails);
     }
 
     /**

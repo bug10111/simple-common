@@ -4,6 +4,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.server.common.entity.ClientDetails;
+import com.simple.common.auth.server.common.enums.ClientAttribute;
 import com.simple.common.auth.server.common.manager.client.ClientManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -98,6 +99,6 @@ public class DefaultClientManager implements ClientManager {
         if (parts.length != 2) {
             throw new IllegalArgumentException("Invalid Basic auth format");
         }
-        return Map.of(com.simple.common.auth.server.common.enums.ClientAttribute.ClientId, parts[0], com.simple.common.auth.server.common.enums.ClientAttribute.ClientSecret, parts[1]);
+        return Map.of(ClientAttribute.ClientId, parts[0], ClientAttribute.ClientSecret, parts[1]);
     }
 }
