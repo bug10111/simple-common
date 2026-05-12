@@ -103,6 +103,24 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         String projectCode = authProperties.getProjectCode();
         AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
         
+        return getAuthoritiesByProjectCode(loginRole, projectCode);
+    }
+
+    /**
+     * 获取用户权限信息（支持项目维度）。
+     *
+     * @param loginRole   用户角色集合
+     * @param projectCode 项目编码（client_id）
+     * @return 角色 -> 权限 Map 的映射
+     */
+    @Override
+    public Map<Object, Map<Object, Object>> getAuthoritiesByProjectCode(HashSet<String> loginRole, String projectCode) {
+        if (loginRole == null || loginRole.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        
+        AssertUtils.notEmpty(projectCode, "项目编码不能为空");
+        
         Map<Object, Map<Object, Object>> result = new HashMap<>();
         for (String role : loginRole) {
             Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));

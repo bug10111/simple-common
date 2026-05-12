@@ -1,5 +1,6 @@
 package com.simple.common.auth.server.controller;
 
+import com.simple.common.auth.server.common.manager.user.LoginUserOperationManager;
 import com.simple.common.auth.server.common.service.user.LoginUserService;
 import com.simple.common.core.response.R;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,8 +27,11 @@ public class ApiController {
     @Autowired
     private LoginUserService loginUserService;
 
+    @Autowired
+    private LoginUserOperationManager loginUserOperationManager;
+
     @GetMapping("user")
-    @Operation(summary = "获取登录用户内省信息")
+    @Operation(summary = "获取登录用户内省信息（包含权限）")
     public R<Map<String, String>> getSaveInfo() {
         return R.ok(loginUserService.getUserInformation());
     }

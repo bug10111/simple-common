@@ -1,7 +1,5 @@
 package com.simple.common.auth.client.common.manager.user;
 
-import com.simple.common.auth.client.common.entity.login.UserTemporary;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +46,22 @@ public interface LoginInfoManager {
      * @return 权限信息Map,key为角色,value为该角色的权限Map
      */
     Map<Object, Map<Object,Object>> getAuthorities(HashSet<String> loginRole);
+
+    /**
+     * 获取登录用户权限信息（支持项目维度）
+     * <p>
+     * 根据用户角色和项目编码获取对应的权限映射关系。
+     * 用于按需加载权限场景，客户端调用时传入 projectCode。
+     * </p>
+     *
+     * @param loginRole   用户登录的角色集合
+     * @param projectCode 项目编码（client_id），如 "xiaoyue-web-client"
+     * @return 权限信息Map,key为角色,value为该角色的权限Map
+     */
+    default Map<Object, Map<Object, Object>> getAuthoritiesByProjectCode(HashSet<String> loginRole, String projectCode) {
+        // 默认实现：使用当前配置的 projectCode
+        return getAuthorities(loginRole);
+    }
 
     /**
      * 获取用户关联的所有 Token

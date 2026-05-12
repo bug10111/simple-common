@@ -77,16 +77,26 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 cacheManager.expire(userInfoKey, times);
                 cacheManager.expire(userTokenKey, times);
 
-                Map<?, ?> authMap = JsonUtils.toJsonObj(response.get(TokenConstant.userAuthName).toString(), Map.class);
+                // 从 auth-Server 返回的数据中解析并缓存权限（按 projectCode 过滤）
                 String projectCode = authProperties.getProjectCode();
                 AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
                 
-                for (Object obj : authMap.keySet()) {
-                    String roleKey = obj.toString();
-                    Map<Object, Object> auth = JsonUtils.toJsonObj(authMap.get(roleKey).toString(), Map.class);
-                    String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
-                    cacheManager.hashPutAll(authKey, auth);
-                    cacheManager.expire(authKey, times);
+                if (response.containsKey(TokenConstant.userAuthName)) {
+                    Object userAuthObj = response.get(TokenConstant.userAuthName);
+                    if (userAuthObj != null) {
+                        Map<Object, Object> authMap = JsonUtils.toJsonObj(userAuthObj.toString(), Map.class);
+                        
+                        // 缓存每个角色的权限
+                        for (Object obj : authMap.keySet()) {
+                            String roleKey = obj.toString();
+                            Map<Object, Object> auth = JsonUtils.toJsonObj(authMap.get(roleKey).toString(), Map.class);
+                            String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+                            cacheManager.hashPutAll(authKey, auth);
+                            cacheManager.expire(authKey, times);
+                        }
+                        
+                        log.info("已从 auth-Server 加载并缓存 [{}] 下 {} 个角色的权限", projectCode, authMap.size());
+                    }
                 }
             }
             return userInfo;

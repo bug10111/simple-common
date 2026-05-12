@@ -28,16 +28,21 @@ public class DefaultLoginUserService implements LoginUserService {
     public Map<String, String> getUserInformation() {
         String jti = LoginUserUtils.getUserTemporary().getJti();
         String userId = LoginUserUtils.getUserTemporary().getUserId();
-        HashSet<String> loginRole = LoginUserUtils.getUserTemporary().getLoginRole();
 
         Map<Object, Object> userInfo = loginUserOperationManager.getUserInfo(jti);
-        Map<Object, Map<Object,Object>> authorities = loginUserOperationManager.getAuthorities(loginRole);
         Set<String> userTokenUserToken = loginUserOperationManager.getUserToken(userId);
+        
+        // 获取当前用户的角色列表
+        HashSet<String> loginRole = (HashSet<String>) userInfo.get(TokenConstant.loginRole);
+        
+        // 根据当前服务的 projectCode 获取权限
+        Map<Object, Map<Object, Object>> authorities = loginUserOperationManager.getAuthorities(loginRole);
 
         Map<String, String> userInfoMap = new HashMap<>();
         userInfoMap.put(TokenConstant.userInfoName, JsonUtils.toJsonStr(userInfo));
-        userInfoMap.put(TokenConstant.userAuthName, JsonUtils.toJsonStr(authorities));
         userInfoMap.put(TokenConstant.userTokenName, JsonUtils.toJsonStr(userTokenUserToken));
+        // 添加权限信息（按 projectCode 过滤）
+        userInfoMap.put(TokenConstant.userAuthName, JsonUtils.toJsonStr(authorities));
         return userInfoMap;
     }
 }
