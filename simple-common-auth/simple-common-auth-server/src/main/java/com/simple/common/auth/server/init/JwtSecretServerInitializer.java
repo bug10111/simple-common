@@ -45,7 +45,7 @@ public class JwtSecretServerInitializer implements ApplicationListener<Applicati
 
         try {
             // 为默认项目生成双密钥
-            Map<String, String> secrets = unifiedSecretManager.getSecrets("default");
+            Map<String, String> secrets = unifiedSecretManager.getSecrets("oauth");
             
             String jwtSecret = secrets.get("jwt");
             String signSecret = secrets.get("sign");

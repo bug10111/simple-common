@@ -23,10 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * 默认登录服务实现。
@@ -107,7 +104,22 @@ public class DefaultLoginService implements LoginService {
         ClientDetails clientDetails = clientDetailsService.getClientDetails(request);
         Object audObj = payload.get(TokenConstant.audKey);
         AssertUtils.notEmpty(audObj, LoginException.RE_LOGIN_EXPIRED, "token中缺少aud信息");
-        String clientIdFromToken = audObj.toString();
+        
+        // JJWT 会将 aud 解析为 Set<String>，需要特殊处理
+        String clientIdFromToken;
+        if (audObj instanceof Set<?> audSet) {
+            // 如果是集合，取第一个元素
+            AssertUtils.notEmpty(audSet, LoginException.RE_LOGIN_EXPIRED, "aud集合为空");
+            clientIdFromToken = audSet.iterator().next().toString();
+        } else if (audObj instanceof List<?> audList) {
+            // 兼容列表类型
+            AssertUtils.notEmpty(audList, LoginException.RE_LOGIN_EXPIRED, "aud列表为空");
+            clientIdFromToken = audList.get(0).toString();
+        } else {
+            // 单个字符串
+            clientIdFromToken = audObj.toString();
+        }
+        
         AssertUtils.isTrue(Objects.equals(clientDetails.getClientId(), clientIdFromToken), LoginException.RE_LOGIN_EXPIRED, "客户端ID不匹配");
 
         // 获取内省数据
@@ -187,9 +199,6 @@ public class DefaultLoginService implements LoginService {
         AssertUtils.isTrue(absUserDetails.getIsAccountNonExpired() == 1, "帐户已过期，请联系管理员");
         AssertUtils.isTrue(absUserDetails.getIsAccountNonLocked() == 1, "帐户已被锁定，请联系管理员");
         AssertUtils.isTrue(absUserDetails.getIsCredentialsNonExpired() == 1, "密码已经过期，请联系管理员");
-        if (absUserDetails.getExtension() == null) {
-            absUserDetails.setExtension("");
-        }
         return absUserDetails;
     }
 }

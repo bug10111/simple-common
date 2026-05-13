@@ -20,7 +20,6 @@ import java.util.List;
  * 提供统一的登录流程模板，包括登录失败次数校验、具体登录逻辑执行、登录成功清理等。
  * 子类只需实现 {@link #doLogin(ClientDetails, Object)} 方法即可。
  * </p>
- *
  * <h3>使用示例：</h3>
  * <pre>{@code
  * @Component
@@ -51,19 +50,17 @@ public abstract class AbsLoginManager implements LoginManager {
      */
     protected void checkErrorNum(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
-        
+
         // 判空处理，避免无处理器时 NPE
         if (loginErrorProcesses == null || loginErrorProcesses.isEmpty()) {
             return;
         }
-        
-        loginErrorProcesses.stream()
-                .filter(p -> p.getProcess().isExecute())
-                .forEach(process -> {
-                    if (!process.checkErrorNum(clientDetails, adapter, ip)) {
-                        AssertUtils.error(LoginException.LOGIN_ERROR_NUM);
-                    }
-                });
+
+        loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> {
+            if (!process.checkErrorNum(clientDetails, adapter, ip)) {
+                AssertUtils.error(LoginException.LOGIN_ERROR_NUM);
+            }
+        });
     }
 
     /**
@@ -74,21 +71,17 @@ public abstract class AbsLoginManager implements LoginManager {
      */
     protected void loginError(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
-        
+
         // 记录失败日志，区分不同情况
         if (adapter != null) {
             log.warn("登录失败，账号凭证：[{}]，IP：[{}]", adapter.toString(), ip);
         } else {
             log.warn("登录失败，未提供账号凭证，IP：[{}]", ip);
         }
-        
+
         if (loginErrorProcesses != null && !loginErrorProcesses.isEmpty()) {
-            loginErrorProcesses.stream()
-                    .filter(p -> p.getProcess().isExecute())
-                    .forEach(process -> process.recordError(clientDetails, adapter, ip));
+            loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> process.recordError(clientDetails, adapter, ip));
         }
-        
-        AssertUtils.error("账号或者密码错误");
     }
 
     /**
@@ -99,11 +92,9 @@ public abstract class AbsLoginManager implements LoginManager {
      */
     protected void loginSuccess(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
-        
+
         if (loginErrorProcesses != null && !loginErrorProcesses.isEmpty()) {
-            loginErrorProcesses.stream()
-                    .filter(p -> p.getProcess().isExecute())
-                    .forEach(process -> process.clearError(clientDetails, adapter, ip));
+            loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> process.clearError(clientDetails, adapter, ip));
         }
     }
 

@@ -24,7 +24,7 @@ public class AccountLoginErrorProcess extends AbsLoginErrorProcess {
 
     @Override
     protected String getLoginKey(ClientDetails clientDetails, Object adapter, String ip) {
-        return adapter != null ? Base64Utils.encode(CryptoUtil.hash(CryptoUtil.HashAlgorithmType.MD5, adapter.toString().getBytes())) : IPUtils.UNKNOWN;
+        return adapter != null ? Base64Utils.encode(CryptoUtil.hash(CryptoUtil.HashAlgorithmType.SHA256, adapter.toString().getBytes())) : IPUtils.UNKNOWN;
     }
 
     @Override

@@ -78,7 +78,19 @@ public class RedisCacheManager implements CacheManager {
 
     @Override
     public void hashPutAll(String key, Map<Object, Object> map) {
-        redisTemplate.opsForHash().putAll(key, map);
+        if (map == null || map.isEmpty()) {
+            return;
+        }
+        
+        // 将所有 key 和 value 转换为 String 类型，以适配 StringRedisSerializer
+        Map<String, String> stringMap = new java.util.HashMap<>(map.size());
+        map.forEach((k, v) -> {
+            if (k != null && v != null) {
+                stringMap.put(k.toString(), v.toString());
+            }
+        });
+        
+        redisTemplate.opsForHash().putAll(key, stringMap);
     }
 
     @Override
@@ -88,6 +100,11 @@ public class RedisCacheManager implements CacheManager {
 
     @Override
     public void hashPut(String key, String field, String value) {
+        if (field == null || value == null) {
+            return;
+        }
+        
+        // 确保 value 为 String 类型，以适配 StringRedisSerializer
         redisTemplate.opsForHash().put(key, field, value);
     }
 

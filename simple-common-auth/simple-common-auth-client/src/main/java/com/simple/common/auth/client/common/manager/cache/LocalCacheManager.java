@@ -135,9 +135,23 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public void hashPutAll(String key, Map<Object, Object> map) {
+        // 防止传入 null Map
+        if (map == null || map.isEmpty()) {
+            log.warn("hashPutAll called with null or empty map for key: {}", key);
+            return;
+        }
+        
         // 原子性地获取或创建 Map，然后合并数据
         Map<Object, Object> existing = hashCache.get(key, k -> new ConcurrentHashMap<>());
-        existing.putAll(map);
+        
+        // 过滤掉 null 键值对，ConcurrentHashMap 不允许 null key/value
+        map.forEach((k, v) -> {
+            if (k != null && v != null) {
+                existing.put(k, v);
+            } else {
+                log.warn("Skipping null key or value in hashPutAll for key: {}, key={}, value={}", key, k, v);
+            }
+        });
     }
 
     @Override
@@ -148,6 +162,12 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public void hashPut(String key, String field, String value) {
+        // 防止 null 键值，ConcurrentHashMap 不允许 null key/value
+        if (field == null || value == null) {
+            log.warn("hashPut called with null field or value for key: {}, field={}, value={}", key, field, value);
+            return;
+        }
+        
         // 原子性地获取或创建 Map，然后 put
         Map<Object, Object> map = hashCache.get(key, k -> new ConcurrentHashMap<>());
         map.put(field, value);

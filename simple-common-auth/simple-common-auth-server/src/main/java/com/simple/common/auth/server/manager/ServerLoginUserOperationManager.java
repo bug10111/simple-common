@@ -2,6 +2,7 @@ package com.simple.common.auth.server.manager;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.manager.user.LoginInfoManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.server.common.entity.TokenData;
 import com.simple.common.auth.server.common.manager.user.LoginUserOperationManager;
@@ -20,7 +21,7 @@ import java.util.concurrent.TimeUnit;
  * @author qty
  */
 @Slf4j
-@Component
+@Component(LoginInfoManager.server_manager_name)
 public class ServerLoginUserOperationManager implements LoginUserOperationManager {
 
     @Autowired

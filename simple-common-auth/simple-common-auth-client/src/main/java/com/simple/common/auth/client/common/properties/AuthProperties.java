@@ -1,6 +1,7 @@
 package com.simple.common.auth.client.common.properties;
 
 import com.simple.common.auth.client.common.enums.CacheTypeEnum;
+import jakarta.annotation.PostConstruct;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -66,6 +67,7 @@ public class AuthProperties {
      *
      * @return 项目编码（即 client_id）
      */
+    @PostConstruct
     public String getProjectCode() {
         if (projectCode == null || projectCode.isEmpty()) {
             throw new IllegalStateException("项目编码未配置，请在 application.yml 中配置 simple.auth.project-code（当前服务所属的客户端标识）");

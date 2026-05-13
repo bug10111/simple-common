@@ -52,7 +52,7 @@ public abstract class AbsClientAuthConfig {
         ClientAuthInfo clientAuthInfo = new ClientAuthInfo();
         configure(clientAuthInfo);
         clientAuthInfo.setDocument(produce);
-        clientAuthInfo.addScope("all",applicationProperties.getName());
+        clientAuthInfo.addScope("ALL",applicationProperties.getName());
 
         if (!produce.equals("produce")) {
             clientAuthInfo
