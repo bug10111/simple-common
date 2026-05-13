@@ -86,7 +86,14 @@ public class RedisCacheManager implements CacheManager {
         Map<String, String> stringMap = new java.util.HashMap<>(map.size());
         map.forEach((k, v) -> {
             if (k != null && v != null) {
-                stringMap.put(k.toString(), v.toString());
+                String valueStr;
+                // 对于集合类型，使用 JSON 序列化，保持数据结构
+                if (v instanceof java.util.Collection || v instanceof java.util.Map) {
+                    valueStr = com.simple.common.core.utils.JsonUtils.toJsonStr(v);
+                } else {
+                    valueStr = v.toString();
+                }
+                stringMap.put(k.toString(), valueStr);
             }
         });
         

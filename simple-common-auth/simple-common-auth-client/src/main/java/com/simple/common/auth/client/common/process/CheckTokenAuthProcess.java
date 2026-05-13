@@ -14,6 +14,7 @@ import com.simple.common.auth.client.util.LoginInfoManagerUtils;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.common.enums.process.DefaultKindProcess;
 import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.core.utils.BeanUtils;
 import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.core.utils.SignUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,8 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Token 合法性校验处理器。
@@ -60,7 +60,6 @@ public class CheckTokenAuthProcess implements AuthProcess {
 
     @Override
     public void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr) {
-        // 检查内部传递头（服务间透传用户信息）
         String encoded = request.getHeader(TokenConstant.userHead);
         String sign = request.getHeader(TokenConstant.userSignHead);
         String key = signManager.getKey();
@@ -76,7 +75,6 @@ public class CheckTokenAuthProcess implements AuthProcess {
             }
         }
 
-        // 正常 token 校验
         Map<String, Object> payload = tokenManager.check(token, false);
         LoginInfoManager loginInfoManager;
         if (clientAuthInfo.getClient()) {
@@ -89,25 +87,46 @@ public class CheckTokenAuthProcess implements AuthProcess {
         Map<Object, Object> userInfo = loginInfoManager.getUserInfo(payload.get(TokenConstant.jtiKey).toString());
         AssertUtils.notEmpty(userInfo, LoginException.LOGIN_EXPIRED);
 
-        UserTemporary userTemporary = new UserTemporary();
-        userTemporary.setUserId((String) userInfo.get(TokenConstant.userIdKey));
-        userTemporary.setNickname((String) userInfo.get(TokenConstant.nicknameKey));
-        userTemporary.setLoginKey((String) userInfo.get(TokenConstant.loginKey));
-        userTemporary.setJti((String) payload.get(TokenConstant.jtiKey));
+        UserTemporary userTemporary = BeanUtils.fillBeanWithMap(userInfo, UserTemporary.class);
+        userTemporary.setJti(payload.get(TokenConstant.jtiKey).toString());
         userTemporary.setPath(path);
-        userTemporary.setClientId((String) userInfo.get(TokenConstant.clientIdKey));
-        userTemporary.setClientName((String) userInfo.get(TokenConstant.clientNameKey));
-        userTemporary.setAppNames((String) userInfo.get(TokenConstant.appNamesKey));
-        userTemporary.setWxAppId((String) userInfo.get(TokenConstant.wxAppIdKey));
-        userTemporary.setScopes(JsonUtils.toList(userInfo.get(TokenConstant.scopesKey).toString(), String.class));
-        userTemporary.setLoginRole(JsonUtils.toList(userInfo.get(TokenConstant.loginRole).toString(), String.class));
-        userTemporary.setExtension(userInfo.get(TokenConstant.extensionKey));
-        // 解析数据权限
+
+        if (ObjUtil.isNotEmpty(userInfo.get(TokenConstant.scopesKey))) {
+            Object scopesObj = userInfo.get(TokenConstant.scopesKey);
+            List<String> scopes;
+            
+            if (scopesObj instanceof List) {
+                // 本地缓存或直接对象：已经是 List
+                scopes = (List<String>) scopesObj;
+            } else {
+                // Redis 缓存：JSON 字符串格式 ["ALL"]
+                String scopesStr = scopesObj.toString();
+                scopes = JsonUtils.toList(scopesStr, String.class);
+            }
+            userTemporary.setScopes(scopes);
+        }
+
+        if (ObjUtil.isNotEmpty(userInfo.get(TokenConstant.loginRole))) {
+            Object loginRoleObj = userInfo.get(TokenConstant.loginRole);
+            List<String> loginRole;
+            
+            if (loginRoleObj instanceof Collection) {
+                // 本地缓存或直接对象：已经是集合
+                loginRole = new ArrayList<>((Collection<String>) loginRoleObj);
+            } else {
+                // Redis 缓存：JSON 字符串格式 ["admin","user"]
+                String loginRoleStr = loginRoleObj.toString();
+                loginRole = JsonUtils.toList(loginRoleStr, String.class);
+            }
+            userTemporary.setLoginRole(loginRole);
+        }
+
         Object dataPermissionObj = userInfo.get(TokenConstant.dataPermissionKey);
         if (dataPermissionObj != null) {
             DataPermission dataPermission = JsonUtils.toJsonObj(dataPermissionObj.toString(), DataPermission.class);
             userTemporary.setDataPermission(dataPermission);
         }
+
         LoginUserUtils.add(userTemporary);
     }
 }

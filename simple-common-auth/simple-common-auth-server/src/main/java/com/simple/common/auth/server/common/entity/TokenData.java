@@ -3,6 +3,7 @@ package com.simple.common.auth.server.common.entity;
 import cn.hutool.core.date.DateField;
 import cn.hutool.core.date.DateUtil;
 import com.simple.common.auth.client.common.constant.TokenConstant;
+import com.simple.common.core.utils.BeanUtils;
 import com.simple.common.core.utils.IdUtils;
 import com.simple.common.core.utils.JsonUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -43,33 +44,37 @@ public class TokenData {
         String jti = IdUtils.getFastUUID();
         String ati = IdUtils.getFastUUID();
 
-        //构建生成accessToken的数据
-        accessTokenMap.put(TokenConstant.jtiKey, jti);
-        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, clientDetails.getAccessTokenValidity()).getTime());
-        accessTokenMap.put(TokenConstant.audKey, clientDetails.getClientId());
+        TokenPayload accessTokenPayload = new TokenPayload().setJti(jti)
+                                                            .setExp(DateUtil.date().offset(DateField.SECOND, clientDetails.getAccessTokenValidity()).getTime())
+                                                            .setAud(clientDetails.getClientId());
+        accessTokenMap = BeanUtils.toMap(accessTokenPayload);
 
-        //构建生成refreshToken的数据
-        refreshTokenMap.put(TokenConstant.atiKey, ati);
-        refreshTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, clientDetails.getRefreshTokenValidity()).getTime());
-        refreshTokenMap.put(TokenConstant.jtiKey, jti);
-        refreshTokenMap.put(TokenConstant.audKey, clientDetails.getClientId());
+        TokenPayload refreshTokenPayload = new TokenPayload().setAti(ati)
+                                                             .setExp(DateUtil.date().offset(DateField.SECOND, clientDetails.getRefreshTokenValidity()).getTime())
+                                                             .setJti(jti)
+                                                             .setAud(clientDetails.getClientId());
+        refreshTokenMap = BeanUtils.toMap(refreshTokenPayload);
 
-        //构建需要内省的数据
+        TokenPayload saveInfoPayload = new TokenPayload().setClientId(clientDetails.getClientId())
+                                                         .setClientName(clientDetails.getClientName())
+                                                         .setWxAppId(clientDetails.getWxAppId())
+                                                         .setAppNames(clientDetails.getResourceIds())
+                                                         .setScopes(clientDetails.getScope())
+                                                         .setLoginRole(absUserDetails.getLoginRole())
+                                                         .setUserId(absUserDetails.getUserId())
+                                                         .setNickname(absUserDetails.getNickname())
+                                                         .setLoginKey(absUserDetails.getLoginKey())
+                                                         .setRet(clientDetails.getRefreshTokenValidity())
+                                                         .setEt(clientDetails.getAccessTokenValidity())
+                                                         .setExtension(JsonUtils.toJsonStr(absUserDetails.getExtension()))
+                                                         .setDataPermission(JsonUtils.toJsonStr(absUserDetails.getDataPermission()));
+
+        Map<String, Object> payloadMap = BeanUtils.toMap(saveInfoPayload);
+        for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
+            saveInfoMap.put(entry.getKey(), entry.getValue());
+        }
         saveInfoMap.put(jti, "jti");
         saveInfoMap.put(ati, "ati");
-        saveInfoMap.put(TokenConstant.clientIdKey, clientDetails.getClientId());
-        saveInfoMap.put(TokenConstant.clientNameKey, clientDetails.getClientName());
-        saveInfoMap.put(TokenConstant.wxAppIdKey, clientDetails.getWxAppId());
-        saveInfoMap.put(TokenConstant.appNamesKey, clientDetails.getResourceIds());
-        saveInfoMap.put(TokenConstant.scopesKey, JsonUtils.toJsonStr(clientDetails.getScope()));
-        saveInfoMap.put(TokenConstant.loginRole, JsonUtils.toJsonStr(absUserDetails.getLoginRole()));
-        saveInfoMap.put(TokenConstant.userIdKey, absUserDetails.getUserId());
-        saveInfoMap.put(TokenConstant.nicknameKey, absUserDetails.getNickname());
-        saveInfoMap.put(TokenConstant.loginKey, absUserDetails.getLoginKey());
-        saveInfoMap.put(TokenConstant.rEtKey, clientDetails.getRefreshTokenValidity());
-        saveInfoMap.put(TokenConstant.etKey, clientDetails.getAccessTokenValidity());
-        saveInfoMap.put(TokenConstant.extensionKey, JsonUtils.toJsonStr(absUserDetails.getExtension()));
-        saveInfoMap.put(TokenConstant.dataPermissionKey, JsonUtils.toJsonStr(absUserDetails.getDataPermission()));
     }
 
     /**
@@ -87,14 +92,16 @@ public class TokenData {
         String jti = IdUtils.getFastUUID();
         String ati = IdUtils.getFastUUID();
 
-        accessTokenMap.put(TokenConstant.jtiKey, jti);
-        accessTokenMap.put(TokenConstant.expKey, DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.etKey).toString())).getTime());
-        accessTokenMap.put(TokenConstant.audKey, saveInfoMap.get(TokenConstant.clientIdKey));
+        TokenPayload accessTokenPayload = new TokenPayload().setJti(jti)
+                                                            .setExp(DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.etKey).toString())).getTime())
+                                                            .setAud(saveInfoMap.get(TokenConstant.clientIdKey).toString());
+        accessTokenMap = BeanUtils.toMap(accessTokenPayload);
 
-        refreshTokenMap.put(TokenConstant.atiKey, ati);
-        refreshTokenMap.put(TokenConstant.expKey,DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.rEtKey).toString())).getTime());
-        refreshTokenMap.put(TokenConstant.jtiKey, jti);
-        refreshTokenMap.put(TokenConstant.audKey, saveInfoMap.get(TokenConstant.clientIdKey));
+        TokenPayload refreshTokenPayload = new TokenPayload().setAti(ati)
+                                                             .setExp(DateUtil.date().offset(DateField.SECOND, Integer.parseInt(saveInfoMap.get(TokenConstant.rEtKey).toString())).getTime())
+                                                             .setJti(jti)
+                                                             .setAud(saveInfoMap.get(TokenConstant.clientIdKey).toString());
+        refreshTokenMap = BeanUtils.toMap(refreshTokenPayload);
 
         saveInfoMap.put(jti, "jti");
         saveInfoMap.put(ati, "ati");

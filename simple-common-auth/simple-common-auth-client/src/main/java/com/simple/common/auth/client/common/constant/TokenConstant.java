@@ -3,100 +3,166 @@ package com.simple.common.auth.client.common.constant;
 import com.simple.common.core.utils.AssertUtils;
 
 /**
- * Created with IntelliJ IDEA
+ * Token相关常量定义
+ * 包含JWT字段key、缓存key、请求头名称等常量
  *
  * @author qty
  */
 public class TokenConstant {
 
-    //内部传递头
+    /**
+     * 用户上下文内部传递头
+     */
     public static final String userHead = "X-User-Context";
+
+    /**
+     * 用户签名头
+     */
     public static final String userSignHead = "X-User-Signature";
 
+    /**
+     * HTTP授权头
+     */
     public static final String Authorization = "Authorization";
 
-    //token前缀key
+    /**
+     * Token类型前缀key
+     */
     public static final String bearerKey = "type";
 
-    //token前缀
+    /**
+     * Bearer Token前缀
+     */
     public static final String bearer = "Bearer ";
 
-    //client token前缀
+    /**
+     * Basic Auth前缀
+     */
     public static final String basic = "Basic ";
 
-    //客户端id
+    /**
+     * 客户端ID key
+     */
     public static final String clientIdKey = "clientId";
 
-    //客户端名称
+    /**
+     * 客户端名称 key
+     */
     public static final String clientNameKey = "clientName";
 
-    //微信appid
+    /**
+     * 微信小程序AppID key
+     */
     public static final String wxAppIdKey = "wxAppId";
 
-    //可访问的服务名称
+    /**
+     * 可访问的服务名称 key
+     */
     public static final String appNamesKey = "appNames";
 
-    //授权范围
+    /**
+     * 授权范围 key
+     */
     public static final String scopesKey = "scopes";
 
-    //登录角色
+    /**
+     * 登录角色 key
+     */
     public static final String loginRole = "loginRole";
 
-    //token key
+    /**
+     * Access Token key
+     */
     public static final String accessTokenKey = "accessToken";
 
-    //reToken key
+    /**
+     * Refresh Token key
+     */
     public static final String refreshTokenKey = "refreshToken";
 
-    //登录信息
+    /**
+     * 登录信息缓存前缀
+     */
     public static final String loginInfoKey = "login:info";
 
-    //权限信息
+    /**
+     * 用户权限缓存前缀
+     */
     public static final String userAuthKey = "login:auth";
 
-    //用户权限关联
+    /**
+     * 用户Token关联缓存前缀
+     */
     public static final String userKey = "login:id";
 
-    //登录用户id
+    /**
+     * 用户ID key
+     */
     public static final String userIdKey = "userId";
 
-    //登录页用户名称
+    /**
+     * 用户昵称 key
+     */
     public static final String nicknameKey = "nickname";
 
-    //登录用户id
+    /**
+     * 登录标识 key
+     */
     public static final String loginKey = "loginKey";
 
-    //扩展信息
+    /**
+     * 扩展信息 key
+     */
     public static final String extensionKey = "extension";
 
-    //数据权限
+    /**
+     * 数据权限 key
+     */
     public static final String dataPermissionKey = "dataPermission";
 
-    //Token过期时间
+    /**
+     * Token过期时间 key
+     */
     public static final String expKey = "exp";
 
-    //接收者,这里用作存目标客户端
+    /**
+     * 受众(Audience) key，用于存储目标客户端
+     */
     public static final String audKey = "aud";
 
-    //token有效时长
+    /**
+     * Access Token有效时长 key
+     */
     public static final String etKey = "et";
 
-    //AccessToken唯一标志
+    /**
+     * Access Token唯一标识 key
+     */
     public static final String jtiKey = "jti";
 
-    //RefreshToken有效时长
+    /**
+     * Refresh Token有效时长 key
+     */
     public static final String rEtKey = "ret";
 
-    //RefreshToken唯一标志
+    /**
+     * Refresh Token唯一标识 key
+     */
     public static final String atiKey = "ati";
 
-    //用户详情（远程同步用）
+    /**
+     * 用户详情（远程同步用）
+     */
     public static final String userInfoName = "userInfo";
 
-    //用户权限（远程同步用）
+    /**
+     * 用户权限（远程同步用）
+     */
     public static final String userAuthName = "userAuth";
 
-    //用户权限关联（远程同步用）
+    /**
+     * 用户权限关联（远程同步用）
+     */
     public static final String userTokenName = "userToken";
 
     /**
