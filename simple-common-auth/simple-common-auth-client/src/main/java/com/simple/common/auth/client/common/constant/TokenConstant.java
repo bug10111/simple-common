@@ -69,6 +69,9 @@ public class TokenConstant {
     //扩展信息
     public static final String extensionKey = "extension";
 
+    //数据权限
+    public static final String dataPermissionKey = "dataPermission";
+
     //Token过期时间
     public static final String expKey = "exp";
 

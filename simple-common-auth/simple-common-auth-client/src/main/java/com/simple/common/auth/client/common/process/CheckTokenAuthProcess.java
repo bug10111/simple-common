@@ -3,6 +3,7 @@ package com.simple.common.auth.client.common.process;
 import cn.hutool.core.util.ObjUtil;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
+import com.simple.common.auth.client.common.entity.login.DataPermission;
 import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.enums.process.AuthInterceptorKindProcess;
@@ -101,6 +102,12 @@ public class CheckTokenAuthProcess implements AuthProcess {
         userTemporary.setScopes(JsonUtils.toList(userInfo.get(TokenConstant.scopesKey).toString(), String.class));
         userTemporary.setLoginRole(JsonUtils.toList(userInfo.get(TokenConstant.loginRole).toString(), String.class));
         userTemporary.setExtension(userInfo.get(TokenConstant.extensionKey));
+        // 解析数据权限
+        Object dataPermissionObj = userInfo.get(TokenConstant.dataPermissionKey);
+        if (dataPermissionObj != null) {
+            DataPermission dataPermission = JsonUtils.toJsonObj(dataPermissionObj.toString(), DataPermission.class);
+            userTemporary.setDataPermission(dataPermission);
+        }
         LoginUserUtils.add(userTemporary);
     }
 }

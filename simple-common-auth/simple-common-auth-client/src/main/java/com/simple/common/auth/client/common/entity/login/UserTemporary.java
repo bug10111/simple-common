@@ -57,6 +57,9 @@ public class UserTemporary {
     //扩展信息
     private Object extension;
 
+    //数据权限
+    private DataPermission dataPermission;
+
     public void setScopes(List<String> scopes) {
         this.scopes = new HashSet<>(scopes);
     }

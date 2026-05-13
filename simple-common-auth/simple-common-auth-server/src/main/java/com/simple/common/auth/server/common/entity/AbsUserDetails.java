@@ -3,6 +3,7 @@ package com.simple.common.auth.server.common.entity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.simple.common.auth.client.common.entity.login.DataPermission;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -38,6 +39,9 @@ public class AbsUserDetails {
 
     //扩展信息,登录后直接返回给前端
     private Map<String, String> extensionResponse;
+
+    //数据权限（用户所有角色合并后的数据权限）
+    private DataPermission dataPermission;
 
     //帐户是否过期：1-未过期，0-已过期
     @JsonIgnore

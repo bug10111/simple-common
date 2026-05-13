@@ -69,6 +69,7 @@ public class TokenData {
         saveInfoMap.put(TokenConstant.rEtKey, clientDetails.getRefreshTokenValidity());
         saveInfoMap.put(TokenConstant.etKey, clientDetails.getAccessTokenValidity());
         saveInfoMap.put(TokenConstant.extensionKey, JsonUtils.toJsonStr(absUserDetails.getExtension()));
+        saveInfoMap.put(TokenConstant.dataPermissionKey, JsonUtils.toJsonStr(absUserDetails.getDataPermission()));
     }
 
     /**
