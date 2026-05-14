@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.core.toolkit.sql.SqlInjectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.simple.common.core.utils.AssertUtils;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
@@ -28,12 +29,15 @@ import java.util.List;
 public class PageBase {
 
     @Schema(description = "当前页")
-    private long current = 1;
+    @NotNull(message = "当前页不能为空")
+    private Integer current = 1;
 
     @Schema(description = "每页显示条数，<0的时候默认查询所有")
-    private long size = 10;
+    @NotNull(message = "每页显示条数不能为空")
+    private Integer size = 10;
 
     @Schema(description = "排序，格式为字段名-true/false，true代表正序，false代表倒序，字段名为驼峰")
+    @NotNull(message = "排序不能为空")
     private String[] sort = new String[] {};
 
     /**
@@ -66,23 +70,30 @@ public class PageBase {
      * @return 配置好分页参数和排序规则的 Page 对象
      */
     private <T> Page<T> createPage() {
-        Page<T> tPage = new Page<>(this.current, this.size);
-        List<OrderItem> orders = Arrays.stream(sort).map(s -> {
-            String[] split = s.split("-");
-            AssertUtils.isTrue(split.length == 2, "排序字段格式必须为：字段名-true/false");
-            OrderItem item = new OrderItem();
-            if (SqlInjectionUtils.check(split[0])) {
-                log.error("动态排序失败！检测到SQL注入语句 [{}]", split[0]);
-                AssertUtils.error("请求错误");
-            } else {
-                item.setColumn(StrUtil.toUnderlineCase(StrUtil.replace(split[0], " ", "")));
-            }
-            item.setAsc(Boolean.parseBoolean(split[1]));
+        current = current == null ? 1 : current;
+        size = size == null ? 10 : size;
+        AssertUtils.isTrue(size <= 1000, "每页显示条数不能超过1000条");
 
-            return item;
-        }).toList();
+        Page<T> tPage = new Page<>(current, size);
+        if (sort != null && sort.length > 0) {
+            List<OrderItem> orders = Arrays.stream(sort).map(s -> {
+                String[] split = s.split("-");
+                AssertUtils.isTrue(split.length == 2, "排序字段格式必须为：字段名-true/false");
+                OrderItem item = new OrderItem();
+                if (SqlInjectionUtils.check(split[0])) {
+                    log.error("动态排序失败！检测到SQL注入语句 [{}]", split[0]);
+                    AssertUtils.error("请求错误");
+                } else {
+                    item.setColumn(StrUtil.toUnderlineCase(StrUtil.replace(split[0], " ", "")));
+                }
+                item.setAsc(Boolean.parseBoolean(split[1]));
 
-        tPage.setOrders(orders);
+                return item;
+            }).toList();
+
+            tPage.setOrders(orders);
+        }
+
         return tPage;
     }
 }
