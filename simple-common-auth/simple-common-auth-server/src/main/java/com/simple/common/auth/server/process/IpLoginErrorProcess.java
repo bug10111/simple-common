@@ -24,11 +24,6 @@ public class IpLoginErrorProcess extends AbsLoginErrorProcess {
     }
 
     @Override
-    protected String getKeyPrefix() {
-        return authProperties.getLoginIpErrorKey();
-    }
-
-    @Override
     public LoginErrorKindProcess getProcess() {
         return LoginErrorKindProcess.IP_ERROR;
     }

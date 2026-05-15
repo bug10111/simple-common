@@ -1,7 +1,5 @@
 package com.simple.common.core.common.enums.process;
 
-import com.simple.common.core.common.service.process.BasProcessService;
-
 /**
  * 责任链处理器类型定义接口。
  * <p>
@@ -47,6 +45,10 @@ public interface DefaultKindProcess {
      * 说明
      */
     String getMsg();
+
+    default String getCode(){
+        return getMsg();
+    }
 
 
 }

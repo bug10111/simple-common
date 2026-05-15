@@ -47,9 +47,6 @@ public class AuthProperties {
     //登陆失败计次的单位时间
     private int loginErrorTime = 60 * 60 * 24;
 
-    //IP登录失败key前缀
-    private String loginIpErrorKey = "login:ip:error:";
-
     //缓存类型，默认使用Redis缓存
     private CacheTypeEnum cacheType = CacheTypeEnum.REDIS;
 
@@ -79,13 +76,7 @@ public class AuthProperties {
      * 获取登录失败保存的key
      */
     public String getKey(String key) {
-        return loginErrorKey + key;
+        return loginErrorKey + key + ":" ;
     }
 
-    /**
-     * 获取IP登录失败保存的key
-     */
-    public String getIpErrorKey(String ip) {
-        return loginIpErrorKey + ip;
-    }
 }

@@ -14,8 +14,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum LoginErrorKindProcess implements DefaultKindProcess {
 
-    ACCOUNT_ERROR("基于账号的登录失败计数", true, 1),
-    IP_ERROR("基于IP的登录失败计数", true, 2);
+    IP_ERROR("基于IP的登录失败计数", true, 1);
 
     private final String msg;
     private final boolean execute;
@@ -34,5 +33,10 @@ public enum LoginErrorKindProcess implements DefaultKindProcess {
     @Override
     public String getMsg() {
         return this.msg;
+    }
+
+    @Override
+    public String getCode(){
+        return name();
     }
 }

@@ -1,9 +1,9 @@
 package com.simple.common.auth.server.common.process;
 
-import com.simple.common.auth.server.common.entity.ClientDetails;
-import com.simple.common.auth.client.common.properties.AuthProperties;
-import com.simple.common.auth.server.common.enums.process.LoginErrorKindProcess;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.server.common.entity.ClientDetails;
+import com.simple.common.core.common.enums.process.DefaultKindProcess;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -38,7 +38,10 @@ public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
      *
      * @return 前缀
      */
-    protected abstract String getKeyPrefix();
+    protected  String getKeyPrefix(){
+        DefaultKindProcess process = getProcess();
+        return authProperties.getKey(process.getCode());
+    }
 
     /**
      * 检查登录失败次数是否超限。

@@ -16,7 +16,6 @@ import com.simple.common.core.common.service.process.BasProcessService;
  * 错误处理器的执行顺序通过 {@link com.simple.common.auth.server.common.enums.process.LoginErrorKindProcess}
  * 枚举定义，框架默认提供以下处理器（按执行顺序）：</p>
  * <ol>
- *   <li>{@link com.simple.common.auth.server.process.AccountLoginErrorProcess} - 账号错误次数限制</li>
  *   <li>{@link com.simple.common.auth.server.process.IpLoginErrorProcess} - IP错误次数限制</li>
  * </ol>
  *
