@@ -35,7 +35,6 @@ public enum LoginErrorKindProcess implements DefaultKindProcess {
         return this.msg;
     }
 
-    @Override
     public String getCode(){
         return name();
     }
