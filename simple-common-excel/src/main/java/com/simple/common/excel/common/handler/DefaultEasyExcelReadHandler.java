@@ -74,8 +74,8 @@ public abstract class DefaultEasyExcelReadHandler<T> implements ReadListener<T> 
         // 如果是某一个单元格的转换异常 能获取到具体行号
         // 如果要获取头的信息 配合invokeHeadMap使用
         if (exception instanceof ExcelDataConvertException excelDataConvertException) {
-            AssertUtils.errorParams("第{}行，第{}列解析异常，数据为:{}", excelDataConvertException.getRowIndex(), excelDataConvertException.getColumnIndex(),
-                                    excelDataConvertException.getCellData());
+            AssertUtils.error("第{}行，第{}列解析异常，数据为:{}", excelDataConvertException.getRowIndex(), excelDataConvertException.getColumnIndex(),
+                              excelDataConvertException.getCellData());
         }
     }
 

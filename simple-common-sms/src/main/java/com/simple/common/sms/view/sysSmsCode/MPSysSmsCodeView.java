@@ -67,7 +67,7 @@ class MPSysSmsCodeView implements SysSmsCodeView {
     @Override
     public SysSmsCode findById(String id) {
         SysSmsCode sysSmsCode = sysSmsCodeRepository.selectById(id);
-        AssertUtils.notEmptyParams(sysSmsCode, "主键为{}的短信验证码不存在", id);
+        AssertUtils.notEmpty(sysSmsCode, "主键为{}的短信验证码不存在", id);
         return sysSmsCode;
     }
 

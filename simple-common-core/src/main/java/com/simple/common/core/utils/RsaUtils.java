@@ -65,7 +65,7 @@ public class RsaUtils {
      */
     public static RSA getRsa(String name) {
         RSA rsa = map.get(name);
-        AssertUtils.isTrueParams(rsa != null, "[{}]RSA密钥对未加载", name);
+        AssertUtils.isTrue(rsa != null, "[{}]RSA密钥对未加载", name);
         return rsa;
     }
 

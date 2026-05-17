@@ -46,7 +46,7 @@ public class TimeIntervalBeforeSmsProcess implements CheckSmsProcess {
             Date end = DateUtil.date();
 
             long between = DateUtil.between(begin, end, DateUnit.MS, true);
-            AssertUtils.isTrueParams(between > smsProperties.getTimeInter(), "验证码发送频繁，请{}秒后再试", smsProperties.getTimeInter());
+            AssertUtils.isTrue(between > smsProperties.getTimeInter(), "验证码发送频繁，请{}秒后再试", smsProperties.getTimeInter());
         }
     }
 }

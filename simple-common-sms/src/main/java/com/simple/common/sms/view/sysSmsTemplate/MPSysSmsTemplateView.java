@@ -52,14 +52,14 @@ class MPSysSmsTemplateView implements SysSmsTemplateView {
     @Override
     public SysSmsTemplate findById(String id) {
         SysSmsTemplate sysSmsTemplate = sysSmsTemplateRepository.selectById(id);
-        AssertUtils.notEmptyParams(sysSmsTemplate, "主键为{}的短信模板不存在", id);
+        AssertUtils.notEmpty(sysSmsTemplate, "主键为{}的短信模板不存在", id);
         return sysSmsTemplate;
     }
 
     @Override
     public SysSmsTemplate findByType(String sendType) {
         SysSmsTemplate sysSmsTemplate = sysSmsTemplateRepository.selectOne(new LambdaQueryWrapper<SysSmsTemplate>().eq(SysSmsTemplate::getSendType, sendType));
-        AssertUtils.notEmptyParams(sysSmsTemplate, "类型为{}的短信模板不存在", sendType);
+        AssertUtils.notEmpty(sysSmsTemplate, "类型为{}的短信模板不存在", sendType);
         return sysSmsTemplate;
     }
 

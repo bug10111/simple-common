@@ -38,13 +38,13 @@ public class FileUtils extends FileUtil {
         if (file.exists()) {
             // 如果文件已存在，则删除
             if (!file.delete()) {
-                AssertUtils.errorParams("无法删除的文件[{}]", fileName);
+                AssertUtils.error("无法删除的文件[{}]", fileName);
             }
         }
 
         // 创建新文件
         if (!file.createNewFile()) {
-            AssertUtils.errorParams("无法创建的文件[{}]", fileName);
+            AssertUtils.error("无法创建的文件[{}]", fileName);
         }
         return file;
     }
