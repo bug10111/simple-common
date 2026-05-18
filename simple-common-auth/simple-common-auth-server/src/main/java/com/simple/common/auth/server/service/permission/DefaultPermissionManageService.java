@@ -143,10 +143,8 @@ public class DefaultPermissionManageService implements PermissionManageService {
 
         String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
 
-        // 批量删除指定权限
-        for (String permissionKey : permissionKeys) {
-            cacheManager.hashDelete(authKey, permissionKey);
-        }
+        // 批量删除指定权限（使用可变参数一次删除，消除多次网络IO）
+        cacheManager.hashDelete(authKey, permissionKeys.toArray(new String[0]));
 
         // 发布事件（只发送被删除的权限列表）
         Map<String, String> deletedPerms = new HashMap<>();
