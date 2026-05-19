@@ -24,7 +24,7 @@ public class AuthProperties {
     private String serverUrl = "http://localhost:8000";
 
     //客户端获取服务端用户信息的超时时间
-    private Long timeOut = 1000 * 10L;
+    private Integer timeOut = 1000 * 10;
 
     //解密是否校验有效时间
     private Boolean decryptCheckValidityPeriod = false;
