@@ -55,6 +55,19 @@ public class DefaultPermissionManageService implements PermissionManageService {
      */
     @Override
     public void addPermissions(String projectCode, String roleKey, Map<String, String> permissions) {
+        addPermissions(projectCode, roleKey, permissions, true);
+    }
+
+    /**
+     * 新增权限（按项目维度，支持控制是否发布事件）
+     *
+     * @param projectCode  项目编码
+     * @param roleKey      角色标识
+     * @param permissions  要添加的权限配置
+     * @param publishEvent 是否发布权限变更事件广播到所有客户端
+     */
+    @Override
+    public void addPermissions(String projectCode, String roleKey, Map<String, String> permissions, boolean publishEvent) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
         AssertUtils.notNull(permissions, "权限配置不能为空");
@@ -68,10 +81,13 @@ public class DefaultPermissionManageService implements PermissionManageService {
         // 2. 设置过期时间（从配置文件读取，默认24小时）
         cacheManager.expire(authKey, authProperties.getPermissionCacheExpire());
 
-        // 3. 发布事件（只发送新增的权限，不查询全量）
-        publishPermissionEvent(projectCode, roleKey, permissions, PermissionChangeTypeEnum.ADD);
-
-        log.info("项目 [{}] 角色 [{}] 新增了 {} 个权限，事件已发布", projectCode, roleKey, permissions.size());
+        // 3. 根据参数决定是否发布事件
+        if (publishEvent) {
+            publishPermissionEvent(projectCode, roleKey, permissions, PermissionChangeTypeEnum.ADD);
+            log.info("项目 [{}] 角色 [{}] 新增了 {} 个权限，事件已发布", projectCode, roleKey, permissions.size());
+        } else {
+            log.debug("项目 [{}] 角色 [{}] 新增了 {} 个权限（未发布事件）", projectCode, roleKey, permissions.size());
+        }
     }
 
     /**

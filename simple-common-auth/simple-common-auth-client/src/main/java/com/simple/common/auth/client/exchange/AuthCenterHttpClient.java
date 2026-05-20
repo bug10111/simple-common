@@ -38,33 +38,6 @@ public class AuthCenterHttpClient {
     }
 
     /**
-     * 获取当前签名密钥
-     *
-     * @return HTTP 响应
-     * @deprecated 已废弃，请使用 {@link #getUnifiedSecrets(String)} 统一获取双密钥
-     */
-    @Deprecated
-    public HttpResponse getSignSecret() {
-        String url = AuthEndpointEnum.SIGN_SECRET.buildUrl(authProperties.getServerUrl());
-        log.debug("请求签名密钥: {}", url);
-        return HttpRequest.get(url).execute();
-    }
-
-    /**
-     * 获取当前 JWT 密钥
-     *
-     * @return HTTP 响应
-     * @deprecated 已废弃，请使用 {@link #getUnifiedSecrets(String)} 统一获取双密钥
-     */
-    @Deprecated
-    public HttpResponse getJwtSecret() {
-        String url = AuthEndpointEnum.JWT_SECRET.buildUrl(authProperties.getServerUrl());
-        log.debug("请求JWT密钥: {}", url);
-        String authorization = HttpServletUtils.getRequest().getHeader(TokenConstant.Authorization);
-        return HttpRequest.get(url).header("Authorization", authorization).execute();
-    }
-
-    /**
      * 统一获取双密钥（JWT + SIGN）
      *
      * @param projectCode 项目编码（spring.application.name）

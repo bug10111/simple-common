@@ -37,6 +37,7 @@ public interface PermissionManageService {
      * <p>
      * 向指定项目的指定角色添加新权限，不影响现有权限。
      * 如果权限已存在，则覆盖其描述信息。
+     * 默认发布权限变更事件通知所有客户端。
      * </p>
      *
      * @param projectCode 项目编码（clientName），如 "xiaoyue-web"
@@ -44,6 +45,21 @@ public interface PermissionManageService {
      * @param permissions 要添加的权限配置，key 为权限标识，value 为权限描述
      */
     void addPermissions(String projectCode, String roleKey, Map<String, String> permissions);
+
+    /**
+     * 新增权限（按项目维度，支持控制是否发布事件）
+     * <p>
+     * 与 {@link #addPermissions(String, String, Map)} 功能相同，但可通过 publishEvent
+     * 参数控制是否发布权限变更事件。登录时预缓存权限应设为 false，避免不必要的网络开销；
+     * 管理员真正修改角色-菜单关联时应设为 true。
+     * </p>
+     *
+     * @param projectCode  项目编码
+     * @param roleKey      角色标识
+     * @param permissions  要添加的权限配置
+     * @param publishEvent 是否发布权限变更事件广播到所有客户端
+     */
+    void addPermissions(String projectCode, String roleKey, Map<String, String> permissions, boolean publishEvent);
 
     /**
      * 全量替换角色权限（按项目维度）

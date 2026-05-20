@@ -56,6 +56,9 @@ public class AuthProperties {
     //项目编码（必填），用于权限隔离。必须配置为当前服务所属的客户端标识（如 xiaoyue-web-client）
     private String projectCode;
 
+    //超级管理员角色标识，拥有此角色的用户自动拥有所有权限，不参与权限校验。默认 admin
+    private String superAdminRoleKey = "admin";
+
     /**
      * 获取项目编码
      * <p>

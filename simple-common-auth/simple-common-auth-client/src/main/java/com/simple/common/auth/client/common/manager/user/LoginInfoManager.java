@@ -1,6 +1,5 @@
 package com.simple.common.auth.client.common.manager.user;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -45,7 +44,7 @@ public interface LoginInfoManager {
      * @param loginRole 用户登录的角色集合
      * @return 权限信息Map,key为角色,value为该角色的权限Map
      */
-    Map<Object, Map<Object,Object>> getAuthorities(HashSet<String> loginRole);
+    Map<Object, Map<Object,Object>> getAuthorities(Set<String> loginRole);
 
     /**
      * 获取登录用户权限信息（支持项目维度）
@@ -58,7 +57,7 @@ public interface LoginInfoManager {
      * @param projectCode 项目编码（client_id），如 "xiaoyue-web-client"
      * @return 权限信息Map,key为角色,value为该角色的权限Map
      */
-    default Map<Object, Map<Object, Object>> getAuthoritiesByProjectCode(HashSet<String> loginRole, String projectCode) {
+    default Map<Object, Map<Object, Object>> getAuthoritiesByProjectCode(Set<String> loginRole, String projectCode) {
         // 默认实现：使用当前配置的 projectCode
         return getAuthorities(loginRole);
     }
@@ -84,7 +83,7 @@ public interface LoginInfoManager {
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 检查用户是否有 "user:read" 权限
-     * HashSet<String> roles = new HashSet<>();
+     * Set<String> roles = new Set<>();
      * roles.add("admin");
      * boolean hasAuth = loginInfoManager.hasAuth(roles, new String[]{"user:read"});
      * if (!hasAuth) {
@@ -96,6 +95,6 @@ public interface LoginInfoManager {
      * @param authority 需要校验的权限标识数组
      * @return true 表示拥有权限,false 表示没有权限
      */
-    Boolean hasAuth(HashSet<String> loginRole, String[] authority);
+    Boolean hasAuth(Set<String> loginRole, String[] authority);
 
 }

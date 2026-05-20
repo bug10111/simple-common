@@ -13,6 +13,7 @@
 | 缓存管理 | `CacheManager` | 认证相关缓存管理 |
 | CSRF防御 | `CsrfService` | CSRF Token生成和验证 |
 | 责任链处理 | `AuthProcess` | 认证拦截责任链处理接口 |
+| 权限导出 | `PermissionExportController` | 自动扫描所有 @HasAuthority 注解，生成 SQL INSERT 语句 |
 
 ## 集成方式
 

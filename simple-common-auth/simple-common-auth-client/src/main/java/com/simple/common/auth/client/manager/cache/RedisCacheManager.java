@@ -1,5 +1,6 @@
-package com.simple.common.auth.client.common.manager.cache;
+package com.simple.common.auth.client.manager.cache;
 
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 import java.util.Map;

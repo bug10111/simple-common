@@ -1,6 +1,7 @@
-package com.simple.common.auth.client.common.manager.cache;
+package com.simple.common.auth.client.manager.cache;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
 import lombok.extern.slf4j.Slf4j;
 

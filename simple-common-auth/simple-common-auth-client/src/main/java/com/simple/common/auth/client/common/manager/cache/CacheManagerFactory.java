@@ -1,6 +1,8 @@
 package com.simple.common.auth.client.common.manager.cache;
 
 import com.simple.common.auth.client.common.enums.CacheTypeEnum;
+import com.simple.common.auth.client.manager.cache.LocalCacheManager;
+import com.simple.common.auth.client.manager.cache.RedisCacheManager;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**

@@ -2,8 +2,10 @@ package com.simple.common.auth.server.manager;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.manager.permission.PermissionAutoLoader;
 import com.simple.common.auth.client.common.manager.user.LoginInfoManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.auth.server.common.entity.TokenData;
 import com.simple.common.auth.server.common.manager.user.LoginUserOperationManager;
 import com.simple.common.core.utils.AssertUtils;
@@ -12,7 +14,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -30,6 +35,13 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
 
     @Autowired
     private AuthProperties authProperties;
+
+    /**
+     * 权限自动加载器（可选）
+     * 业务方实现后，当缓存中权限数据不存在时，自动从数据库加载
+     */
+    @Autowired(required = false)
+    private PermissionAutoLoader permissionAutoLoader;
 
     /**
      * 保存用户登录信息（包括用户详情、权限关联等）。
@@ -96,12 +108,12 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
      * @return 角色 -> 权限 Map 的映射
      */
     @Override
-    public Map<Object, Map<Object, Object>> getAuthorities(HashSet<String> loginRole) {
+    public Map<Object, Map<Object, Object>> getAuthorities(Set<String> loginRole) {
         if (loginRole == null || loginRole.isEmpty()) {
             return Collections.emptyMap();
         }
         
-        String projectCode = authProperties.getProjectCode();
+        String projectCode = LoginUserUtils.getUserTemporary().getClientId();
         AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
         
         return getAuthoritiesByProjectCode(loginRole, projectCode);
@@ -115,7 +127,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
      * @return 角色 -> 权限 Map 的映射
      */
     @Override
-    public Map<Object, Map<Object, Object>> getAuthoritiesByProjectCode(HashSet<String> loginRole, String projectCode) {
+    public Map<Object, Map<Object, Object>> getAuthoritiesByProjectCode(Set<String> loginRole, String projectCode) {
         if (loginRole == null || loginRole.isEmpty()) {
             return Collections.emptyMap();
         }
@@ -127,9 +139,40 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
             Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
             if (perms != null && !perms.isEmpty()) {
                 result.put(role, perms);
+            } else if (permissionAutoLoader != null) {
+                // 缓存中没有权限数据，通过 SPI 从数据库自动加载
+                autoLoadAndCachePermissions(role, projectCode);
+                // 重新查询缓存
+                perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+                if (perms != null && !perms.isEmpty()) {
+                    result.put(role, perms);
+                }
             }
         }
         return result;
+    }
+
+    /**
+     * 自动从数据库加载并缓存权限数据。
+     * 当缓存过期或 Redis 重启导致权限数据丢失时，通过 PermissionAutoLoader 回源加载。
+     *
+     * @param roleKey     角色标识
+     * @param projectCode 项目编码
+     */
+    private void autoLoadAndCachePermissions(String roleKey, String projectCode) {
+        try {
+            Map<String, String> perms = permissionAutoLoader.loadPermissions(roleKey, projectCode);
+            if (perms != null && !perms.isEmpty()) {
+                String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+                cacheManager.hashPutAll(authKey, new HashMap<>(perms));
+                // 使用默认的权限缓存过期时间
+                Integer expireSeconds = authProperties.getPermissionCacheExpire();
+                cacheManager.expire(authKey, expireSeconds != null ? expireSeconds : 60 * 60 * 24);
+                log.info("已自动加载并缓存角色 [{}] 在项目 [{}] 下的 {} 个权限", roleKey, projectCode, perms.size());
+            }
+        } catch (Exception e) {
+            log.error("自动加载角色 [{}] 在项目 [{}] 下的权限失败", roleKey, projectCode, e);
+        }
     }
 
     /**
@@ -151,7 +194,7 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
      * @return 是否有权限
      */
     @Override
-    public Boolean hasAuth(HashSet<String> loginRole, String[] authority) {
+    public Boolean hasAuth(Set<String> loginRole, String[] authority) {
         if (authority == null || authority.length == 0) return true;
         if (loginRole == null || loginRole.isEmpty()) return false;
 
@@ -161,6 +204,13 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         // 直接通过 CacheManager 查询权限（由配置决定使用 Redis 或 Local）
         for (String role : loginRole) {
             Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+            if (perms == null || perms.isEmpty()) {
+                // 缓存中没有数据，尝试从数据库自动加载
+                if (permissionAutoLoader != null) {
+                    autoLoadAndCachePermissions(role, projectCode);
+                    perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+                }
+            }
             if (perms != null) {
                 for (String auth : authority) {
                     if (perms.containsKey(auth)) return true;

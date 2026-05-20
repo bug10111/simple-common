@@ -5,6 +5,7 @@ import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import com.simple.common.auth.client.common.manager.permission.PermissionAutoLoader;
 import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.client.exchange.AuthCenterHttpClient;
 import com.simple.common.auth.client.util.LoginUserUtils;
@@ -44,6 +45,13 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     @Autowired
     private AuthProperties authProperties;
 
+    /**
+     * 权限自动加载器（可选）
+     * 业务方实现后，当 auth-server 返回的权限数据不存在时，从本地数据库加载
+     */
+    @Autowired(required = false)
+    private PermissionAutoLoader permissionAutoLoader;
+
     @Override
     public Map<Object, Object> getUserInfo(String key) {
         Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getUserInfoKey(key));
@@ -81,6 +89,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                 String projectCode = authProperties.getProjectCode();
                 AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
                 
+                boolean hasAuthFromServer = false;
                 if (response.containsKey(TokenConstant.userAuthName)) {
                     Object userAuthObj = response.get(TokenConstant.userAuthName);
                     if (userAuthObj != null) {
@@ -96,6 +105,38 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
                         }
                         
                         log.info("已从 auth-Server 加载并缓存 [{}] 下 {} 个角色的权限", projectCode, authMap.size());
+                        hasAuthFromServer = true;
+                    }
+                }
+                
+                // 如果 auth-Server 没有返回权限数据，尝试通过 PermissionAutoLoader 从本地数据库加载
+                if (!hasAuthFromServer && permissionAutoLoader != null) {
+                    log.info("auth-Server 未返回权限数据，尝试通过 PermissionAutoLoader 从本地数据库加载 projectCode=[{}]", projectCode);
+                    try {
+                        // 从 userInfo 中获取 loginRole
+                        Object loginRoleObj = userInfo.get(TokenConstant.loginRole);
+                        if (loginRoleObj != null) {
+                            Set<String> loginRoles;
+                            if (loginRoleObj instanceof Collection) {
+                                loginRoles = new HashSet<>((Collection<String>) loginRoleObj);
+                            } else {
+                                List<String> roleList = JsonUtils.toList(loginRoleObj.toString(), String.class);
+                                loginRoles = new HashSet<>(roleList);
+                            }
+                            
+                            for (String roleKey : loginRoles) {
+                                Map<String, String> perms = permissionAutoLoader.loadPermissions(roleKey, projectCode);
+                                if (perms != null && !perms.isEmpty()) {
+                                    String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+                                    cacheManager.hashPutAll(authKey, new HashMap<>(perms));
+                                    cacheManager.expire(authKey, times);
+                                    log.debug("已通过 PermissionAutoLoader 缓存角色 [{}] 在项目 [{}] 下的 {} 个权限",
+                                            roleKey, projectCode, perms.size());
+                                }
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("通过 PermissionAutoLoader 加载权限失败", e);
                     }
                 }
             }
@@ -106,7 +147,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     }
 
     @Override
-    public Map<Object, Map<Object, Object>> getAuthorities(HashSet<String> loginRole) {
+    public Map<Object, Map<Object, Object>> getAuthorities(Set<String> loginRole) {
         String projectCode = authProperties.getProjectCode();
         AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
         
@@ -133,7 +174,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
     }
 
     @Override
-    public Boolean hasAuth(HashSet<String> loginRole, String[] authority) {
+    public Boolean hasAuth(Set<String> loginRole, String[] authority) {
         if (authority == null || authority.length == 0) {
             return true;
         }
