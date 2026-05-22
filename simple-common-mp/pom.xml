@@ -38,6 +38,7 @@
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-core</artifactId>
         </dependency>
+
     </dependencies>
 
 </project>
