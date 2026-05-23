@@ -2,6 +2,7 @@ package com.simple.common.auth.client.common.event;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.simple.common.eventbus.common.annotation.Event;
+import com.simple.common.eventbus.common.constants.EventConstant;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -14,7 +15,7 @@ import java.util.List;
  * @author qty
  */
 @Data
-@Event
+@Event(targets = EventConstant.TARGET_ALL_X)
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Accessors(chain = true)
 public class SecretEvent {

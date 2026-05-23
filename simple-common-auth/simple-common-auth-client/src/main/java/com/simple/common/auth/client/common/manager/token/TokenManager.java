@@ -1,6 +1,5 @@
 package com.simple.common.auth.client.common.manager.token;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -90,59 +89,16 @@ public interface TokenManager {
     }
 
     /**
-     * 添加JWT签名密钥（支持指定目标项目）
+     * 添加JWT签名密钥（仅本地缓存）
      * <p>
-     * 用于多租户场景，服务端可以为指定的客户端项目添加密钥并广播。
+     * 仅将密钥保存到本地缓存，不涉及远程广播。
+     * 如需广播到远程客户端，请使用 {@link com.simple.common.auth.client.common.broadcast.SecretBroadcaster}。
      * </p>
      *
-     * <h3>使用示例：</h3>
-     * <pre>{@code
-     * // OAuth Server 为指定客户端项目添加密钥
-     * String projectCode = "xiaoyue_app"; // 目标客户端的projectCode
-     * String jwtSecret = unifiedSecretManager.getSecrets(projectCode).get("jwt");
-     * tokenManager.addSecret(jwtSecret, projectCode, true);
-     * 
-     * // 或者一次广播给多个客户端
-     * List<String> targetCodes = Arrays.asList("xiaoyue_web", "xiaoyue_app", "xiaoyue_admin");
-     * tokenManager.addSecret(jwtSecret, targetCodes, true);
-     * 
-     * // 本地加载密钥（不广播）
-     * tokenManager.addSecret(secret, null, false);
-     * }</pre>
-     *
-     * @param secret           JWT签名密钥
-     * @param targetProjectCode 目标项目编码（即client_name），用于标识该密钥属于哪个项目；传null表示当前项目
-     * @param broadcast        是否广播事件
+     * @param secret JWT签名密钥
      * @throws IllegalArgumentException 当密钥为空、长度不足时抛出异常
      */
-    void addSecret(String secret, String targetProjectCode, boolean broadcast);
-
-    /**
-     * 添加JWT签名密钥（支持指定多个目标项目）
-     * <p>
-     * 用于多租户场景，一次广播给多个客户端项目，避免重复发送事件。
-     * </p>
-     *
-     * <h3>使用示例：</h3>
-     * <pre>{@code
-     * // OAuth Server 为多个客户端项目添加密钥（一次广播）
-     * List<String> targetCodes = Arrays.asList("xiaoyue_web", "xiaoyue_app", "xiaoyue_admin");
-     * String jwtSecret = unifiedSecretManager.getSecrets(targetCodes.get(0)).get("jwt");
-     * tokenManager.addSecret(jwtSecret, targetCodes, true);
-     * }</pre>
-     *
-     * @param secret            JWT签名密钥
-     * @param targetProjectCodes 目标项目编码集合（即client_name列表）
-     * @param broadcast         是否广播事件
-     * @throws IllegalArgumentException 当密钥为空、长度不足或targetProjectCodes为空时抛出异常
-     */
-    default void addSecret(String secret, List<String> targetProjectCodes, boolean broadcast) {
-        // 默认实现：将List转换为单个projectCode调用
-        String targetCode = (targetProjectCodes != null && !targetProjectCodes.isEmpty()) 
-            ? targetProjectCodes.get(0) 
-            : null;
-        addSecret(secret, targetCode, broadcast);
-    }
+    void addSecret(String secret);
 
     /**
      * 生成新的JWT签名密钥

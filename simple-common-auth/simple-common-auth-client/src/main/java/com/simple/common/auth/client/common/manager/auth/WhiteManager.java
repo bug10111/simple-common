@@ -1,7 +1,5 @@
 package com.simple.common.auth.client.common.manager.auth;
 
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
-
 /**
  * 白名单管理器接口。
  * <p>
@@ -35,7 +33,6 @@ public interface WhiteManager {
      * 如果在白名单中,则直接放行,不进行后续的认证和权限校验。
      * 如果不在白名单中,则抛出异常或继续执行认证流程。
      * </p>
-     *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 在认证拦截器中调用
@@ -51,8 +48,9 @@ public interface WhiteManager {
      *
      * @param path   当前请求的URL路径,如 /api/user/list
      * @param ipAddr 客户端IP地址,用于IP白名单校验
+     * @return 是否通过校验
      * @throws RuntimeException 当请求不在白名单中且需要拦截时抛出(可选)
      */
-    void checkWhiteIp(String path, String ipAddr);
+    boolean checkWhiteIp(String path, String ipAddr);
 
 }

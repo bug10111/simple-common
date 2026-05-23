@@ -14,7 +14,6 @@ import com.simple.common.core.utils.UrlRulesUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -64,7 +63,9 @@ public class AuthHandlerInterceptor implements HandlerInterceptor {
 
         //优先ip白名单
         if (clientAuthInfo.isIPWhitelist()) {
-            whiteManager.checkWhiteIp(path, ipAddr);
+            if(whiteManager.checkWhiteIp(path, ipAddr)){
+                return HandlerInterceptor.super.preHandle(request, response, handler);
+            }
         }
 
         //白名单放行

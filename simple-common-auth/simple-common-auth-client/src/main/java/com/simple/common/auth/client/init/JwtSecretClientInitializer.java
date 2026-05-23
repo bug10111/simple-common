@@ -89,12 +89,12 @@ public class JwtSecretClientInitializer implements ApplicationListener<Applicati
                 throw new IllegalStateException(errorMsg);
             }
 
-            // 加载JWT密钥（不广播）
-            tokenManager.addSecret(jwtSecret, (String) null, false);
+            // 加载JWT密钥（仅本地缓存）
+            tokenManager.addSecret(jwtSecret);
             log.info("JWT密钥初始化成功: {}", maskSecret(jwtSecret));
 
-            // 加载SIGN密钥（不广播）
-            signManager.addSecret(signSecret, (String) null, false);
+            // 加载SIGN密钥（仅本地缓存）
+            signManager.addSecret(signSecret);
             log.info("SIGN密钥初始化成功: {}", maskSecret(jwtSecret));
 
         } catch (IllegalStateException e) {

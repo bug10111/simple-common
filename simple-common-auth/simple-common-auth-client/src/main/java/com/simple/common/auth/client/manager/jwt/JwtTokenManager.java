@@ -1,18 +1,12 @@
 package com.simple.common.auth.client.manager.jwt;
 
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.enums.login.LoginException;
-import com.simple.common.auth.client.common.event.SecretEvent;
 import com.simple.common.auth.client.common.manager.token.AbsTokenManager;
 import com.simple.common.auth.client.util.JwtUtils;
-import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.core.utils.AssertUtils;
-import com.simple.common.eventbus.common.service.EventBusService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -25,15 +19,6 @@ import java.util.Map;
 //@Primary
 @Component
 public class JwtTokenManager extends AbsTokenManager {
-
-    @Autowired(required = false)
-    private EventBusService eventBusService;
-
-    @Autowired
-    private ClientAuthInfo clientAuthInfo;
-
-    @Autowired
-    private ApplicationProperties applicationProperties;
 
     @Override
     public String create(Map<String, Object> headers, Map<String, Object> payload) {
@@ -57,36 +42,13 @@ public class JwtTokenManager extends AbsTokenManager {
     }
 
     @Override
-    public void addSecret(String secret, String targetProjectCode, boolean broadcast) {
-        // 将单个projectCode转换为集合
-        List<String> targetCodes = (targetProjectCode != null && !targetProjectCode.isEmpty()) 
-            ? List.of(targetProjectCode) 
-            : null;
-        addSecret(secret, targetCodes, broadcast);
-    }
-
-    @Override
-    public void addSecret(String secret, List<String> targetProjectCodes, boolean broadcast) {
+    public void addSecret(String secret) {
         AssertUtils.notEmpty(secret, "JWT密钥不能为空");
         AssertUtils.isTrue(secret.length() >= 32, "JWT密钥长度至少为32位，当前长度: " + secret.length());
 
-        // 缓存到本地
+        // 仅缓存到本地，不涉及远程广播
         JwtUtils.saveSecret(secret);
-
-        // 发布事件，通知所有客户端同步（仅当broadcast=true且为服务端模式时）
-        if (broadcast && !clientAuthInfo.getClient() && eventBusService != null) {
-            SecretEvent event = new SecretEvent();
-            event.setTargetProjectCodes(targetProjectCodes); // 设置目标项目编码集合
-            event.setSecret(secret);
-            event.setOperation(SecretEvent.Operation.ADD);
-            event.setSecretType(SecretEvent.SecretType.JWT); // 指定为JWT密钥
-            eventBusService.push(event);
-            
-            String targetDesc = (targetProjectCodes != null && !targetProjectCodes.isEmpty()) 
-                ? targetProjectCodes.toString() 
-                : applicationProperties.getName();
-            log.info("Hutool JWT密钥已添加并发布事件，目标项目: {}，密钥长度: {}", targetDesc, secret.length());
-        }
+        log.debug("Hutool JWT密钥已缓存");
     }
 
     @Override

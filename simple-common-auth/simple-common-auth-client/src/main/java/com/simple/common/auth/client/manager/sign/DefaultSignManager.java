@@ -3,22 +3,16 @@ package com.simple.common.auth.client.manager.sign;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjUtil;
 import com.github.benmanes.caffeine.cache.Cache;
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
-import com.simple.common.auth.client.common.event.SecretEvent;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
 import com.simple.common.auth.client.util.SignSecretUtils;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
-import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.SignUtils;
-import com.simple.common.eventbus.common.service.EventBusService;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-
-import java.util.List;
 
 /**
  * 默认签名管理器实现。
@@ -31,15 +25,6 @@ public class DefaultSignManager implements SignManager {
 
     @Autowired
     private SignProperties signProperties;
-
-    @Autowired(required = false)
-    private ClientAuthInfo clientAuthInfo;
-
-    @Autowired(required = false)
-    private EventBusService eventBusService;
-
-    @Autowired
-    private ApplicationProperties applicationProperties;
 
     /**
      * 专门用于 nonce 防重放的本地缓存（与业务缓存分离，确保高性能）。
@@ -121,49 +106,17 @@ public class DefaultSignManager implements SignManager {
     }
 
     /**
-     * 添加签名密钥（支持指定目标项目）
+     * 添加签名密钥（仅本地缓存）
      *
-     * @param secret           签名密钥
-     * @param targetProjectCode 目标项目编码
-     * @param broadcast        是否广播事件
+     * @param secret 签名密钥
      */
     @Override
-    public void addSecret(String secret, String targetProjectCode, boolean broadcast) {
-        // 将单个projectCode转换为集合
-        List<String> targetCodes = (targetProjectCode != null && !targetProjectCode.isEmpty()) 
-            ? List.of(targetProjectCode) 
-            : null;
-        addSecret(secret, targetCodes, broadcast);
-    }
-
-    /**
-     * 添加签名密钥（支持指定多个目标项目）
-     *
-     * @param secret            签名密钥
-     * @param targetProjectCodes 目标项目编码集合
-     * @param broadcast         是否广播事件
-     */
-    @Override
-    public void addSecret(String secret, List<String> targetProjectCodes, boolean broadcast) {
+    public void addSecret(String secret) {
         AssertUtils.notEmpty(secret, "签名密钥不能为空");
 
-        // 保存到工具类
+        // 仅保存到本地，不涉及远程广播
         SignSecretUtils.saveSecret(secret);
-
-        // 发布事件，通知所有客户端同步（仅当broadcast=true且为服务端模式时）
-        if (broadcast && !clientAuthInfo.getClient()) {
-            SecretEvent event = new SecretEvent();
-            event.setTargetProjectCodes(targetProjectCodes); // 设置目标项目编码集合
-            event.setSecret(secret);
-            event.setOperation(SecretEvent.Operation.ADD);
-            event.setSecretType(SecretEvent.SecretType.SIGN); // 指定为签名密钥
-            eventBusService.push(event);
-            
-            String targetDesc = (targetProjectCodes != null && !targetProjectCodes.isEmpty()) 
-                ? targetProjectCodes.toString() 
-                : applicationProperties.getName();
-            log.info("签名密钥已添加并发布事件，目标项目: {}", targetDesc);
-        }
+        log.debug("签名密钥已缓存");
     }
 
     /**

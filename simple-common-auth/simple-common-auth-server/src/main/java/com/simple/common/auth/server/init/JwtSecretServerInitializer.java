@@ -50,12 +50,12 @@ public class JwtSecretServerInitializer implements ApplicationListener<Applicati
             String jwtSecret = secrets.get("jwt");
             String signSecret = secrets.get("sign");
             
-            // 加载JWT密钥（不广播）
-            tokenManager.addSecret(jwtSecret, (String) null, false);
+            // 加载JWT密钥（仅本地缓存）
+            tokenManager.addSecret(jwtSecret);
             log.info("JWT密钥初始化成功: {}", maskSecret(jwtSecret));
             
-            // 加载SIGN密钥（不广播）
-            signManager.addSecret(signSecret, (String) null, false);
+            // 加载SIGN密钥（仅本地缓存）
+            signManager.addSecret(signSecret);
             log.info("SIGN密钥初始化成功: {}", maskSecret(signSecret));
             
         } catch (Exception e) {

@@ -140,19 +140,19 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
 
             // 遍历每个目标系统进行匹配
             for (String targetApp : targetApplications) {
-                // 精确匹配目标系统
-                EventHandlerKey exactKey = new EventHandlerKey().setEventName(eventName).setApplicationName(targetApp);
-                List<EventHandlerValue> exactListeners = listenersMap.get(exactKey);
-                if (ObjUtil.isNotEmpty(exactListeners)) {
-                    handlerForTarget(eventData, exactListeners);
-                }
-
-                // 修复：只有当目标是全局广播时，才触发全局监听器，避免同一事件在单服务内重复执行
                 if (EventConstant.TARGET_ALL_X.equals(targetApp)) {
+                    // 全局广播：查找 applicationName=TARGET_ALL_X 的监听器
                     EventHandlerKey allKey = new EventHandlerKey().setEventName(eventName).setApplicationName(EventConstant.TARGET_ALL_X);
                     List<EventHandlerValue> allListeners = listenersMap.get(allKey);
                     if (ObjUtil.isNotEmpty(allListeners)) {
                         handlerForTarget(eventData, allListeners);
+                    }
+                } else {
+                    // 精确匹配：查找 applicationName=targetApp 的监听器
+                    EventHandlerKey exactKey = new EventHandlerKey().setEventName(eventName).setApplicationName(targetApp);
+                    List<EventHandlerValue> exactListeners = listenersMap.get(exactKey);
+                    if (ObjUtil.isNotEmpty(exactListeners)) {
+                        handlerForTarget(eventData, exactListeners);
                     }
                 }
             }

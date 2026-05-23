@@ -38,7 +38,6 @@ public class JwtUtils {
      */
     public static void saveSecret(String JWTSigner) {
         jwtSignerRef.set(JWTSigner);
-        log.info("Hutool JWT密钥已更新");
     }
 
     /**
