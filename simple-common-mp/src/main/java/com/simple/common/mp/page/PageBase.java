@@ -38,7 +38,7 @@ public class PageBase {
 
     @Schema(description = "排序，格式为字段名-true/false，true代表正序，false代表倒序，字段名为驼峰")
     @NotNull(message = "排序不能为空")
-    private String[] sort = new String[] {};
+    private String[] pageSort = new String[] {};
 
     /**
      * 获取分页参数对象
@@ -75,8 +75,8 @@ public class PageBase {
         AssertUtils.isTrue(size <= 1000, "每页显示条数不能超过1000条");
 
         Page<T> tPage = new Page<>(current, size);
-        if (sort != null && sort.length > 0) {
-            List<OrderItem> orders = Arrays.stream(sort).map(s -> {
+        if (pageSort != null && pageSort.length > 0) {
+            List<OrderItem> orders = Arrays.stream(pageSort).map(s -> {
                 String[] split = s.split("-");
                 AssertUtils.isTrue(split.length == 2, "排序字段格式必须为：字段名-true/false");
                 OrderItem item = new OrderItem();
