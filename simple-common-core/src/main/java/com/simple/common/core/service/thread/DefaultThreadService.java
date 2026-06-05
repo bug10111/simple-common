@@ -125,7 +125,6 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
             核心线程数：N或者N + 1
             最大线程数：核心线程数 * 1或者2
          */
-
         // 1. 定时任务线程池
         executor = new ScheduledThreadPoolExecutor(threadProperties.getScheduledCorePoolSize(), SCHEDULED_THREAD_FACTORY, new ThreadPoolExecutor.CallerRunsPolicy()) {
             @Override
