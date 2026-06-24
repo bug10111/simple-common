@@ -37,7 +37,6 @@ public class PageBase {
     private Integer size = 10;
 
     @Schema(description = "排序，格式为字段名-true/false，true代表正序，false代表倒序，字段名为驼峰")
-    @NotNull(message = "排序不能为空")
     private String[] pageSort = new String[] {};
 
     /**

@@ -53,7 +53,7 @@ public class AssertUtils {
      * @param params   格式化参数
      */
     public static void notEmpty(Object object, String errorMsg,  Object... params) {
-        isTrue(ObjUtil.isNotEmpty(object), errorMsg, StrUtil.format(errorMsg, params));
+        isTrue(ObjUtil.isNotEmpty(object), StrUtil.format(errorMsg, params));
     }
 
     /**
