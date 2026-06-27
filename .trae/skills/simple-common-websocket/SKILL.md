@@ -1,6 +1,6 @@
 ---
 name: "simple-common-websocket"
-description: "Provides complete API documentation for simple-common-websocket module (Netty WebSocket). Invoke when using @WebSocketListening annotation or ChannelMap for multi-level channel storage."
+description: "Netty WebSocket 模块。提供 @WebSocketListening 注解按 type/cliKey 分发消息、ChannelMap 多级通道存储（按用户ID+设备管理 Channel，支持多端登录）。当需要 WebSocket 实时通信时使用。"
 ---
 
 # simple-common-websocket 认知文档

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-alibaba"
-description: "Provides complete API documentation for simple-common-alibaba module (Sentinel rate limiting + Feign config). Invoke when configuring Sentinel two-level rate limiting or Feign client configuration."
+description: "Sentinel 两级限流 + Feign 客户端配置模块。UserRateLimitAspect 自动按用户ID对 Controller 做接口级和全局级限流；FeignConfig 统一提供请求拦截器、编码器等基础配置。当需要接口限流保护或配置 Feign 客户端时使用。"
 ---
 
 # simple-common-alibaba 认知文档

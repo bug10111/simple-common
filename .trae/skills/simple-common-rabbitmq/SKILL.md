@@ -1,6 +1,6 @@
 ---
 name: "simple-common-rabbitmq"
-description: "Provides complete API documentation for simple-common-rabbitmq module (message queue). Invoke when using RabbitMqService to send messages or @RabbitMqConsumption to prevent duplicate consumption."
+description: "RabbitMQ 消息队列模块。提供 RabbitMqService 发送即时/延迟消息（DefaultMessage 含 msgData/bizType/雪花ID），@RabbitMqConsumption 防重复消费注解（支持业务时长/有效时长/重试次数配置）。当需要MQ消息发送和消费时使用。"
 ---
 
 # simple-common-rabbitmq 认知文档

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-core"
-description: "Provides complete API documentation for simple-common-core module. Invoke when developing with simple-common framework and need core API/parameter reference."
+description: "框架核心基础模块。提供 R 统一响应、AssertUtils 断言、IdUtils 雪花ID/UUID、JsonUtils JSON转化、ThreadUtils 线程池/定时任务、BeanUtils/Base64Utils/IPUtils 工具类、CryptoUtil 加解密（AES/SM4/RSA/SM2/BCrypt）、LockService 分布式锁、CycleService 循环任务。所有模块的基础依赖。"
 ---
 
 # simple-common-core 认知文档

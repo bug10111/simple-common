@@ -1,6 +1,6 @@
 ---
 name: "simple-common-mp"
-description: "Provides complete API documentation for simple-common-mp module (MyBatis Plus封装). Invoke when developing pagination, auto-fill, data scope, or MP-related features with simple-common framework."
+description: "MyBatis-Plus 封装模块。提供 PageBase 分页基类（current/size/pageSort排序）、CustomIdGenerator 雪花ID自动生成、MybatisPlusOperationHandler 自动填充 createTime/updateTime、@DataScopeTable 数据权限注解。当需要数据库分页查询或MP相关功能时使用。"
 ---
 
 # simple-common-mp 认知文档

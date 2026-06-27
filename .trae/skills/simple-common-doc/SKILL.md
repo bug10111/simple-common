@@ -1,6 +1,6 @@
 ---
 name: "simple-common-doc"
-description: "Provides complete API documentation for simple-common-doc module (Word template replacement with Poi-Tl). Invoke when using Docs.builder() or DocReplaceService for Word document generation."
+description: "Word 模板替换模块（基于 Poi-Tl）。提供 Docs.builder() 构建模板数据（文本/图片/表格/列表/超链接/颜色），DocReplaceService 替换模板并输出到浏览器下载/输出流/输入流。当需要生成 Word 文档时使用。"
 ---
 
 # simple-common-doc 认知文档

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-auth"
-description: "Provides complete API documentation for simple-common-auth module (authentication/authorization). Invoke when using @HasAuthority, @Sign, @CsrfDefense, LoginManager, LoginService, TokenManager, PermissionManageService, or any auth-related interfaces."
+description: "权限认证模块。提供 @HasAuthority 权限校验、@Sign 签名验证、@CsrfDefense CSRF 防御注解；LoginManager/LoginService 登录管理、TokenManager Token 管理、PermissionManageService 权限管理。当需要接口权限控制、签名校验、登录认证时使用。"
 ---
 
 # simple-common-auth 认知文档

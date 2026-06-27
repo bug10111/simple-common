@@ -1,6 +1,6 @@
 ---
 name: "simple-common-sms"
-description: "Provides complete API documentation for simple-common-sms module (SMS service). Invoke when sending verification codes, template SMS, or checking SMS codes with simple-common framework."
+description: "短信服务模块（默认阿里云短信）。提供 SmsService 发送验证码、发送模板短信（支持自动获取/手动指定客户端IP）、校验验证码。当需要发送短信验证码或通知时使用。"
 ---
 
 # simple-common-sms 认知文档

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-xxljob"
-description: "Provides complete API documentation for simple-common-xxljob module (distributed task scheduling). Invoke when creating/updating/starting/stopping XXL-JOB tasks via HTTP API."
+description: "XXL-JOB 分布式任务调度模块。提供 XxlJobManager 通过HTTP API创建任务（Cron/JobHandler/超时/重试）、启动/停止/立即触发、修改调度配置、删除任务。当需要管理 XXL-JOB 定时任务时使用。"
 ---
 
 # simple-common-xxljob 认知文档

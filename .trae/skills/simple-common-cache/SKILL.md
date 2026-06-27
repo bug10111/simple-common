@@ -1,6 +1,6 @@
 ---
 name: "simple-common-cache"
-description: "Provides complete API documentation for simple-common-cache module (multi-level cache). Invoke when using CacheUtils distributed cache or Caffeine local cache with simple-common framework."
+description: "两级缓存模块（Caffeine 本地缓存 + Redis 分布式缓存）。CacheUtils 提供防缓存击穿/穿透/雪崩的分布式缓存获取和删除；Caffeine 本地缓存支持手动和自动加载两种模式。当需要使用缓存提升性能时使用。"
 ---
 
 # simple-common-cache 认知文档

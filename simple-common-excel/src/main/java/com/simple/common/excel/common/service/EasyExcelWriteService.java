@@ -4,6 +4,7 @@ import lombok.SneakyThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 /**
@@ -118,4 +119,33 @@ public interface EasyExcelWriteService {
         byteArrayInputStream.close();
         return byteArrayInputStream;
     }
+
+    /**
+     * 创建流式 ExcelWriter（用于大数据量分批写入）。
+     * <p>
+     * 调用方拿到 {@link WriteContext} 后，可多次调用
+     * {@code ctx.getExcelWriter().write(batchData, ctx.getWriteSheet())} 分批写入，
+     * 最后调用 {@code ctx.getExcelWriter().finish()} 收尾。
+     * 大数据量场景下配合 OutputStream 使用，边查边写，避免内存溢出。
+     * </p>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * WriteContext<DemoData> ctx = writeService.createWriter(
+     *     response.getOutputStream(), DemoData.class, "数据导出");
+     *
+     * while (hasMore) {
+     *     List<DemoData> batch = queryBatch();
+     *     ctx.getExcelWriter().write(batch, ctx.getWriteSheet());
+     * }
+     * ctx.getExcelWriter().finish();
+     * }</pre>
+     *
+     * @param outputStream 输出流（如 HttpServletResponse.getOutputStream()）
+     * @param clazz        数据实体类，需用 @ExcelProperty 注解标注列信息
+     * @param sheetName    Sheet 名称
+     * @param <T>          数据类型
+     * @return WriteContext 包含 ExcelWriter 和 WriteSheet
+     */
+    <T> WriteContext<T> createWriter(OutputStream outputStream, Class<T> clazz, String sheetName);
 }

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-logs"
-description: "Provides complete API documentation for simple-common-logs module (TCP+Protobuf log collection). Invoke when configuring log collection, implementing LogUserManager, or understanding the log system architecture."
+description: "TCP+Protobuf 高性能日志收集模块。包含 logs-client（LogService/BufferedLogManager 缓冲队列批量发送/失败降级本地文件/优雅停机）和 logs-server（LogProtobufTcpServer/AbsLogsSaveManager 接收存储）；需实现 LogUserManager 提供用户信息。当需要操作日志收集时使用。"
 ---
 
 # simple-common-logs 认知文档

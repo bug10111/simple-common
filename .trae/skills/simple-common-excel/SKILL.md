@@ -1,6 +1,6 @@
 ---
 name: "simple-common-excel"
-description: "Provides complete API documentation for simple-common-excel module (Excel import/export). Invoke when using EasyExcelWriteService, EasyExcelReadService, or PoiWriteService for Excel operations."
+description: "Excel 导入导出模块。提供 EasyExcelWriteService 写入/导出到浏览器或输出流、EasyExcelReadService 从 MultipartFile/文件路径/输入流读取、PoiWriteService 复杂导出（自定义列宽/合并单元格/分页Sheet）。当需要 Excel 操作时使用。"
 ---
 
 # simple-common-excel 认知文档

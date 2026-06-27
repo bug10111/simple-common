@@ -1,6 +1,6 @@
 ---
 name: "simple-common-ai"
-description: "Provides complete API documentation for simple-common-ai module (DashScope AI integration). Invoke when using AiAliBuilder to send conversational messages to the DashScope AI model."
+description: "阿里云百炼（DashScope）AI 对话模块。提供 AiAliBuilder 发送对话消息、接收AI回复文本、判断返回是否为结构化JSON、将JSON回复解析为Java对象。当需要调用大模型AI接口时使用。"
 ---
 
 # simple-common-ai 认知文档

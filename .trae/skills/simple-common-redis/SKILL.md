@@ -1,6 +1,6 @@
 ---
 name: "simple-common-redis"
-description: "Provides complete API documentation for simple-common-redis module (cache/rate-limit/distributed-lock). Invoke when using @RedisCache, @CurrentLimiting, or RedissonLockService with simple-common framework."
+description: "Redis 缓存/限流/分布式锁模块。提供 @RedisCache 声明式缓存（防缓存雪崩随机过期）、@CurrentLimiting 接口限流（按URL/用户ID/IP维度）、RedissonLockService 高级锁（可重入锁/公平锁/CountDownLatch闭锁/Semaphore信号量）。当需要使用Redis缓存或限流时使用。"
 ---
 
 # simple-common-redis 认知文档

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-eventbus"
-description: "Provides complete API documentation for simple-common-eventbus module (event-driven architecture). Invoke when using @Event, @EventHandler annotations or EventBusService to publish events."
+description: "事件驱动架构模块。提供 @Event 定义事件类、@EventHandler 定义事件处理器、EventBusService 发布事件（同步/SyncEventBusService、异步MQ/MqEventBusService、延迟发布）。当需要服务内解耦或跨服务事件通信时使用。"
 ---
 
 # simple-common-eventbus 认知文档

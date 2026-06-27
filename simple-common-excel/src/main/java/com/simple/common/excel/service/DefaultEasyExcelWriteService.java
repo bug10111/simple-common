@@ -1,14 +1,18 @@
 package com.simple.common.excel.service;
 
 import com.alibaba.excel.EasyExcel;
+import com.alibaba.excel.ExcelWriter;
+import com.alibaba.excel.write.metadata.WriteSheet;
 import com.simple.common.core.utils.HttpServletUtils;
 import com.simple.common.excel.common.service.EasyExcelWriteService;
+import com.simple.common.excel.common.service.WriteContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.SneakyThrows;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -48,5 +52,17 @@ public class DefaultEasyExcelWriteService implements EasyExcelWriteService {
         }
 
         writeOutputStream(clazz, data).writeTo(response.getOutputStream());
+    }
+
+    @Override
+    public <T> WriteContext<T> createWriter(OutputStream outputStream, Class<T> clazz, String sheetName) {
+
+        // 创建 EasyExcel 写入器
+        ExcelWriter excelWriter = EasyExcel.write(outputStream, clazz).build();
+
+        // 创建 Sheet 配置
+        WriteSheet writeSheet = EasyExcel.writerSheet(sheetName).build();
+
+        return new WriteContext<>(excelWriter, writeSheet);
     }
 }

@@ -1,6 +1,6 @@
 ---
 name: "simple-common-annex"
-description: "Provides complete API documentation for simple-common-annex module (S3 file management). Invoke when uploading/downloading/deleting files or generating signed URLs with MinIO/OSS/S3."
+description: "S3 协议文件管理模块（支持 MinIO / 阿里云OSS / AWS S3）。提供 AnnexService 上传 MultipartFile/输入流、下载到浏览器、生成临时签名URL、删除文件；支持公开/私有访问权限。当需要文件存储管理时使用。"
 ---
 
 # simple-common-annex 认知文档
