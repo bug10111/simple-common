@@ -1,6 +1,6 @@
 ---
 name: "simple-common-excel"
-description: "Excel 导入导出模块。提供 EasyExcelWriteService 写入/导出到浏览器或输出流、EasyExcelReadService 从 MultipartFile/文件路径/输入流读取、PoiWriteService 复杂导出（自定义列宽/合并单元格/分页Sheet）。当需要 Excel 操作时使用。"
+description: "Excel 导入导出模块。提供 EasyExcelWriteService 写入（全量写入/流式分批写入，导出到浏览器或输出流）、EasyExcelReadService 从 MultipartFile/文件路径/输入流读取、PoiWriteService 复杂导出（自定义列宽/合并单元格/分页Sheet）。当需要 Excel 操作时使用。"
 ---
 
 # simple-common-excel 认知文档
@@ -40,6 +40,49 @@ ByteArrayInputStream is = writeService.writeInputStream(UserExportDTO.class, lis
 | `data` | `List<T>` | 待导出的数据集合 |
 | `writeName` | `String` | 下载文件名（不含 `.xlsx` 扩展名，自动添加） |
 | `outputStream` | `ByteArrayOutputStream` | 目标输出流，为null则自动创建 |
+
+### 流式分批写入（大数据量场景）
+
+**适用场景**：百万级数据导出，边查边写，避免内存溢出。
+
+```java
+@Autowired
+private EasyExcelWriteService writeService;
+
+@GetMapping("/export/large")
+public void exportLargeData(HttpServletResponse response) {
+    WriteContext<ExportRow> ctx = writeService.createWriter(
+        response.getOutputStream(), ExportRow.class, "大数据导出");
+
+    int pageSize = 2000;
+    int pageNum = 0;
+    while (true) {
+        List<ExportRow> batch = repository.queryBatch(pageNum++, pageSize);
+        if (batch.isEmpty()) {
+            break;
+        }
+
+        // 逐批写入，写入后释放内存
+        ctx.getExcelWriter().write(batch, ctx.getWriteSheet());
+    }
+
+    // 收尾，关闭底层流
+    ctx.getExcelWriter().finish();
+}
+```
+
+```java
+<T> WriteContext<T> createWriter(OutputStream outputStream, Class<T> clazz, String sheetName);
+```
+
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| `outputStream` | `OutputStream` | 输出流（如 `response.getOutputStream()`） |
+| `clazz` | `Class<T>` | 数据实体类，需用 `@ExcelProperty` 标注列 |
+| `sheetName` | `String` | Sheet 名称 |
+| 返回值 | `WriteContext<T>` | 封装 `ExcelWriter` 和 `WriteSheet`，调用方自行控制分批写入与 `finish()` |
+
+> ⚠️ 调用方**必须**在写入完成后调用 `ctx.getExcelWriter().finish()` 收尾，否则文件不完整且流不会关闭。
 
 ## EasyExcelReadService — 读取/导入
 
