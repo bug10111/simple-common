@@ -5,7 +5,7 @@
 
     <groupId>com.simple.common</groupId>
     <artifactId>simple-common</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>pom</packaging>
 
     <name>simple-common</name>
@@ -30,13 +30,16 @@
         <module>simple-common-ai</module>
     </modules>
 
-<!--    <distributionManagement>-->
-<!--        <repository>-->
-<!--            <id>maven-releases</id>-->
-<!--            <name>Releases Repository</name>-->
-<!--            <url>http://nexus.dev.joyswon.com/repository/maven-releases/</url>-->
-<!--        </repository>-->
-<!--    </distributionManagement>-->
+    <distributionManagement>
+        <repository>
+            <id>nexus-releases</id>
+            <url>http://192.168.1.45:8081/repository/maven-releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>nexus-snapshots</id>
+            <url>http://192.168.1.45:8081/repository/maven-snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 
     <properties>
         <java.version>17</java.version>
@@ -47,7 +50,7 @@
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-clould-alibaba>2023.0.3.4</spring-clould-alibaba>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <common.simple.version>1.0.0</common.simple.version>
+        <common.simple.version>1.0.1</common.simple.version>
 
         <hutool.version>5.8.38</hutool.version>
         <aviator.version>5.4.3</aviator.version>
@@ -477,7 +480,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
-                <version>3.6.3</version>
+                <version>3.5.0</version>
                 <configuration>
                     <!-- 忽略文档生成中的错误，防止因个别注释不规范导致打包失败 -->
                     <doclint>none</doclint>
