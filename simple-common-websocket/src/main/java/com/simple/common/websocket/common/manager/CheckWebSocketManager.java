@@ -1,8 +1,5 @@
 package com.simple.common.websocket.common.manager;
 
-import com.simple.common.websocket.common.entity.WebSocketRequest;
-import io.netty.channel.ChannelHandlerContext;
-
 /**
  * WebSocket鉴权校验管理器接口。
  * <p>
