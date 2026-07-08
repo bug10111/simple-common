@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Created by IntelliJ IDEA
+ * WebSocket测试控制器
  *
  * @author qty
  */
@@ -34,13 +34,8 @@ public class WebSocketController {
         return R.ok();
     }
 
-    //    @WebSocketListening(type = type)
-    //    public void handler(String msg) {
-    //        log.info("接收到信息：[{}]",msg);
-    //    }
-
     @WebSocketListening(type = type)
-    public String handler(WebSocketRequest request) {
+    public String handler(WebSocketRequest<String> request) {
         log.info("接收到信息：[{}]", JsonUtils.toJson(request));
         return "msg:ok";
     }

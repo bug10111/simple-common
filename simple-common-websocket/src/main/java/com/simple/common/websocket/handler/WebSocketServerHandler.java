@@ -90,7 +90,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         }
 
         try {
-            WebSocketRequest request = JSON.parseObject(text, WebSocketRequest.class);
+            WebSocketRequest<?> request = JSON.parseObject(text, WebSocketRequest.class);
             if (request == null) {
                 sendError(ctx, WebsocketExceptionEnum.INVALID_MESSAGE);
                 return;

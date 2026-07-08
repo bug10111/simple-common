@@ -1,7 +1,6 @@
 package com.simple.common.websocket.common.manager;
 
 import com.simple.common.websocket.common.entity.WebSocketRequest;
-import io.netty.channel.ChannelHandlerContext;
 
 import java.lang.reflect.Method;
 import java.util.Optional;
@@ -39,33 +38,34 @@ public interface WebSocketListeningManager {
      * @Component
      * public class OrderMessageHandler {
      *     @WebSocketListening(type = "order")
-     *     public void handleOrder(String message) {
-     *         // 处理订单消息
+     *     public void handleOrder(WebSocketRequest<OrderDto> request) {
+     *         OrderDto data = request.getData();
      *     }
      * }
      * }</pre>
      *
-     * @param type   消息类型,对应@WebSocketListening注解的type属性
-     * @param cliKey 客户端标识,用于区分不同客户端的消息处理
-     * @param bean   目标Bean实例
-     * @param method 目标方法对象
+     * @param type     消息类型,对应@WebSocketListening注解的type属性
+     * @param cliKey   客户端标识,用于区分不同客户端的消息处理
+     * @param bean     目标Bean实例
+     * @param method   目标方法对象
+     * @param dataType WebSocketRequest泛型中data的实际类型
      */
-    void registerMethod(String type, String cliKey, Object bean, Method method);
+    void registerMethod(String type, String cliKey, Object bean, Method method, Class<?> dataType);
 
     /**
      * 调用监听器方法
      * <p>
      * 根据消息类型和客户端标识,找到对应的监听器方法并执行。
      * 当收到WebSocket消息时,框架会自动调用此方法分发消息。
+     * 内部会根据注册时记录的dataType自动将data字段反序列化为对应类型。
      * </p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 框架内部调用,业务代码无需手动调用
-     * WebSocketRequest request = new WebSocketRequest();
-     * request.setType("order");
-     * request.setData("{\"orderId\":\"123\"}");
-     * 
+     * WebSocketRequest<Object> request = new WebSocketRequest<>();
+     * request.setData(jsonObject);
+     *
      * Optional<Object> result = listeningManager.invoke("order", "client123", request);
      * }</pre>
      *
@@ -74,5 +74,5 @@ public interface WebSocketListeningManager {
      * @param request WebSocket请求对象,包含消息数据
      * @return 调用结果,如果监听器不存在返回Optional.empty()
      */
-    Optional<Object> invoke(String type, String cliKey, WebSocketRequest request);
+    Optional<Object> invoke(String type, String cliKey, WebSocketRequest<?> request);
 }
