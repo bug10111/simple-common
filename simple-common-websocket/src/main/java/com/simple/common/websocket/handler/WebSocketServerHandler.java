@@ -1,6 +1,7 @@
 package com.simple.common.websocket.handler;
 
 import com.alibaba.fastjson2.JSON;
+import com.simple.common.core.utils.ThreadUtils;
 import com.simple.common.websocket.common.constant.WebSocketConstant;
 import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
 import com.simple.common.websocket.common.entity.WebSocketRequest;
@@ -12,8 +13,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.websocketx.*;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
-
-import java.util.Optional;
 
 /**
  * WebSocket消息处理器
@@ -104,8 +103,13 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
                 return;
             }
 
-            Optional<Object> result = webSocketListeningManager.invoke(channelType, channelCliKey, request);
-            result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o))));
+            // 将通道上下文注入请求对象，业务方法可通过 request.getType()/getCliKey()/reply() 使用
+            request.setType(channelType);
+            request.setCliKey(channelCliKey);
+
+            // 提交到业务线程池异步执行，避免阻塞 Netty EventLoop
+            ThreadUtils.supplyAsync(() -> webSocketListeningManager.invoke(channelType, channelCliKey, request))
+                       .thenAccept(result -> result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o)))));
         } catch (Exception e) {
             log.error("消息处理异常", e);
             sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());

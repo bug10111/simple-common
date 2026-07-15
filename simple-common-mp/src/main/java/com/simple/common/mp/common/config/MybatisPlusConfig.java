@@ -30,7 +30,7 @@ public class MybatisPlusConfig {
 
     @Bean
     public PaginationInnerInterceptor paginationInnerInterceptor() {
-        return new PaginationInnerInterceptor(DbType.MYSQL);
+        return new PaginationInnerInterceptor(DbType.POSTGRE_SQL);
     }
 
     @Bean

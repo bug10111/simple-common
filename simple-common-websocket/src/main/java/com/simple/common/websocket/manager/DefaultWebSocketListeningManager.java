@@ -27,8 +27,7 @@ public class DefaultWebSocketListeningManager implements WebSocketListeningManag
 
     @Override
     public void registerMethod(String type, String cliKey, Object bean, Method method, Class<?> dataType) {
-        listenerMap.computeIfAbsent(type, k -> new ConcurrentHashMap<>())
-                .put(cliKey, new InvocationTarget(bean, method, dataType));
+        listenerMap.computeIfAbsent(type, k -> new ConcurrentHashMap<>()).put(cliKey, new InvocationTarget(bean, method, dataType));
     }
 
     @Override
@@ -36,11 +35,22 @@ public class DefaultWebSocketListeningManager implements WebSocketListeningManag
     public Optional<Object> invoke(String type, String cliKey, WebSocketRequest<?> request) {
         Map<String, InvocationTarget> cliKeyMap = listenerMap.get(type);
         if (ObjUtil.isNotEmpty(cliKeyMap)) {
+
+            // 先精确匹配 cliKey，支持为特定客户端注册专属处理器
             InvocationTarget target = cliKeyMap.get(cliKey);
+
+            // 精确匹配不到则 fallback 到 "default" 通配处理器，支持中央处理器模式
+            if (ObjUtil.isEmpty(target)) {
+                target = cliKeyMap.get("default");
+            }
             if (ObjUtil.isNotEmpty(target)) {
                 Object typedData = convertData(request.getData(), target.dataType());
                 WebSocketRequest<Object> typedRequest = new WebSocketRequest<>();
                 typedRequest.setData(typedData);
+
+                // 将通道上下文传递给新构建的 typedRequest，确保业务方法中 reply() 可用
+                typedRequest.setType(request.getType());
+                typedRequest.setCliKey(request.getCliKey());
                 Object invoke = target.method().invoke(target.bean(), typedRequest);
                 return Optional.of(invoke);
             }
