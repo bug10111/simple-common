@@ -128,6 +128,10 @@ public class RedisCacheManager implements CacheManager {
 
     @Override
     public Long setAdd(String key, String... values) {
+        // Redis SADD 不允许空成员列表，调用方可能传入空数组，需防御
+        if (values == null || values.length == 0) {
+            return 0L;
+        }
         return redisTemplate.opsForSet().add(key, values);
     }
 

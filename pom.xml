@@ -27,7 +27,6 @@
         <module>simple-common-websocket</module>
         <module>simple-common-cache</module>
         <module>simple-common-alibaba</module>
-        <module>simple-common-ai</module>
     </modules>
 
     <distributionManagement>
