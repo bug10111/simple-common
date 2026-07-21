@@ -5,6 +5,7 @@ import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.enums.login.LoginException;
+import com.simple.common.auth.client.common.event.UserLoggedOutEvent;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.auth.server.common.adapter.LoginTypeAdapter;
@@ -18,6 +19,7 @@ import com.simple.common.auth.server.common.service.client.ClientDetailsService;
 import com.simple.common.auth.server.common.service.login.LoginService;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.HttpServletUtils;
+import com.simple.common.eventbus.common.service.EventBusService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +50,9 @@ public class DefaultLoginService implements LoginService {
 
     @Autowired
     private List<LoginSucProcess> list;
+
+    @Autowired
+    private EventBusService eventBusService;
 
 
     @Override
@@ -153,16 +158,39 @@ public class DefaultLoginService implements LoginService {
     @Override
     public void logout(String userId) {
         loginUserOperationManager.loginOut(userId);
+
+        // 发布用户退出登录事件（广播到所有系统，触发各客户端清除本地Redis Token）
+        publishLogoutEvent(userId);
     }
 
     @Override
     public void logout() {
         UserTemporary userTemporary = LoginUserUtils.getUserTemporary();
+        String userId = userTemporary.getUserId();
+
         if (clientAuthInfo.getOneLogin()) {
-            logout(userTemporary.getUserId());
+            logout(userId);
         } else {
             loginUserOperationManager.loginOut();
+
+            // 发布用户退出登录事件（广播到所有系统）
+            publishLogoutEvent(userId);
         }
+    }
+
+    /**
+     * 发布用户退出登录事件，通知所有客户端清除本地 Token 缓存。
+     * <p>事件通过 RabbitMQ Fanout 交换机广播到所有已绑定的服务，
+     * 各客户端的 oauth-start 消费后清除本地 Redis 中该用户的 Token 数据。</p>
+     *
+     * @param userId 退出登录的用户ID
+     */
+    private void publishLogoutEvent(String userId) {
+        UserLoggedOutEvent event = new UserLoggedOutEvent();
+        event.setUserId(userId);
+
+        eventBusService.push(event);
+        log.debug("已发布用户退出登录事件，userId: {}", userId);
     }
 
     /**
