@@ -30,6 +30,6 @@ public class CustomIdGenerator implements IdentifierGenerator {
      */
     @Override
     public String nextUUID(Object entity) {
-        return IdUtil.getSnowflakeNextIdStr();
+        return IdUtils.getSnowflakeNextIdStr();
     }
 }
