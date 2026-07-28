@@ -1,15 +1,28 @@
 package com.simple.common.websocket.utils;
 
+import com.simple.common.core.utils.IdUtils;
+import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.websocket.common.channel.ChannelMap;
+import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
- * WebSocket通讯通道管理工具类
+ * WebSocket通讯通道管理工具类。
+ * <p>
+ * 提供通道管理、消息发送（异步/同步）等底层能力。
+ * 同步请求-响应模式通过 Correlation ID + CompletableFuture 实现，
+ * 服务端发送请求后阻塞等待客户端回复，适用于服务端主动向客户端发起命令调用。
+ * </p>
  *
  * @author qty
  */
@@ -17,6 +30,29 @@ import java.util.Map;
 public class WebSocketUtils {
 
     private static final ChannelMap<String, String, ChannelHandlerContext> map = new ChannelMap<>();
+
+    /**
+     * 同步请求管理器，由 DefaultWebSocketSyncManager 初始化时注入
+     * -- SETTER --
+     *  设置同步请求管理器（由框架内部调用）
+     *
+     */
+    @Setter
+    private static WebSocketSyncManager syncManager;
+
+    /**
+     * 默认同步请求超时时间（秒），由 DefaultWebSocketSyncManager 从 WebSocketProperties 注入
+     */
+    private static long defaultSyncTimeoutSeconds = 30;
+
+    /**
+     * 设置默认同步请求超时时间（由框架内部调用）
+     *
+     * @param timeoutSeconds 超时时间（秒）
+     */
+    public static void setDefaultSyncTimeout(long timeoutSeconds) {
+        defaultSyncTimeoutSeconds = timeoutSeconds;
+    }
 
     /**
      * 添加通道，如果已存在相同键的旧通道则关闭旧通道
@@ -96,6 +132,108 @@ public class WebSocketUtils {
         }
         log.debug("通道不可用 [type={}, cliKey={}]", type, maskKey(cliKey));
         return false;
+    }
+
+    /**
+     * 同步发送消息并等待客户端回复。
+     * <p>
+     * 服务端向指定客户端发送请求消息，阻塞等待客户端处理完成后返回结果。
+     * 适用于服务端主动向客户端发起命令调用、请求数据等场景。
+     * 使用默认超时时间 30 秒。
+     * </p>
+     *
+     * <h3>使用示例：</h3>
+     * <pre>{@code
+     * // 向客户端发送命令，同步等待结果
+     * String result = WebSocketUtils.sendSyncMsg("agent", "agent-001", commandData);
+     * }</pre>
+     *
+     * @param <T>    返回数据类型
+     * @param type   类型标识
+     * @param cliKey 客户端标识
+     * @param data   请求数据
+     * @return 客户端返回的数据
+     * @throws RuntimeException 客户端不在线、超时或执行异常时抛出
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T sendSyncMsg(String type, String cliKey, Object data) {
+        return sendSyncMsg(type, cliKey, data, defaultSyncTimeoutSeconds, TimeUnit.SECONDS);
+    }
+
+    /**
+     * 同步发送消息并等待客户端回复（指定超时时间）。
+     * <p>
+     * 服务端向指定客户端发送请求消息，阻塞等待客户端处理完成后返回结果。
+     * 底层基于 Correlation ID + CompletableFuture 实现：
+     * 生成唯一 requestId 注入消息，客户端回复时携带相同 requestId，
+     * 框架自动匹配并唤醒等待线程。
+     * </p>
+     *
+     * <h3>客户端协议约定：</h3>
+     * <p>
+     * 客户端收到消息格式为 {@code {"requestId":"xxx", "data":{...}}}，
+     * 处理完成后回复消息时必须携带相同的 requestId：
+     * {@code {"requestId":"xxx", "data":{...}}}。
+     * </p>
+     *
+     * @param <T>     返回数据类型
+     * @param type    类型标识
+     * @param cliKey  客户端标识
+     * @param data    请求数据
+     * @param timeout 超时时间
+     * @param unit    时间单位
+     * @return 客户端返回的数据
+     * @throws RuntimeException 客户端不在线、超时或执行异常时抛出
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T sendSyncMsg(String type, String cliKey, Object data, long timeout, TimeUnit unit) {
+
+        // 校验同步管理器已初始化
+        if (syncManager == null) {
+            throw new RuntimeException("WebSocketSyncManager 未初始化，请确保服务已启动");
+        }
+
+        // 生成唯一请求ID
+        String requestId = IdUtils.getSnowflakeNextIdStr();
+
+        // 创建 CompletableFuture 用于阻塞等待
+        CompletableFuture<Object> future = new CompletableFuture<>();
+
+        // 注册到同步管理器，等待客户端回复
+        syncManager.register(requestId, future);
+
+        // 构建消息 {"requestId":"xxx", "data":{...}}
+        Map<String, Object> message = new HashMap<>();
+        message.put("requestId", requestId);
+        message.put("data", data);
+        String json = JsonUtils.toJsonStr(message);
+
+        // 发送消息到客户端
+        boolean sent = sendMsg(type, cliKey, json);
+        if (!sent) {
+
+            // 发送失败，清理 Future
+            syncManager.cancel(requestId);
+            throw new RuntimeException("客户端不在线 [type=" + type + ", cliKey=" + cliKey + "]");
+        }
+
+        log.debug("同步请求已发送 [type={}, cliKey={}, requestId={}]", type, maskKey(cliKey), requestId);
+
+        try {
+
+            // 阻塞等待客户端回复
+            return (T) future.get(timeout, unit);
+        } catch (TimeoutException e) {
+
+            // 超时，清理 Future
+            syncManager.cancel(requestId);
+            throw new RuntimeException("同步请求超时 [type=" + type + ", cliKey=" + cliKey + ", timeout=" + timeout + unit.name().toLowerCase() + "]");
+        } catch (Exception e) {
+
+            // 其他异常，清理 Future
+            syncManager.cancel(requestId);
+            throw new RuntimeException("同步请求异常 [type=" + type + ", cliKey=" + cliKey + "]", e);
+        }
     }
 
     /**

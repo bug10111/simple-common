@@ -87,6 +87,11 @@ public class WebSocketProperties {
     private CleanConfig clean = new CleanConfig();
 
     /**
+     * 同步请求配置
+     */
+    private SyncConfig sync = new SyncConfig();
+
+    /**
      * 通道清理配置类
      */
     @Getter
@@ -106,5 +111,27 @@ public class WebSocketProperties {
          * 初始延迟时间（秒）
          */
         private long initialDelay = 30;
+    }
+
+    /**
+     * 同步请求配置类
+     */
+    @Getter
+    @Setter
+    public static class SyncConfig {
+        /**
+         * 同步请求清理间隔时间（秒）
+         */
+        private long cleanInterval = 30;
+
+        /**
+         * 同步请求清理初始延迟时间（秒）
+         */
+        private long initialDelay = 30;
+
+        /**
+         * 同步请求默认超时时间（秒）
+         */
+        private long timeout = 30;
     }
 }

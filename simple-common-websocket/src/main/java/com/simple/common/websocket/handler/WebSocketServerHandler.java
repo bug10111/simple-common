@@ -6,6 +6,7 @@ import com.simple.common.websocket.common.constant.WebSocketConstant;
 import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
 import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
+import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.utils.WebSocketUtils;
 import io.netty.channel.ChannelHandlerContext;
@@ -17,7 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * WebSocket消息处理器
  * <p>
- * 负责处理WebSocket消息的接收、解析和分发
+ * 负责处理WebSocket消息的接收、解析和分发。
+ * 同时检测同步请求的回复消息，通过 requestId 匹配对应的 CompletableFuture 完成同步等待。
+ * </p>
  *
  * @author qty
  */
@@ -26,11 +29,14 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 
     private final WebSocketListeningManager webSocketListeningManager;
 
+    private final WebSocketSyncManager webSocketSyncManager;
+
     private final WebSocketProperties properties;
 
-    public WebSocketServerHandler(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager) {
+    public WebSocketServerHandler(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager, WebSocketSyncManager webSocketSyncManager) {
         this.properties = properties;
         this.webSocketListeningManager = webSocketListeningManager;
+        this.webSocketSyncManager = webSocketSyncManager;
     }
 
     @Override
@@ -93,6 +99,19 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             if (request == null) {
                 sendError(ctx, WebsocketExceptionEnum.INVALID_MESSAGE);
                 return;
+            }
+
+            // 检测是否为同步请求的回复消息：若 requestId 不为空，尝试匹配待处理的同步请求
+            String requestId = request.getRequestId();
+            if (requestId != null) {
+                boolean completed = webSocketSyncManager.complete(requestId, request.getData());
+                if (completed) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("同步请求回复已匹配 [requestId={}]", requestId);
+                    }
+                    return;
+                }
+                log.debug("同步请求ID未找到匹配项，按普通消息分发 [requestId={}]", requestId);
             }
 
             String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);

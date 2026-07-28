@@ -34,6 +34,17 @@ public class WebSocketRequest<T> {
     private String cliKey;
 
     /**
+     * 同步请求的唯一标识。
+     * <p>
+     * 当服务端通过 {@link WebSocketUtils#sendSyncMsg(String, String, Object, long, java.util.concurrent.TimeUnit)}
+     * 发起同步请求时，框架自动生成此ID并填充到消息中。客户端处理完成后回复消息时需携带相同的 requestId，
+     * 框架据此匹配对应的等待线程并唤醒。
+     * 非同步消息时此字段为 null，向后兼容。
+     * </p>
+     */
+    private String requestId;
+
+    /**
      * 向当前客户端点对点推送消息。
      * <p>
      * 适用于长耗时处理中推送中间进度、状态更新等场景。

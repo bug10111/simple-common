@@ -2,6 +2,7 @@ package com.simple.common.websocket.init;
 
 import com.simple.common.websocket.common.manager.CheckWebSocketManager;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
+import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.initializer.WebSocketChannelInitializer;
 import io.netty.bootstrap.ServerBootstrap;
@@ -34,6 +35,9 @@ public class WebSocketStartInit implements ApplicationListener<ApplicationReadyE
 
     @Autowired
     private WebSocketListeningManager webSocketListeningManager;
+
+    @Autowired
+    private WebSocketSyncManager webSocketSyncManager;
 
     @Autowired
     private CheckWebSocketManager checkManager;
@@ -93,7 +97,7 @@ public class WebSocketStartInit implements ApplicationListener<ApplicationReadyE
                  // 日志处理器
                  .handler(new LoggingHandler(LogLevel.INFO))
                  // 通道初始化
-                 .childHandler(new WebSocketChannelInitializer(webSocketProperties, webSocketListeningManager, checkManager));
+                 .childHandler(new WebSocketChannelInitializer(webSocketProperties, webSocketListeningManager, webSocketSyncManager, checkManager));
     }
 
     /**

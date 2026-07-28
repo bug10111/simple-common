@@ -2,6 +2,7 @@ package com.simple.common.websocket.initializer;
 
 import com.simple.common.websocket.common.manager.CheckWebSocketManager;
 import com.simple.common.websocket.common.manager.WebSocketListeningManager;
+import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.handler.WebSocketAuthHandler;
 import com.simple.common.websocket.handler.WebSocketServerHandler;
@@ -25,11 +26,14 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
 
     private final WebSocketListeningManager webSocketListeningManager;
 
+    private final WebSocketSyncManager webSocketSyncManager;
+
     private final CheckWebSocketManager checkManager;
 
-    public WebSocketChannelInitializer(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager,CheckWebSocketManager checkManager) {
+    public WebSocketChannelInitializer(WebSocketProperties properties, WebSocketListeningManager webSocketListeningManager, WebSocketSyncManager webSocketSyncManager, CheckWebSocketManager checkManager) {
         this.properties = properties;
         this.webSocketListeningManager = webSocketListeningManager;
+        this.webSocketSyncManager = webSocketSyncManager;
         this.checkManager = checkManager;
     }
 
@@ -53,7 +57,7 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
         pipeline.addLast("auth-handler", new WebSocketAuthHandler(properties,checkManager));
 
         // WebSocket消息处理器
-        pipeline.addLast("websocketHandler", new WebSocketServerHandler(properties, webSocketListeningManager));
+        pipeline.addLast("websocketHandler", new WebSocketServerHandler(properties, webSocketListeningManager, webSocketSyncManager));
 
         // WebSocket协议处理器
         pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(properties.getPath(), true, properties.getMaxWebSocketFrameSize()));
