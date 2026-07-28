@@ -80,15 +80,15 @@
 ```yaml
 simple:
   ali:
-    access-key-id: your-access-key-id
-    access-key-secret: your-access-key-secret
+    access-key-id: your-access-key-id            # 阿里云 AccessKey ID [必填]
+    access-key-secret: your-access-key-secret    # 阿里云 AccessKey Secret [必填]
     sms:
-      ip-send-max: 20
-      phone-send-max: 5
-      time-inter: 60
-      out-time: 300
-      error-sum: 3
-      endpoint: dysmsapi.aliyuncs.com
+      ip-send-max: 20                            # 一天同一 IP 发送短信最大次数，默认 20
+      phone-send-max: 5                          # 一天同一手机号发送短信最大次数，默认 5
+      time-inter: 60                             # 发送最低时间间隔（秒），默认 60
+      out-time: 300                              # 验证码超时时间（秒），同时用于 Redis 错误计数器过期，默认 300
+      error-sum: 3                               # 每次短信验证码允许的错误验证次数，默认 3
+      endpoint: dysmsapi.aliyuncs.com            # 阿里云短信服务地址，默认 dysmsapi.aliyuncs.com
 ```
 
 ### 4.3 自动配置

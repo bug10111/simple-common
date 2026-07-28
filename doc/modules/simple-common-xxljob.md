@@ -64,14 +64,14 @@
 ```yaml
 xxl:
   job:
-    open: true
-    admin-addresses: http://127.0.0.1:8080/xxl-job-admin
-    access-token: default_token
-    executor-appname: simple-job-executor
-    executor-port: 9999
-    executor-log-path: /data/applogs/xxl-job/jobhandler
-    executor-log-retention-days: 30
-    request-timeout: 5000
+    open: true                                                   # 是否开启 xxl-job [必填]，设为 true 时配置生效
+    admin-addresses: http://127.0.0.1:8080/xxl-job-admin         # XXL-JOB Admin 地址 [必填]
+    access-token: default_token                                  # 访问令牌 [必填]，需与 Admin 端配置一致
+    executor-appname: simple-job-executor                        # 执行器名称 [必填]，需与 Admin 端执行器配置一致
+    executor-port: 9999                                          # 执行器端口 [必填]，用于 Admin 回调执行任务
+    executor-log-path: /data/applogs/xxl-job/jobhandler          # 执行器日志保存地址 [必填]
+    executor-log-retention-days: 30                              # 日志保存天数，默认无（建议设置）
+    request-timeout: 5000                                        # 手动调用 Admin API 的请求超时时间（毫秒）
 ```
 
 ### 4.2 自动配置

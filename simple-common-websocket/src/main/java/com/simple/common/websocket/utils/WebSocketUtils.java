@@ -206,7 +206,21 @@ public class WebSocketUtils {
         // 构建消息：使用 WebSocketRequest 统一格式，客户端统一以此格式收发
         WebSocketRequest<Object> request = new WebSocketRequest<>();
         request.setRequestId(requestId);
-        request.setData(data);
+
+        // 兼容处理：若 data 为 JSON 字符串，自动 parse 为 Map 避免 JSON 序列化时二次转义
+        // 客户端 SepSyncEnvelope.Data 为 JsonElement 类型，期望嵌套对象而非字符串
+        Object payload = data;
+        if (data instanceof String) {
+            String str = ((String) data).trim();
+            if (str.startsWith("{") || str.startsWith("[")) {
+                try {
+                    payload = JsonUtils.toJsonObj(str, Map.class);
+                } catch (Exception e) {
+                    log.debug("data 字符串非合法 JSON，保持原样发送 [error={}]", e.getMessage());
+                }
+            }
+        }
+        request.setData(payload);
         String json = JsonUtils.toJsonStr(request);
 
         // 发送消息到客户端

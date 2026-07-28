@@ -68,15 +68,15 @@ Redisson 配置类 [`RedissonConfig`](simple-common-redis/src/main/java/com/simp
 spring:
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
-      database: 0
-      password: yourpassword
-      timeout: 3000
+      host: 127.0.0.1              # Redis 服务器地址 [必填]，默认 localhost
+      port: 6379                    # Redis 服务器端口，默认 6379
+      database: 0                   # Redis 数据库索引，默认 0
+      password: yourpassword        # Redis 密码，默认空（不设置密码）
+      timeout: 3000                 # 连接超时时间（毫秒），默认 3000
 
 redisson:
-  open: true
-  connection-min-idle-size: 10
+  open: true                        # 是否开启 Redisson 自动配置，默认 true
+  connection-min-idle-size: 10      # Redisson 最小空闲连接数，默认 10
 ```
 
 > **条件装配**：`RedissonConfig` 和 `DefaultRedissonLockService` 均使用 `@ConditionalOnProperty(prefix = "redisson", name = "open", havingValue = "true", matchIfMissing = true)`，默认开启。如需关闭 Redisson，设置 `redisson.open=false`。
@@ -98,10 +98,10 @@ redisson:
 simple:
   cache:
     redis:
-      bag: true
-      default-bag: my-app-cache
-      no-return-value: null
-      no-parameters-key: key
+      bag: true                  # 是否为缓存Key添加包前缀，默认 true
+      default-bag: my-app-cache  # 缓存Key默认包前缀名称，默认 "default-cache"
+      no-return-value: null      # 方法返回空值时的缓存占位值，默认 "null"
+      no-parameters-key: key     # 方法无参数时的默认Key后缀，默认 "key"
 ```
 
 ### 4.3 锁配置（`simple.lock`）

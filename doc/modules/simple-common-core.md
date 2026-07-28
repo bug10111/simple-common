@@ -91,15 +91,15 @@
 ```yaml
 simple:
   thread-pool:
-    async-core-pool-size: 17
-    async-max-pool-size: 34
-    async-queue-capacity: 2000
-    async-keep-alive-seconds: 60
-    scheduled-core-pool-size: 4
-    scheduled-keep-alive-seconds: 60
-    scheduled-allow-core-thread-time-out: true
-    shutdown-await-termination-seconds: 120
-    shutdown-now-await-termination-seconds: 5
+    async-core-pool-size: 17                   # 异步线程池核心线程数，默认 CPU核心数 * 2 + 1
+    async-max-pool-size: 34                    # 异步线程池最大线程数，默认 asyncCorePoolSize * 2
+    async-queue-capacity: 2000                 # 异步线程池队列容量，默认 2000
+    async-keep-alive-seconds: 60               # 异步线程池空闲线程存活时间（秒），默认 60
+    scheduled-core-pool-size: 4                # 定时调度线程池核心线程数，默认 min(4, max(2, CPU核心数/2))
+    scheduled-keep-alive-seconds: 60           # 定时调度线程池空闲线程存活时间（秒），默认 60
+    scheduled-allow-core-thread-time-out: true # 是否允许定时调度核心线程超时回收，默认 true
+    shutdown-await-termination-seconds: 120    # 线程池关闭时等待任务完成的最大时间（秒），默认 120
+    shutdown-now-await-termination-seconds: 5  # 线程池强制关闭后的二次等待时间（秒），默认 5
 ```
 
 ### 4.2 锁配置（`simple.lock`）

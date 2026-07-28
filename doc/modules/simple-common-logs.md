@@ -192,22 +192,22 @@ graph TD
 simple:
   logs:
     client:
-      host: 192.168.1.100
-      port: 9999
-      connect-timeout: 5000
-      reconnect-interval: 5000
-      max-reconnect-attempts: -1
-      worker-threads: 4
-      buffer-capacity: 20000
-      batch-size: 200
-      batch-flush-interval: 500
-      fallback-enabled: true
-      fallback-dir: ./logs_fallback
-      fallback-file-max-size: 10485760
-      fallback-resend-enabled: true
-      fallback-resend-max-files-per-round: 5
-      fallback-file-retention-days: 7
-      max-body-cache-size: 1048576
+      host: 192.168.1.100                  # 日志服务端主机地址 [必填]，默认 127.0.0.1
+      port: 9999                            # 日志服务端端口，默认 9999（1024-65535）
+      connect-timeout: 5000                 # 连接超时时间（毫秒），默认 5000
+      reconnect-interval: 5000              # 重连间隔时间（毫秒），默认 5000
+      max-reconnect-attempts: -1            # 最大重连次数，默认 -1 表示无限重连
+      worker-threads: 4                     # Netty EventLoopGroup 线程数，默认 max(2, CPU核心数)
+      buffer-capacity: 20000                # 缓冲队列容量，默认 10000（100-100000）
+      batch-size: 200                       # 批量发送大小，默认 100（10-10000）
+      batch-flush-interval: 500             # 批量发送最大等待时间（毫秒），默认 500（50-5000）
+      fallback-enabled: true                # 是否启用本地文件降级存储，默认 true
+      fallback-dir: ./logs_fallback         # 降级存储目录，默认 ./logs_fallback
+      fallback-file-max-size: 10485760      # 降级文件最大大小（字节），默认 10MB，超过则轮转
+      fallback-resend-enabled: true         # 恢复后是否自动重发降级日志，默认 true
+      fallback-resend-max-files-per-round: 5 # 每次扫描最多处理文件数，默认 5，-1不限制
+      fallback-file-retention-days: 7       # 降级文件保留天数，默认 7，-1永不过期
+      max-body-cache-size: 1048576          # 请求体缓存最大大小（字节），默认 1MB，超过不缓存
 ```
 
 ### 4.2 服务端配置（`simple.logs.server`）
@@ -256,22 +256,22 @@ simple:
 simple:
   logs:
     server:
-      port: 9999
-      boss-threads: 1
-      worker-threads: 8
-      connect-timeout: 30000
-      max-connections: 1000
-      reader-idle-time: 10
-      batch-interval: 1000
-      batch-size: 1000
-      queue-capacity: 50000
-      wal-enabled: true
-      wal-dir: ./logs_wal
-      wal-file-max-size: 52428800
-      wal-recovery-enabled: true
-      wal-recovery-interval: 60000
-      dead-letter-enabled: true
-      dead-letter-dir: ./logs_deadletter
+      port: 9999                            # 服务端监听端口 [必填]，默认 9999（1024-65535）
+      boss-threads: 1                       # Boss线程数（处理连接接入），默认 1
+      worker-threads: 8                     # Worker线程数（处理IO读写），默认 CPU核心数×2
+      connect-timeout: 30000                # 连接超时时间（毫秒），默认 30000
+      max-connections: 1000                 # 最大连接数，默认 1000
+      reader-idle-time: 10                  # 读空闲超时时间（秒），默认 10
+      batch-interval: 1000                  # 日志批量处理间隔（毫秒），默认 1000
+      batch-size: 1000                      # 日志批量处理大小，默认 1000
+      queue-capacity: 50000                 # 内存队列容量，默认 50000（1000-500000）
+      wal-enabled: true                     # 是否启用 WAL 预写日志，默认 true
+      wal-dir: ./logs_wal                   # WAL 存储目录，默认 ./logs_wal
+      wal-file-max-size: 52428800           # WAL 文件最大大小（字节），默认 50MB，超过则轮转
+      wal-recovery-enabled: true            # 是否启用 WAL 自动恢复，默认 true
+      wal-recovery-interval: 60000          # WAL 恢复扫描间隔（毫秒），默认 60000
+      dead-letter-enabled: true             # 是否启用死信队列，默认 true
+      dead-letter-dir: ./logs_deadletter    # 死信队列存储目录，默认 ./logs_deadletter
 ```
 
 ### 4.3 自动配置

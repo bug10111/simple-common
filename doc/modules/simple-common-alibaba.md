@@ -92,9 +92,9 @@ spring:
       datasource:
         param-flow:
           nacos:
-            server-addr: ${NACOS_SERVER_ADDR:192.168.200.110:8848}
-            data-id: ${spring.application.name}-param-flow-rules
-            rule-type: param_flow
+            server-addr: ${NACOS_SERVER_ADDR:192.168.200.110:8848}  # Nacos 服务器地址 [必填]，支持环境变量 NACOS_SERVER_ADDR 覆盖，默认 192.168.200.110:8848
+            data-id: ${spring.application.name}-param-flow-rules       # Sentinel 参数流控规则在 Nacos 中的 Data ID [必填]，格式为 {服务名}-param-flow-rules
+            rule-type: param_flow                                      # 规则类型 [必填]，param_flow 表示 Sentinel 参数流控规则
 ```
 
 ### 4.3 限流规则配置（Nacos）

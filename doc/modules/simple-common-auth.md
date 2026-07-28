@@ -210,17 +210,17 @@ client 模块依赖：
 ```yaml
 simple:
   auth:
-    server-url: http://auth-center:8000
-    project-code: my-business-service
-    super-admin-role-key: admin
-    cache-type: REDIS
-    permission-cache-expire: 86400
+    server-url: http://auth-center:8000   # 认证服务端地址，默认 http://localhost:8000
+    project-code: my-business-service     # 项目编码 [必填]，用于权限隔离
+    super-admin-role-key: admin           # 超级管理员角色标识，默认 "admin"
+    cache-type: REDIS                     # 缓存类型（REDIS/LOCAL），默认 REDIS
+    permission-cache-expire: 86400        # 权限缓存过期时间（秒），默认 86400（24小时）
   sign:
-    sign-defense: true
-    cache-type: REDIS
+    sign-defense: true                    # 是否开启签名校验，默认 true
+    cache-type: REDIS                     # 签名 nonce 缓存类型，默认 REDIS
   csrf:
-    csrf-defense: true
-    cache-type: REDIS
+    csrf-defense: true                    # 是否开启 CSRF 防御，默认 true
+    cache-type: REDIS                     # CSRF Token 缓存类型，默认 REDIS
 ```
 
 ---

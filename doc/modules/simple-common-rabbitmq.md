@@ -102,19 +102,17 @@ graph TD
 ```yaml
 spring:
   rabbitmq:
-    host: 127.0.0.1
-    port: 5672
-    username: guest
-    password: guest
-    virtual-host: /
-    # 手动 ACK 模式（@RabbitMqConsumption 必须使用手动 ACK）
+    host: 127.0.0.1                         # RabbitMQ 服务器地址 [必填]
+    port: 5672                               # RabbitMQ 服务器端口，默认 5672
+    username: guest                          # 用户名 [必填]
+    password: guest                          # 密码 [必填]
+    virtual-host: /                          # 虚拟主机，默认 /
     listener:
       simple:
-        acknowledge-mode: manual
-        prefetch: 10
-    # 发布确认（发送失败持久化依赖此配置）
-    publisher-confirm-type: correlated
-    publisher-returns: true
+        acknowledge-mode: manual             # 手动 ACK 模式（@RabbitMqConsumption 必须使用手动 ACK）[必填]
+        prefetch: 10                         # 预取数量，默认 10
+    publisher-confirm-type: correlated       # 发布确认类型（发送失败持久化依赖此配置）[必填]
+    publisher-returns: true                  # 开启路由失败回调（发送失败持久化依赖此配置）[必填]
 ```
 
 > **关键前提**：`acknowledge-mode` 必须设置为 `manual`，否则 `@RabbitMqConsumption` 注解的防重/重试机制无法正常工作。`publisher-confirm-type: correlated` 和 `publisher-returns: true` 是发送失败持久化（ConfirmCallback / ReturnCallback）的前提。
@@ -147,12 +145,12 @@ spring:
 simple:
   mq:
     rabbitmq:
-      mq-package: "myapp:rabbitmq:"
-      delayed-exchange: "myapp.delayed.retry.exchange"
-      retry-count-ttl-seconds: 7200
-      retry-delay-base-ms: 3000
-      retry-delay-max-ms: 120000
-      lock-ttl-recovery-threshold-seconds: 10
+      mq-package: "myapp:rabbitmq:"                         # Redis Key 命名空间前缀，默认 "rabbitmq:"，用于隔离不同业务/环境
+      delayed-exchange: "myapp.delayed.retry.exchange"       # 延迟重试交换机名称，默认 "simple.delayed.retry.exchange"
+      retry-count-ttl-seconds: 7200                          # 重试计数 Redis Key 过期时间（秒），默认 3600
+      retry-delay-base-ms: 3000                              # 重试延迟基数（毫秒），默认 5000，首次重试延迟
+      retry-delay-max-ms: 120000                             # 最大重试延迟（毫秒），默认 60000，指数退避上限
+      lock-ttl-recovery-threshold-seconds: 10                # 僵尸锁恢复阈值（秒），默认 5，剩余 TTL 超过此值时缩短
 ```
 
 ### 4.3 属性校验

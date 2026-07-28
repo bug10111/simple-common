@@ -63,36 +63,27 @@
 
 ### Maven 依赖
 
-根据业务需要引入对应模块，`simple-common-core` 为必选基础模块：
+根据业务需要引入对应模块，`simple-common-core` 为必选基础模块。本项目未提供 BOM，需在每个依赖中显式指定版本号（当前版本 `1.0.1`）：
 
 ```xml
-<dependencyManagement>
-    <dependencies>
-        <dependency>
-            <groupId>com.simple.common</groupId>
-            <artifactId>simple-common-bom</artifactId>
-            <version>1.0.1</version>
-            <type>pom</type>
-            <scope>import</scope>
-        </dependency>
-    </dependencies>
-</dependencyManagement>
-
 <dependencies>
     <!-- 核心模块（必选） -->
     <dependency>
         <groupId>com.simple.common</groupId>
         <artifactId>simple-common-core</artifactId>
+        <version>1.0.1</version>
     </dependency>
 
     <!-- 按需引入其他模块 -->
     <dependency>
         <groupId>com.simple.common</groupId>
         <artifactId>simple-common-mp</artifactId>
+        <version>1.0.1</version>
     </dependency>
     <dependency>
         <groupId>com.simple.common</groupId>
         <artifactId>simple-common-redis</artifactId>
+        <version>1.0.1</version>
     </dependency>
 </dependencies>
 ```
@@ -105,16 +96,16 @@ spring:
   # Redis 连接（使用 redis/cache/auth 等模块时需要）
   data:
     redis:
-      host: 127.0.0.1
-      port: 6379
-      database: 0
+      host: 127.0.0.1        # Redis 服务器地址 [必填]
+      port: 6379              # Redis 服务器端口，默认 6379
+      database: 0             # Redis 数据库索引，默认 0
 
   # 数据源（使用 mp/sms 等模块时需要）
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/your_database
-    username: root
-    password: your_password
-    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/your_database  # JDBC 连接地址 [必填]，替换 your_database 为实际库名
+    username: root             # 数据库用户名 [必填]
+    password: your_password    # 数据库密码 [必填]
+    driver-class-name: com.mysql.cj.jdbc.Driver  # JDBC 驱动类名，默认 com.mysql.cj.jdbc.Driver
 ```
 
 ## 🏗️ 模块架构

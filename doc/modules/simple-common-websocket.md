@@ -96,19 +96,19 @@
 ```yaml
 simple:
   websocket:
-    port: 5558
-    path: /simple
-    boss-threads: 1
-    worker-threads: 16
-    reader-idle-time: 120
-    max-text-message-length: 1048576
+    port: 5558                            # WebSocket 服务端口 [必填]，默认 5558
+    path: /simple                         # WebSocket 握手路径，默认 "/simple"
+    boss-threads: 1                       # 接收连接线程数，默认 1
+    worker-threads: 16                    # 工作线程数，默认 CPU核心数 × 2
+    reader-idle-time: 120                 # 读空闲超时时间（秒），默认 120，超时关闭连接
+    max-text-message-length: 1048576      # 文本消息最大长度（字节），默认 1MB
     clean:
-      enabled: true
-      interval: 60
-      initial-delay: 30
+      enabled: true                       # 是否启用无效通道清理任务，默认 true
+      interval: 60                        # 清理间隔时间（秒），默认 60
+      initial-delay: 30                   # 初始延迟时间（秒），默认 30
     sync:
-      timeout: 30
-      clean-interval: 30
+      timeout: 30                         # 同步请求默认超时时间（秒），默认 30
+      clean-interval: 30                  # 同步请求清理间隔时间（秒），默认 30
 ```
 
 ### 4.2 自动配置
