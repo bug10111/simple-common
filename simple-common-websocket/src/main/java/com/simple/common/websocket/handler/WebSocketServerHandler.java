@@ -11,7 +11,9 @@ import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.utils.WebSocketUtils;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
-import io.netty.handler.codec.http.websocketx.*;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,22 +52,17 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 
     /**
      * 处理WebSocket帧
+     * <p>
+     * Close/Ping/Pong 帧已由 WebSocketServerProtocolHandler 自动处理，此处仅处理数据帧。
+     * </p>
      */
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
         if (frame instanceof TextWebSocketFrame) {
             handleTextFrame(ctx, (TextWebSocketFrame) frame);
         } else if (frame instanceof BinaryWebSocketFrame) {
             handleBinaryFrame(ctx, (BinaryWebSocketFrame) frame);
-        } else if (frame instanceof PingWebSocketFrame) {
-            ctx.writeAndFlush(new PongWebSocketFrame(frame.content().retain()));
-        } else if (frame instanceof PongWebSocketFrame) {
-            log.debug("收到Pong帧");
-        } else if (frame instanceof CloseWebSocketFrame) {
-            log.debug("收到关闭帧");
-            ctx.close();
         } else {
-            log.warn("不支持的消息帧类型: {}", frame.getClass().getSimpleName());
-            sendError(ctx, WebsocketExceptionEnum.UNSUPPORTED_FRAME);
+            log.debug("收到非数据帧，已由协议处理器处理: {}", frame.getClass().getSimpleName());
         }
     }
 
@@ -128,7 +125,12 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
 
             // 提交到业务线程池异步执行，避免阻塞 Netty EventLoop
             ThreadUtils.supplyAsync(() -> webSocketListeningManager.invoke(channelType, channelCliKey, request))
-                       .thenAccept(result -> result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o)))));
+                       .thenAccept(result -> result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o)))))
+                       .exceptionally(e -> {
+                           log.error("消息处理异常 [type={}, cliKey={}]", channelType, WebSocketUtils.maskKey(channelCliKey), e);
+                           sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());
+                           return null;
+                       });
         } catch (Exception e) {
             log.error("消息处理异常", e);
             sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());

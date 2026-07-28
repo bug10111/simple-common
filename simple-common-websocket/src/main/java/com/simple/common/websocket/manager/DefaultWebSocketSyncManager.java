@@ -5,12 +5,14 @@ import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.utils.WebSocketUtils;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -33,6 +35,11 @@ public class DefaultWebSocketSyncManager implements WebSocketSyncManager {
      */
     private final ConcurrentHashMap<String, CompletableFuture<Object>> pendingRequests = new ConcurrentHashMap<>();
 
+    /**
+     * 定时清理任务句柄，用于应用关闭时取消
+     */
+    private ScheduledFuture<?> cleanFuture;
+
     public DefaultWebSocketSyncManager(@Autowired WebSocketProperties properties) {
         this.properties = properties;
     }
@@ -51,7 +58,18 @@ public class DefaultWebSocketSyncManager implements WebSocketSyncManager {
         WebSocketUtils.setDefaultSyncTimeout(syncConfig.getTimeout());
 
         // 启动定时清理任务，定期清理已超时或已取消的 Future
-        ThreadUtils.scheduleWithFixedDelaySafe(this::cleanTimeoutRequests, syncConfig.getInitialDelay(), syncConfig.getCleanInterval(), TimeUnit.SECONDS);
+        cleanFuture = ThreadUtils.scheduleWithFixedDelaySafe(this::cleanTimeoutRequests, syncConfig.getInitialDelay(), syncConfig.getCleanInterval(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * 应用关闭时取消定时清理任务
+     */
+    @PreDestroy
+    public void shutdown() {
+        if (cleanFuture != null && !cleanFuture.isCancelled()) {
+            cleanFuture.cancel(false);
+            log.info("同步请求清理定时任务已取消");
+        }
     }
 
     @Override

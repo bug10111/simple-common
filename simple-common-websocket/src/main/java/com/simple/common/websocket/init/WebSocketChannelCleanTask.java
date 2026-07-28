@@ -3,12 +3,14 @@ package com.simple.common.websocket.init;
 import com.simple.common.core.utils.ThreadUtils;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.utils.WebSocketUtils;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -25,6 +27,11 @@ public class WebSocketChannelCleanTask implements ApplicationListener<Applicatio
 
     private final WebSocketProperties webSocketProperties;
 
+    /**
+     * 定时任务句柄，用于应用关闭时取消
+     */
+    private ScheduledFuture<?> scheduledFuture;
+
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         WebSocketProperties.CleanConfig cleanConfig = webSocketProperties.getClean();
@@ -33,7 +40,18 @@ public class WebSocketChannelCleanTask implements ApplicationListener<Applicatio
             return;
         }
         log.info("启动WebSocket无效通道清理定时任务，初始延迟: {}秒，间隔: {}秒", cleanConfig.getInitialDelay(), cleanConfig.getInterval());
-        ThreadUtils.scheduleWithFixedDelay(this::cleanInactiveChannels, cleanConfig.getInitialDelay(), cleanConfig.getInterval(), TimeUnit.SECONDS);
+        scheduledFuture = ThreadUtils.scheduleWithFixedDelaySafe(this::cleanInactiveChannels, cleanConfig.getInitialDelay(), cleanConfig.getInterval(), TimeUnit.SECONDS);
+    }
+
+    /**
+     * 应用关闭时取消定时任务
+     */
+    @PreDestroy
+    public void shutdown() {
+        if (scheduledFuture != null && !scheduledFuture.isCancelled()) {
+            scheduledFuture.cancel(false);
+            log.info("WebSocket无效通道清理定时任务已取消");
+        }
     }
 
     /**

@@ -2,7 +2,10 @@ package com.simple.common.websocket.common.channel;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
@@ -176,7 +179,12 @@ public class ChannelMap<K, V, T> {
      * @return 条目列表
      */
     public List<Map.Entry<String, T>> entries() {
-        return new ArrayList<>(valueMap.entrySet());
+        lock.readLock().lock();
+        try {
+            return new ArrayList<>(valueMap.entrySet());
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     /**
