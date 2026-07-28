@@ -52,8 +52,7 @@ public class WebSocketListeningInit implements ApplicationListener<ApplicationRe
      */
     private Class<?> extractDataType(Method method) {
         Type[] genericParamTypes = method.getGenericParameterTypes();
-        if (genericParamTypes.length == 1 && genericParamTypes[0] instanceof ParameterizedType) {
-            ParameterizedType paramType = (ParameterizedType) genericParamTypes[0];
+        if (genericParamTypes.length == 1 && genericParamTypes[0] instanceof ParameterizedType paramType) {
             Type[] actualTypeArgs = paramType.getActualTypeArguments();
             if (actualTypeArgs.length > 0 && actualTypeArgs[0] instanceof Class) {
                 return (Class<?>) actualTypeArgs[0];

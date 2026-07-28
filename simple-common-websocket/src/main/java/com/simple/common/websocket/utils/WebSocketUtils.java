@@ -3,13 +3,13 @@ package com.simple.common.websocket.utils;
 import com.simple.common.core.utils.IdUtils;
 import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.websocket.common.channel.ChannelMap;
+import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -171,9 +171,10 @@ public class WebSocketUtils {
      *
      * <h3>客户端协议约定：</h3>
      * <p>
-     * 客户端收到消息格式为 {@code {"requestId":"xxx", "data":{...}}}，
-     * 处理完成后回复消息时必须携带相同的 requestId：
-     * {@code {"requestId":"xxx", "data":{...}}}。
+     * 服务端与客户端统一使用 {@link WebSocketRequest} 格式收发消息。
+     * 服务端发起同步请求时，消息中 requestId 字段非空；
+     * 客户端处理完成后回复消息时需携带相同的 requestId，
+     * 框架据此匹配对应的等待线程并唤醒。
      * </p>
      *
      * @param <T>     返回数据类型
@@ -202,11 +203,11 @@ public class WebSocketUtils {
         // 注册到同步管理器，等待客户端回复
         syncManager.register(requestId, future);
 
-        // 构建消息 {"requestId":"xxx", "data":{...}}
-        Map<String, Object> message = new HashMap<>();
-        message.put("requestId", requestId);
-        message.put("data", data);
-        String json = JsonUtils.toJsonStr(message);
+        // 构建消息：使用 WebSocketRequest 统一格式，客户端统一以此格式收发
+        WebSocketRequest<Object> request = new WebSocketRequest<>();
+        request.setRequestId(requestId);
+        request.setData(data);
+        String json = JsonUtils.toJsonStr(request);
 
         // 发送消息到客户端
         boolean sent = sendMsg(type, cliKey, json);
