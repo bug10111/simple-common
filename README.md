@@ -13,6 +13,20 @@
 
 所有模块均基于 Spring Boot AutoConfiguration 自动装配机制，引入依赖即可使用，零配置启动。
 
+## 设计理念
+
+- **模块化设计** - 各功能模块独立封装，按需引入，减少依赖冗余
+- **高度可扩展** - 继承/接口/责任链轻松扩展，默认实现前缀`Default`
+- **无侵入集成** - 现有项目直接引入使用，无需修改原有代码
+- **统一规范** - 命名/service/manager/Process后缀标准化，异常/响应统一封装
+
+## 适用场景
+
+- **新项目快速启动** - 直接使用框架提供的功能模块，快速搭建项目
+- **旧项目功能增强** - 按需引入特定模块，无侵入式增强项目功能
+- **微服务架构** - 模块化设计支持微服务拆分，单体应用可平滑过渡到微服务
+- **政府/国企项目** - 完整国密算法支持(SM2/SM3/SM4)，符合安全合规要求
+
 ## ✨ 核心特性
 
 - 🔧 **核心工具集** — 统一响应封装、断言工具、雪花ID、JSON转化、加解密（AES/SM4/RSA/SM2/BCrypt）、线程池、分布式锁、循环任务
@@ -145,6 +159,22 @@ spring:
     └───────────┘    └───────────┘    └───────────┘
 ```
 
+## 命名规范说明
+
+框架遵循统一的命名规范，便于理解和使用：
+
+- **service后缀**：表示为本模块对外提供的核心功能接口。默认实现前缀加 `Default`。
+    - 示例：`LoginService` → `DefaultLoginService`、`SmsService` → `AliSmsService`
+
+- **manager后缀**：表示为本模块内部提供支撑的接口。默认实现前缀加 `Default`。
+    - 示例：`TokenManager` → `DefaultTokenManager`、`WhiteManager` → `DefaultWhiteManager`
+
+- **Process后缀**：责任链处理接口，配合枚举使用。
+    - 示例：`AuthProcess`、`LoginErrorProcess`、`CheckSmsProcess`
+
+- **Abs前缀**：抽象基类，提供通用实现逻辑。
+    - 示例：`AbsLoginManager`、`AbsSmsService`、`AbsLogsSaveManager`
+
 ## 📚 详细文档
 
 各模块的完整文档（包含核心类说明、配置项、使用示例、扩展点、注意事项）请查看：
@@ -188,3 +218,109 @@ spring:
 本项目基于 [Apache License 2.0](LICENSE) 开源协议发布。
 
 Copyright 2024 qty
+
+## 致谢
+
+Simple-Common 框架的发展离不开以下优秀开源项目的支持：
+
+### 核心框架
+
+- **[Spring Boot](https://spring.io/projects/spring-boot)** - 应用开发框架
+    - Copyright (c) Pivotal Software, Inc.
+    - Licensed under Apache License 2.0
+
+- **[Spring Cloud](https://spring.io/projects/spring-cloud)** - 微服务框架
+    - Copyright (c) Pivotal Software, Inc.
+    - Licensed under Apache License 2.0
+
+- **[MyBatis-Plus](https://baomidou.com/)** - MyBatis 增强工具
+    - Copyright (c) baomidou
+    - Licensed under Apache License 2.0
+
+### 数据存储
+
+- **[Redis](https://redis.io/)** - 内存数据库
+    - Copyright (c) Redis Ltd.
+    - Licensed under BSD 3-Clause
+
+- **[Redisson](https://redisson.org/)** - Redis Java 客户端
+    - Copyright (c) Nikita Koksharov
+    - Licensed under Apache License 2.0
+
+- **[PostgreSQL](https://www.postgresql.org/)** / **[MySQL](https://www.mysql.com/)** - 关系型数据库
+    - PostgreSQL: Copyright (c) The PostgreSQL Global Development Group
+    - MySQL: Copyright (c) Oracle Corporation
+
+### 消息队列
+
+- **[RabbitMQ](https://www.rabbitmq.com/)** - 消息代理
+    - Copyright (c) VMware, Inc. or its affiliates
+    - Licensed under Mozilla Public License 2.0
+
+- **[Spring AMQP](https://spring.io/projects/spring-amqp)** - AMQP 支持
+    - Copyright (c) Pivotal Software, Inc.
+    - Licensed under Apache License 2.0
+
+### 文档与 API
+
+- **[Swagger/OpenAPI](https://swagger.io/)** - API 文档生成
+    - Copyright (c) SmartBear Software
+    - Licensed under Apache License 2.0
+
+- **[SpringDoc](https://springdoc.org/)** - OpenAPI 3 集成
+    - Copyright (c) springdoc
+    - Licensed under Apache License 2.0
+
+### 数据处理
+
+- **[EasyExcel](https://easyexcel.opensource.alibaba.com/)** - Excel 处理
+    - Copyright (c) Alibaba Group
+    - Licensed under Apache License 2.0
+
+- **[Apache POI](https://poi.apache.org/)** - Office 文档处理
+    - Copyright (c) The Apache Software Foundation
+    - Licensed under Apache License 2.0
+
+- **[Hutool](https://hutool.cn/)** - Java 工具类库
+    - Copyright (c) looly
+    - Licensed under MIT License
+
+### 对象存储
+
+- **[MinIO](https://min.io/)** - 高性能对象存储
+    - Copyright (c) MinIO, Inc.
+    - Licensed under GNU AGPL v3
+
+- **[AWS SDK for Java](https://aws.amazon.com/sdk-for-java/)** - AWS S3 SDK
+    - Copyright (c) Amazon.com, Inc. or its affiliates
+    - Licensed under Apache License 2.0
+
+### 日志与监控
+
+- **[Protobuf](https://developers.google.com/protocol-buffers)** - 数据序列化
+    - Copyright (c) Google LLC
+    - Licensed under BSD 3-Clause
+
+- **[Elasticsearch](https://www.elastic.co/elasticsearch)** - 搜索引擎（可选）
+    - Copyright (c) Elasticsearch BV
+    - Licensed under Elastic License 2.0 / SSPL
+
+### 其他依赖
+
+- **[Lombok](https://projectlombok.org/)** - 代码简化工具
+    - Copyright (c) The Project Lombok Authors
+    - Licensed under MIT License
+
+- **[Jackson](https://github.com/FasterXML/jackson)** - JSON 处理
+    - Copyright (c) FasterXML
+    - Licensed under Apache License 2.0
+
+- **[Netty](https://netty.io/)** - 网络应用框架
+    - Copyright (c) The Netty Project
+    - Licensed under Apache License 2.0
+
+- **[Caffeine](https://github.com/ben-manes/caffeine)** - 高性能缓存库
+    - Copyright (c) Ben Manes
+    - Licensed under Apache License 2.0
+
+感谢以上所有开源项目的作者和贡献者，正是你们的辛勤工作让 Simple-Common 成为可能！
