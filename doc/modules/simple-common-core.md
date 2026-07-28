@@ -212,7 +212,7 @@ simple:
 |---------|--------|------|
 | `getSnowflakeNextIdStr()` | `String` | 雪花ID（基于本机IP保证分布式唯一） |
 | `getFastSimpleUUID()` | `String` | UUID去掉横线 |
-| `getFastUUID()` | `String` | 标准UUID |
+| `getFastUUID()` | `String` | UUID（去掉横线） |
 | `randomNumbers()` | `String` | 9位随机数字 |
 | `randomNumbers(int length)` | `String` | 指定长度随机数字 |
 

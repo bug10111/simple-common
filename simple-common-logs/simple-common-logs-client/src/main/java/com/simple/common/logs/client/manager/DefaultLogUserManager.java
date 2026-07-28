@@ -27,7 +27,7 @@ import org.springframework.stereotype.Component;
  */
 @Slf4j
 @Component
-public class DefaultLogUserManager implements LogUserManager {
+public abstract class DefaultLogUserManager implements LogUserManager {
 
     @Override
     public String loginNickName() {

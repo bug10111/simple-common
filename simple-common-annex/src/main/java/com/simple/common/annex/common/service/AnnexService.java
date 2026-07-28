@@ -12,7 +12,7 @@ import java.io.InputStream;
  * <p>
  * 提供统一的文件上传、下载、删除等功能。
  * 基于S3协议实现,支持MinIO、阿里云OSS、AWS S3等存储服务。
- * 默认实现 {@link com.simple.common.annex.service.DefaultAnnexService} 封装了文件类型校验、大小限制等业务逻辑。
+ * 默认实现 {@link com.simple.common.annex.service.S3AnnexService} 封装了文件类型校验、大小限制等业务逻辑。
  * </p>
  *
  * <h3>使用场景：</h3>

@@ -9,7 +9,7 @@ import java.io.InputStream;
  * <p>
  * 提供基于S3协议的文件上传、下载、删除等操作功能。
  * 支持MinIO、阿里云OSS、AWS S3等兼容S3协议的存储服务。
- * 默认实现 {@link com.simple.common.annex.manager.DefaultS3Manager} 基于 AWS SDK 实现。
+ * 默认实现 {@link com.simple.common.annex.manager.DefaultS3Handler} 基于 AWS SDK 实现。
  * </p>
  *
  * <h3>使用场景：</h3>
