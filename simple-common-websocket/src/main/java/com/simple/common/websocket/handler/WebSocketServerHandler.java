@@ -85,12 +85,6 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        if (log.isDebugEnabled()) {
-            String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
-            String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
-            log.debug("收到消息 [type={}, cliKey={}, length={}]", type, WebSocketUtils.maskKey(cliKey), text.length());
-        }
-
         try {
             WebSocketRequest<?> request = JSON.parseObject(text, WebSocketRequest.class);
             if (request == null) {

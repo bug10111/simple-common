@@ -4,6 +4,9 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 .trae/**
+.kilocode/**
+doc/dev-plan/**
+doc/http/**
 
 ### STS ###
 .apt_generated

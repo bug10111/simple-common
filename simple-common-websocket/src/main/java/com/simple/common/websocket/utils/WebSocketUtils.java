@@ -218,8 +218,6 @@ public class WebSocketUtils {
             throw new RuntimeException("客户端不在线 [type=" + type + ", cliKey=" + cliKey + "]");
         }
 
-        log.debug("同步请求已发送 [type={}, cliKey={}, requestId={}]", type, maskKey(cliKey), requestId);
-
         try {
 
             // 阻塞等待客户端回复
