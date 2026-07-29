@@ -11,6 +11,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolConfig;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.IdleStateHandler;
@@ -57,10 +58,17 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
         pipeline.addLast("auth-handler", new WebSocketAuthHandler(properties,checkManager));
 
         // WebSocket协议处理器（握手升级 + Close/Ping/Pong 自动处理）
-        // 使用 (path, checkStartsWith=true, maxFrameSize) 三参数构造：
+        // 使用 WebSocketServerProtocolConfig.Builder 构建完整配置：
         // checkStartsWith=true 使路径前缀匹配（兼容 /simple?type=... 等 query string），
-        // maxFrameSize 支持大数据量通讯。
-        pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(properties.getPath(), true, properties.getMaxWebSocketFrameSize()));
+        // maxFramePayloadLength 控制帧解码器 WebSocket08FrameDecoder 的最大帧载荷长度，
+        // 必须显式设置，否则使用 Netty 默认值 65536（64KB），大数据量通讯会触发 CorruptedWebSocketFrameException。
+        WebSocketServerProtocolConfig wsConfig = WebSocketServerProtocolConfig.newBuilder()
+                .websocketPath(properties.getPath())
+                .checkStartsWith(true)
+                .maxFramePayloadLength(properties.getMaxWebSocketFrameSize())
+                .build();
+
+        pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(wsConfig));
 
         // WebSocket消息处理器（仅处理 Text/Binary 数据帧）
         pipeline.addLast("websocketHandler", new WebSocketServerHandler(properties, webSocketListeningManager, webSocketSyncManager));
