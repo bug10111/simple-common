@@ -1,69 +1,185 @@
 # simple-common
 
-> 基于 Spring Boot 3 的 Java 通用框架工具集，提供从核心工具到分布式架构的全栈基础设施封装。
+> 基于 Spring Boot 3 的 Java 企业级通用基础框架 —— 16 个独立模块，按需引入，零配置启动。
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 [![Java](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://www.oracle.com/java/)
-[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.x-green.svg)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.3.4-green.svg)](https://spring.io/projects/spring-boot)
 [![Maven](https://img.shields.io/badge/Maven-1.0.1-red.svg)](https://central.sonatype.com/)
 
-## 📖 项目简介
+`simple-common` 是一套面向中大型 Java 后端项目的通用基础组件库。采用严格的模块化设计，每个模块独立解耦、按需引入，基于 Spring Boot AutoConfiguration 实现自动装配。开箱即用，无需修改原有代码结构。
 
-**simple-common** 是一套基于 Spring Boot 3 的 Java 通用框架工具集，旨在为业务系统提供开箱即用的基础设施能力。项目采用模块化设计，各模块独立解耦、按需引入，覆盖从核心工具类、数据访问、缓存、消息队列、权限认证、文件管理到实时通信等企业级开发场景。
+---
 
-所有模块均基于 Spring Boot AutoConfiguration 自动装配机制，引入依赖即可使用，零配置启动。
+## 技术栈
 
-## 设计理念
+| 分类 | 技术 | 版本 |
+|------|------|------|
+| 基础框架 | Spring Boot | 3.3.4 |
+| 微服务 | Spring Cloud | 2023.0.3 |
+| 微服务 | Spring Cloud Alibaba | 2023.0.3.4 |
+| ORM | MyBatis-Plus | 3.5.9 |
+| 缓存 | Redisson | 3.36.0 |
+| 消息队列 | RabbitMQ | — |
+| WebSocket | Netty | 4.1.100.Final |
+| 日志传输 | Protobuf | 3.24.0 |
+| 任务调度 | XXL-JOB | 2.4.1 |
+| Excel | EasyExcel + Apache POI | 4.0.3 / 5.2.3 |
+| Word | Poi-Tl | 1.12.2 |
+| 工具库 | Hutool | 5.8.38 |
+| JSON | Fastjson2 | 2.0.61 |
+| JWT | jjwt | 0.12.6 |
+| Java | JDK | 17+ |
 
-- **模块化设计** - 各功能模块独立封装，按需引入，减少依赖冗余
-- **高度可扩展** - 继承/接口/责任链轻松扩展，默认实现前缀`Default`
-- **无侵入集成** - 现有项目直接引入使用，无需修改原有代码
-- **统一规范** - 命名/service/manager/Process后缀标准化，异常/响应统一封装
+---
 
 ## 适用场景
 
-- **新项目快速启动** - 直接使用框架提供的功能模块，快速搭建项目
-- **旧项目功能增强** - 按需引入特定模块，无侵入式增强项目功能
-- **微服务架构** - 模块化设计支持微服务拆分，单体应用可平滑过渡到微服务
-- **政府/国企项目** - 完整国密算法支持(SM2/SM3/SM4)，符合安全合规要求
+- **新项目快速启动** — 直接使用框架提供的功能模块，快速搭建项目
+- **旧项目功能增强** — 按需引入特定模块，无侵入式增强项目功能
+- **微服务架构** — 模块化设计支持微服务拆分，单体应用可平滑过渡到微服务
+- **政府/国企项目** — 完整国密算法支持（SM2/SM3/SM4），符合安全合规要求
 
-## ✨ 核心特性
+---
 
-- 🔧 **核心工具集** — 统一响应封装、断言工具、雪花ID、JSON转化、加解密（AES/SM4/RSA/SM2/BCrypt）、线程池、分布式锁、循环任务
-- 🗄️ **MyBatis-Plus 增强** — 分页基类、雪花ID自动生成、审计字段自动填充、数据权限拦截器
-- 💾 **两级缓存** — Caffeine 本地缓存 + Redis 分布式缓存，防击穿/穿透/雪崩
-- 🔴 **Redis 声明式** — `@RedisCache` 声明式缓存、`@CurrentLimiting` 接口限流、Redisson 高级分布式锁
-- 🔐 **权限认证** — `@HasAuthority` 权限校验、`@Sign` 签名验证、`@CsrfDefense` CSRF 防御、JWT Token 管理
-- 🛡️ **Sentinel 限流** — 按用户ID的两级限流（接口级+全局级）、Feign 客户端统一配置
-- 📁 **文件管理** — S3 协议统一接口（MinIO/阿里云OSS/AWS S3），上传/下载/签名URL/删除
-- 📝 **Word 文档** — 基于 Poi-Tl 的模板替换，支持文本/图片/表格/列表/超链接
-- 📡 **事件驱动** — `@Event` + `@EventHandler` 事件总线，支持同步/异步MQ/延迟发布/循环重试
-- 📊 **Excel 导入导出** — EasyExcel + POI 双引擎，流式分批写入、SAX 事件驱动读取
-- 📋 **日志收集** — TCP + Protobuf 高性能日志收集，缓冲队列批量发送、失败降级、优雅停机
-- 🐰 **消息队列** — RabbitMQ 封装，防重复消费、指数退避重试、死信队列、发送失败持久化
-- 📱 **短信服务** — 验证码发送/校验、模板短信、发送前校验责任链（手机号/时间间隔/IP限制）
-- 🔌 **WebSocket** — Netty WebSocket，`@WebSocketListening` 消息分发、多端登录、同步请求响应
-- ⏰ **任务调度** — XXL-JOB HTTP API 动态管理任务（创建/启动/停止/触发/删除）
-
-## 📦 模块总览
+## 模块总览
 
 | 模块 | 说明 | 文档 |
 |------|------|------|
-| simple-common-core | 核心基础模块（R/AssertUtils/IdUtils/CryptoUtil/ThreadUtils等） | [📖 文档](doc/modules/simple-common-core.md) |
-| simple-common-mp | MyBatis-Plus 封装（PageBase/CustomIdGenerator/数据权限） | [📖 文档](doc/modules/simple-common-mp.md) |
-| simple-common-cache | 两级缓存（Caffeine + Redis，防击穿/穿透/雪崩） | [📖 文档](doc/modules/simple-common-cache.md) |
-| simple-common-redis | Redis 声明式缓存/接口限流/Redisson 分布式锁 | [📖 文档](doc/modules/simple-common-redis.md) |
-| simple-common-auth | 权限认证（@HasAuthority/@Sign/@CsrfDefense/JWT/登录管理） | [📖 文档](doc/modules/simple-common-auth.md) |
-| simple-common-alibaba | Sentinel 两级限流 + Feign 客户端配置 | [📖 文档](doc/modules/simple-common-alibaba.md) |
-| simple-common-annex | S3 文件管理（MinIO/OSS/S3，上传/下载/签名URL） | [📖 文档](doc/modules/simple-common-annex.md) |
-| simple-common-doc | Word 模板替换（Poi-Tl，文本/图片/表格/列表） | [📖 文档](doc/modules/simple-common-doc.md) |
-| simple-common-eventbus | 事件驱动架构（同步/异步MQ/延迟发布/循环重试） | [📖 文档](doc/modules/simple-common-eventbus.md) |
+| simple-common-core | 核心基础：统一响应、雪花ID、加解密、线程池、分布式锁 | [📖 文档](doc/modules/simple-common-core.md) |
+| simple-common-mp | MyBatis-Plus 增强：分页基类、审计字段自动填充、数据权限 | [📖 文档](doc/modules/simple-common-mp.md) |
+| simple-common-cache | 两级缓存：Caffeine + Redis，防击穿/穿透/雪崩 | [📖 文档](doc/modules/simple-common-cache.md) |
+| simple-common-redis | Redis 声明式：@RedisCache、@CurrentLimiting、Redisson 锁 | [📖 文档](doc/modules/simple-common-redis.md) |
+| simple-common-auth | 权限认证：@HasAuthority、@Sign、@CsrfDefense、JWT Token | [📖 文档](doc/modules/simple-common-auth.md) |
+| simple-common-alibaba | Sentinel 两级限流 + Feign 统一配置 | [📖 文档](doc/modules/simple-common-alibaba.md) |
+| simple-common-annex | S3 协议文件管理（MinIO / 阿里云OSS / AWS S3） | [📖 文档](doc/modules/simple-common-annex.md) |
+| simple-common-doc | Word 模板替换（Poi-Tl） | [📖 文档](doc/modules/simple-common-doc.md) |
 | simple-common-excel | Excel 导入导出（EasyExcel + POI 双引擎） | [📖 文档](doc/modules/simple-common-excel.md) |
-| simple-common-logs | TCP+Protobuf 日志收集（client/proto/server） | [📖 文档](doc/modules/simple-common-logs.md) |
-| simple-common-rabbitmq | RabbitMQ 消息队列（防重复消费/重试/死信） | [📖 文档](doc/modules/simple-common-rabbitmq.md) |
+| simple-common-eventbus | 事件驱动架构（同步/异步MQ/延迟发布） | [📖 文档](doc/modules/simple-common-eventbus.md) |
+| simple-common-logs | TCP + Protobuf 高性能日志收集（client + server） | [📖 文档](doc/modules/simple-common-logs.md) |
+| simple-common-rabbitmq | RabbitMQ 消息队列（防重复消费、重试、死信） | [📖 文档](doc/modules/simple-common-rabbitmq.md) |
 | simple-common-sms | 短信服务（验证码/模板短信/校验责任链） | [📖 文档](doc/modules/simple-common-sms.md) |
-| simple-common-websocket | Netty WebSocket（消息分发/多端登录/同步请求） | [📖 文档](doc/modules/simple-common-websocket.md) |
+| simple-common-websocket | Netty WebSocket（多端登录、注解式消息分发） | [📖 文档](doc/modules/simple-common-websocket.md) |
 | simple-common-xxljob | XXL-JOB 分布式任务调度（HTTP API 动态管理） | [📖 文档](doc/modules/simple-common-xxljob.md) |
+
+---
+
+## 核心特性
+
+### 🔧 核心工具集（simple-common-core）
+
+所有模块的基础依赖，提供项目级通用能力：
+
+- **统一响应** `R<T>` — 标准化 `{code, message, data}` 响应结构
+- **雪花 ID / UUID** — `IdUtils` 分布式唯一 ID 生成
+- **加解密** — `CryptoUtil` 支持 AES / SM4 / RSA / SM2 / BCrypt，覆盖国密场景
+- **线程池 & 定时任务** — `ThreadUtils` 统一线程池管理
+- **分布式锁** — `LockService` 接口化分布式锁
+- **JSON 转化** — `JsonUtils` 基于 Fastjson2
+- **Bean 拷贝** — `BeanUtils` 继承 Hutool BeanUtil，增强属性复制
+- **签名工具** — `SignUtils` 接口签名验证
+- **二维码** — `QRCodeUtils` 基于 ZXing
+
+### 🗄️ MyBatis-Plus 增强（simple-common-mp）
+
+- `PageBase` 分页基类（current / size / pageSort 排序）
+- `CustomIdGenerator` 雪花 ID 自动生成
+- `MybatisPlusOperationHandler` 自动填充 `createTime` / `updateTime`
+- `@DataScopeTable` 数据权限注解
+
+### 💾 两级缓存（simple-common-cache）
+
+Caffeine 本地缓存 + Redis 分布式缓存双层架构：
+
+- `CacheUtils` 防缓存击穿 / 穿透 / 雪崩的分布式缓存获取
+- Caffeine 支持手动加载和自动加载两种模式
+- 随机过期时间防雪崩
+
+### 🔴 Redis 声明式（simple-common-redis）
+
+- `@RedisCache` — 声明式缓存，随机过期防雪崩
+- `@CurrentLimiting` — 接口限流（按 URL / 用户ID / IP 维度）
+- `RedissonLockService` — 可重入锁 / 公平锁 / CountDownLatch / Semaphore
+
+### 🔐 权限认证（simple-common-auth）
+
+分为 `auth-client` 和 `auth-server` 两个子模块：
+
+- `@HasAuthority` — 基于注解的权限校验
+- `@Sign` — 接口签名验证
+- `@CsrfDefense` — CSRF 防御
+- `LoginManager` / `LoginService` — 登录管理
+- `TokenManager` — JWT Token 管理
+- `PermissionManageService` — 权限管理
+
+### 🛡️ Sentinel 限流 + Feign（simple-common-alibaba）
+
+- `UserRateLimitAspect` — 按用户 ID 对 Controller 做接口级 + 全局级两级限流
+- `FeignConfig` — 统一请求拦截器、编码器等基础配置
+
+### 📁 文件管理（simple-common-annex）
+
+S3 协议统一封装，一套 API 兼容三种存储：
+
+- 支持 MinIO / 阿里云 OSS / AWS S3
+- `AnnexService` — 上传 MultipartFile / 输入流、浏览器下载、临时签名 URL、删除
+- 支持公开 / 私有访问权限
+
+### 📝 Word 文档（simple-common-doc）
+
+基于 Poi-Tl 的 Word 模板替换：
+
+- `Docs.builder()` — 构建模板数据（文本 / 图片 / 表格 / 列表 / 超链接 / 颜色）
+- `DocReplaceService` — 替换模板并输出到浏览器下载 / 输出流 / 输入流
+
+### 📊 Excel 导入导出（simple-common-excel）
+
+EasyExcel + POI 双引擎：
+
+- `EasyExcelWriteService` — 全量写入 / 流式分批写入，导出到浏览器或输出流
+- `EasyExcelReadService` — 从 MultipartFile / 文件路径 / 输入流读取
+- `PoiWriteService` — 复杂导出（自定义列宽 / 合并单元格 / 分页 Sheet）
+
+### 📡 事件驱动（simple-common-eventbus）
+
+- `@Event` 定义事件类，`@EventHandler` 定义事件处理器
+- `EventBusService` 发布事件，支持同步 / 异步 MQ / 延迟发布三种模式
+- 服务内解耦与跨服务事件通信
+
+### 🐰 消息队列（simple-common-rabbitmq）
+
+- `RabbitMqService` — 发送即时 / 延迟消息（`DefaultMessage` 含 msgData / bizType / 雪花 ID）
+- `@RabbitMqConsumption` — 防重复消费注解（业务时长 / 有效时长 / 重试次数可配置）
+- 完整的死信处理和重试机制
+
+### 📋 日志收集（simple-common-logs）
+
+TCP + Protobuf 高性能日志收集架构，分为三个子模块：
+
+- `logs-proto` — Protobuf 协议定义
+- `logs-client` — `LogService` / `BufferedLogManager` 缓冲队列批量发送，失败降级本地文件，优雅停机
+- `logs-server` — `LogProtobufTcpServer` / `AbsLogsSaveManager` 接收存储
+
+### 📱 短信服务（simple-common-sms）
+
+- `SmsService` — 发送验证码、模板短信、校验验证码
+- 责任链模式校验（IP 限制 / 手机号限制 / 时间间隔限制）
+- 默认阿里云短信实现，可扩展其他厂商
+
+### 🔌 WebSocket（simple-common-websocket）
+
+基于 Netty 的高性能 WebSocket：
+
+- `@WebSocketListening` — 注解式按 type / cliKey 分发消息
+- `ChannelMap` — 多级通道存储（按用户 ID + 设备管理 Channel，支持多端登录）
+- 内置认证 Handler 和空闲连接清理
+
+### ⏰ 任务调度（simple-common-xxljob）
+
+- `XxlJobManager` — 通过 HTTP API 创建任务（Cron / JobHandler / 超时 / 重试）
+- 启动 / 停止 / 立即触发 / 修改调度配置 / 删除任务
+
+---
 
 ## 🚀 快速开始
 
@@ -122,6 +238,52 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver  # JDBC 驱动类名，默认 com.mysql.cj.jdbc.Driver
 ```
 
+### 使用示例
+
+**声明式缓存：**
+
+```java
+@RedisCache(key = "'user:' + #id", expire = 3600)
+public User getUserById(String id) {
+    return userRepository.selectById(id);
+}
+```
+
+**分布式锁：**
+
+```java
+@Autowired
+private RedissonLockService lockService;
+
+public void doBusiness(String key) {
+    lockService.lock(key, () -> {
+        // 业务逻辑
+    });
+}
+```
+
+**事件发布：**
+
+```java
+@Event
+public class OrderCreatedEvent {
+    private String orderId;
+    // ...
+}
+
+@EventHandler
+public class OrderCreatedHandler {
+    public void handle(OrderCreatedEvent event) {
+        // 处理订单创建事件
+    }
+}
+
+// 发布事件
+eventBusService.publish(new OrderCreatedEvent());
+```
+
+---
+
 ## 🏗️ 模块架构
 
 ```
@@ -159,21 +321,19 @@ spring:
     └───────────┘    └───────────┘    └───────────┘
 ```
 
-## 命名规范说明
+---
 
-框架遵循统一的命名规范，便于理解和使用：
+## 设计理念
 
-- **service后缀**：表示为本模块对外提供的核心功能接口。默认实现前缀加 `Default`。
-    - 示例：`LoginService` → `DefaultLoginService`、`SmsService` → `AliSmsService`
+| 原则 | 说明 |
+|------|------|
+| **模块化** | 每个功能模块独立封装，按需引入，互不耦合 |
+| **自动装配** | 基于 Spring Boot AutoConfiguration，引入即生效 |
+| **高度可扩展** | 接口 + 责任链设计，默认实现前缀 `Default`，轻松替换 |
+| **无侵入** | 直接引入使用，无需修改原有代码结构 |
+| **统一规范** | 命名标准化：`Service`（对外接口）/ `Manager`（内部支撑）/ `Process`（责任链）/ `Abs`（抽象基类） |
 
-- **manager后缀**：表示为本模块内部提供支撑的接口。默认实现前缀加 `Default`。
-    - 示例：`TokenManager` → `DefaultTokenManager`、`WhiteManager` → `DefaultWhiteManager`
-
-- **Process后缀**：责任链处理接口，配合枚举使用。
-    - 示例：`AuthProcess`、`LoginErrorProcess`、`CheckSmsProcess`
-
-- **Abs前缀**：抽象基类，提供通用实现逻辑。
-    - 示例：`AbsLoginManager`、`AbsSmsService`、`AbsLogsSaveManager`
+---
 
 ## 📚 详细文档
 
@@ -181,6 +341,8 @@ spring:
 
 - 📁 [doc/modules/](doc/modules/) — 模块文档目录
 - 📁 [doc/dev-plan/](doc/dev-plan/) — 开发计划文档
+
+---
 
 ## 🧪 测试工程
 
@@ -203,6 +365,8 @@ spring:
 | [CycleController](simple-common-test/src/main/java/com/simple/common/test/controller/CycleController.java) | core / eventbus |
 | [AviatorController](simple-common-test/src/main/java/com/simple/common/test/controller/AviatorController.java) | core |
 
+---
+
 ## 🤝 贡献
 
 欢迎提交 Issue 和 Pull Request。
@@ -213,11 +377,15 @@ spring:
 4. 推送到分支 (`git push origin feature/amazing-feature`)
 5. 创建 Pull Request
 
+---
+
 ## 📄 开源协议
 
 本项目基于 [Apache License 2.0](LICENSE) 开源协议发布。
 
 Copyright 2024 qty
+
+---
 
 ## 致谢
 
