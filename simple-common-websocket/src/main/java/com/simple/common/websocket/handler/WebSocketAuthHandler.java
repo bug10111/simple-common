@@ -1,4 +1,4 @@
-    package com.simple.common.websocket.handler;
+package com.simple.common.websocket.handler;
 
 import com.simple.common.websocket.common.constant.WebSocketConstant;
 import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
