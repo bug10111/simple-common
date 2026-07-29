@@ -72,14 +72,14 @@ public class WebSocketProperties {
     private int maxHttpContentLength = 65536;
 
     /**
-     * WebSocket消息最大长度（字节）
+     * WebSocket消息帧最大长度（字节），默认1MB，可通过 simple.websocket.max-web-socket-frame-size 配置
      */
-    private int maxWebSocketFrameSize = 655360;
+    private int maxWebSocketFrameSize = 1048576;
 
     /**
-     * 文本消息最大长度（字节），超过此长度将拒绝处理
+     * 文本消息最大长度（字节），默认1MB，超过此长度将拒绝处理，可通过 simple.websocket.max-text-message-length 配置
      */
-    private int maxTextMessageLength = 1024 * 1024;
+    private int maxTextMessageLength = 1048576;
 
     /**
      * 通道清理配置

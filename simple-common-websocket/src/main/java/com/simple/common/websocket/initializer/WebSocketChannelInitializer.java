@@ -57,7 +57,8 @@ public class WebSocketChannelInitializer extends ChannelInitializer<SocketChanne
         pipeline.addLast("auth-handler", new WebSocketAuthHandler(properties,checkManager));
 
         // WebSocket协议处理器（握手升级 + Close/Ping/Pong 自动处理）
-        pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(properties.getPath(), true, properties.getMaxWebSocketFrameSize()));
+        // 使用四参数构造函数明确指定 subprotocols=null、allowExtensions=true、maxFramePayloadLength
+        pipeline.addLast("ws-protocol-handler", new WebSocketServerProtocolHandler(properties.getPath(), null, true, properties.getMaxWebSocketFrameSize()));
 
         // WebSocket消息处理器（仅处理 Text/Binary 数据帧）
         pipeline.addLast("websocketHandler", new WebSocketServerHandler(properties, webSocketListeningManager, webSocketSyncManager));
