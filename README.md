@@ -240,13 +240,42 @@ spring:
 
 ### 使用示例
 
-**声明式缓存：**
+**线程池 & 异步任务：**
 
 ```java
-@RedisCache(key = "'user:' + #id", expire = 3600)
-public User getUserById(String id) {
+// 异步执行有返回值的任务
+CompletableFuture<User> future = ThreadUtils.supplyAsync(() -> {
     return userRepository.selectById(id);
-}
+});
+
+// 异步执行无返回值的任务
+ThreadUtils.runAsync(() -> log.info("异步日志记录"));
+
+// 延迟执行（5秒后执行一次）
+ThreadUtils.schedule(() -> refreshCache(), 5, TimeUnit.SECONDS);
+
+// 定时执行（每30秒执行一次，自动捕获异常不中断调度）
+ThreadUtils.scheduleWithFixedDelaySafe(() -> heartbeat(), 30, TimeUnit.SECONDS);
+```
+
+**加解密：**
+
+```java
+// 对称加密（AES/GCM 安全模式）
+String key = CryptoUtil.generateSymmetricKeyStr(CryptoUtil.SymmetricAlgorithmType.AES_GCM);
+String encrypted = CryptoUtil.encryptStr(CryptoUtil.SymmetricAlgorithmType.AES_GCM, key, "敏感数据");
+String decrypted = CryptoUtil.decryptStr(CryptoUtil.SymmetricAlgorithmType.AES_GCM, key, encrypted);
+
+// 国密对称加密（SM4/GCM）
+String sm4Key = CryptoUtil.generateSymmetricKeyStr(CryptoUtil.SymmetricAlgorithmType.SM4_GCM);
+String sm4Enc = CryptoUtil.encryptStr(CryptoUtil.SymmetricAlgorithmType.SM4_GCM, sm4Key, "国密数据");
+
+// 密码哈希（BCrypt，自带盐值）
+String hashed = CryptoUtil.hashPassword("用户密码");
+boolean matched = CryptoUtil.checkPassword("用户密码", hashed);
+
+// 数据哈希（SHA256 / SM3）
+String digest = CryptoUtil.hashStr(CryptoUtil.HashAlgorithmType.SM3, "待摘要数据");
 ```
 
 **分布式锁：**
