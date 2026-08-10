@@ -1,9 +1,9 @@
-package com.simple.common.auth.client.common.broadcast;
+package com.simple.common.auth.client.exchange.event.publisher;
 
 import java.util.List;
 
 /**
- * 密钥广播器 — 专职将密钥变更推送到远程客户端。
+ * 密钥事件发布器 — 专职将密钥变更推送到远程客户端。
  * <p>
  * 职责单一：仅负责将密钥变更事件发布到消息队列，广播到目标客户端项目。
  * 不涉及本地缓存，本地缓存由 {@link com.simple.common.auth.client.common.manager.token.TokenManager}
@@ -22,15 +22,15 @@ import java.util.List;
  * // 1. 本地缓存
  * tokenManager.addSecret(newSecret, projectCode);
  * signManager.addSecret(newSignSecret, projectCode);
- * 
+ *
  * // 2. 广播到远程客户端
- * secretBroadcaster.broadcastJwtSecret(newSecret, clientProjectCodes);
- * secretBroadcaster.broadcastSignSecret(newSignSecret, clientProjectCodes);
+ * secretEventPublisher.broadcastJwtSecret(newSecret, clientProjectCodes);
+ * secretEventPublisher.broadcastSignSecret(newSignSecret, clientProjectCodes);
  * }</pre>
  *
  * @author qty
  */
-public interface SecretBroadcaster {
+public interface SecretEventPublisher {
 
     /**
      * 广播JWT密钥到指定客户端项目

@@ -7,7 +7,7 @@ import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.manager.permission.PermissionAutoLoader;
 import com.simple.common.auth.client.common.properties.AuthProperties;
-import com.simple.common.auth.client.exchange.AuthCenterHttpClient;
+import com.simple.common.auth.client.exchange.http.AuthCenterHttpClient;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.common.service.jwt.CoreLoginUserService;
 import com.simple.common.core.common.service.lock.LockService;

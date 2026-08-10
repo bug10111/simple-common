@@ -1,10 +1,10 @@
-package com.simple.common.auth.client.listener;
+package com.simple.common.auth.client.exchange.event.handler;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.PermissionChangeTypeEnum;
-import com.simple.common.auth.client.common.event.PermissionChangeEvent;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.client.exchange.event.event.PermissionChangeEvent;
 import com.simple.common.eventbus.common.annotation.EventHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

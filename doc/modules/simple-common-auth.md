@@ -1,7 +1,7 @@
 # simple-common-auth 权限认证模块
 
 > @author qty
-> 版本：1.0.1
+> 版本：1.0.0
 > 日期：2026-07-28
 
 ---
@@ -81,7 +81,7 @@ simple-common-auth-server
 <dependency>
     <groupId>com.simple.common</groupId>
     <artifactId>simple-common-auth-client</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -100,7 +100,7 @@ client 模块依赖：
 <dependency>
     <groupId>com.simple.common</groupId>
     <artifactId>simple-common-auth-server</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.0</version>
 </dependency>
 ```
 
@@ -129,7 +129,7 @@ client 模块依赖：
 | 登录信息管理 | [`LoginInfoManager`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/manager/user/LoginInfoManager.java:21) | 用户信息、权限信息获取 |
 | 缓存管理 | [`CacheManager`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/manager/cache/CacheManager.java:12) | 统一缓存接口（Redis/Local） |
 | 权限自动加载 | [`PermissionAutoLoader`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/manager/permission/PermissionAutoLoader.java:43) | 缓存未命中时从数据库回源加载 |
-| 权限变更监听 | [`PermissionChangeEventHandler`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/listener/PermissionChangeEventHandler.java:43) | 接收权限变更事件，更新本地缓存 |
+| 权限变更监听 | [`PermissionChangeEventHandler`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/handler/PermissionChangeEventHandler.java:43) | 接收权限变更事件，更新本地缓存 |
 | 登录用户工具 | [`LoginUserUtils`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/util/LoginUserUtils.java:14) | ThreadLocal 获取当前登录用户 |
 
 ### 3.2 服务端核心功能
@@ -549,9 +549,11 @@ protected abstract AbsUserDetails doLogin(ClientDetails clientDetails, Object ad
 
 ### 5.13 事件驱动
 
+> **对外通讯层（exchange）**：所有客户端-服务端对外通讯统一收敛到 `exchange/` 单一入口。HTTP 出站客户端与端点契约在 `exchange/http/`；事件通讯在 `exchange/event/` 下按职责三层隔离——`event/`（事件契约 `@Event` 对象）、`publisher/`（发布器）、`handler/`（处理器）。事件契约对象位于 client 模块，服务端发布方经 `auth-server → auth-client` 依赖引用；事件发布器两侧皆有（client 侧 `SecretEventPublisher`、server 侧 `LogoutEventPublisher` / `PermissionEventPublisher`）。
+
 #### 5.13.1 权限变更事件
 
-[`PermissionChangeEvent`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/event/PermissionChangeEvent.java:49) — `@Event(targets = {EventConstant.TARGET_ALL_X})`
+[`PermissionChangeEvent`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/event/PermissionChangeEvent.java:49) — `@Event(targets = {EventConstant.TARGET_ALL_X})`
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -571,17 +573,17 @@ protected abstract AbsUserDetails doLogin(ClientDetails clientDetails, Object ad
 | `CLEAR` | 清空所有权限 |
 | `REFRESH` | 刷新权限 |
 
-**客户端处理器** [`PermissionChangeEventHandler`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/listener/PermissionChangeEventHandler.java:43)：
+**客户端处理器** [`PermissionChangeEventHandler`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/handler/PermissionChangeEventHandler.java:43)：
 - 按项目编码过滤，只处理与自身匹配的事件
 - 根据变更类型执行不同的缓存更新策略
 
 #### 5.13.2 用户登出事件
 
-[`UserLoggedOutEvent`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/event/UserLoggedOutEvent.java) — 广播到所有系统，触发各客户端清除本地 Token 缓存。
+[`UserLoggedOutEvent`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/event/UserLoggedOutEvent.java) — 广播到所有系统，触发各客户端清除本地 Token 缓存。
 
 #### 5.13.3 密钥事件
 
-[`SecretEvent`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/event/SecretEvent.java) — 密钥变更事件，客户端通过 [`SecretEventHandler`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/event/SecretEventHandler.java) 接收并更新本地密钥缓存。
+[`SecretEvent`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/event/SecretEvent.java) — 密钥变更事件，客户端通过 [`SecretEventHandler`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/handler/SecretEventHandler.java) 接收并更新本地密钥缓存。
 
 ### 5.14 密钥管理
 
@@ -595,9 +597,9 @@ protected abstract AbsUserDetails doLogin(ClientDetails clientDetails, Object ad
 | `String generateJwtSecret()` | 生成 JWT 密钥（至少 64 位） |
 | `String generateSignSecret()` | 生成签名密钥（至少 32 位） |
 
-#### 5.14.2 `SecretBroadcaster` 接口（客户端）
+#### 5.14.2 `SecretEventPublisher` 接口（客户端）
 
-[`SecretBroadcaster`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/common/broadcast/SecretBroadcaster.java:33)
+[`SecretEventPublisher`](simple-common-auth/simple-common-auth-client/src/main/java/com/simple/common/auth/client/exchange/event/publisher/SecretEventPublisher.java:33)
 
 | 方法 | 说明 |
 |------|------|

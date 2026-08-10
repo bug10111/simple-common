@@ -1,4 +1,4 @@
-package com.simple.common.auth.client.common.event;
+package com.simple.common.auth.client.exchange.event.event;
 
 import com.simple.common.auth.client.common.enums.PermissionChangeTypeEnum;
 import com.simple.common.eventbus.common.annotation.Event;

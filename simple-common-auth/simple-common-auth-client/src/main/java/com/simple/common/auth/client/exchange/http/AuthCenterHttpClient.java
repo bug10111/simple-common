@@ -1,10 +1,10 @@
-package com.simple.common.auth.client.exchange;
+package com.simple.common.auth.client.exchange.http;
 
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.constant.TokenConstant;
-import com.simple.common.auth.client.common.enums.AuthEndpointEnum;
 import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.client.exchange.http.AuthEndpointEnum;
 import com.simple.common.core.utils.HttpServletUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,4 +1,4 @@
-package com.simple.common.auth.client.common.enums;
+package com.simple.common.auth.client.exchange.http;
 
 /**
  * 授权中心 API 端点枚举

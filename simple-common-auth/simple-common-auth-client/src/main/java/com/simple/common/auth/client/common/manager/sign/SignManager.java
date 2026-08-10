@@ -96,7 +96,7 @@ public interface SignManager {
      * 添加签名密钥（仅本地缓存）
      * <p>
      * 仅将密钥保存到本地缓存，不涉及远程广播。
-     * 如需广播到远程客户端，请使用 {@link com.simple.common.auth.client.common.broadcast.SecretBroadcaster}。
+     * 如需广播到远程客户端，请使用 {@link com.simple.common.auth.client.exchange.event.publisher.SecretEventPublisher}。
      * </p>
      *
      * @param secret 签名密钥

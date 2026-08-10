@@ -4,7 +4,7 @@ import cn.hutool.http.HttpResponse;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
-import com.simple.common.auth.client.exchange.AuthCenterHttpClient;
+import com.simple.common.auth.client.exchange.http.AuthCenterHttpClient;
 import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.core.exception.DefaultExceptionEnum;
 import com.simple.common.core.response.R;

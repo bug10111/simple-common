@@ -1,6 +1,6 @@
-package com.simple.common.auth.client.event;
+package com.simple.common.auth.client.exchange.event.handler;
 
-import com.simple.common.auth.client.common.event.SecretEvent;
+import com.simple.common.auth.client.exchange.event.event.SecretEvent;
 import com.simple.common.auth.client.util.JJwtUtils;
 import com.simple.common.auth.client.util.JwtUtils;
 import com.simple.common.auth.client.util.SignSecretUtils;
