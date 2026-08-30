@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package com.simple.common.websocket.proto;
+
+option java_multiple_files = true;
+option java_package = "com.simple.common.websocket.proto";
+option java_outer_classname = "WebSocketFrameProto";
+
+// WebSocket 二进制帧信封
+// 字段与 WebSocketRequest 对齐，实现 JSON / Protobuf 双编解码。
+// 客户端使用 codec=proto 握手后，消息以本信封承载：
+//   - type/cliKey 通道标识（客户端 → 服务端时服务端以 Channel 属性为准）
+//   - requestId 非空表示同步请求，回复需携带相同 requestId
+//   - data 业务负载：JSON bytes（过渡）或嵌套 Protobuf（纯二进制）
+message WebSocketFrame {
+  string type = 1;       // 通道类型，对应 @WebSocketListening type
+  string cliKey = 2;     // 客户端标识
+  string requestId = 3;  // 同步请求ID
+  bytes data = 4;        // 业务负载
+}
