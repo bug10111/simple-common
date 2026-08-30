@@ -1,6 +1,8 @@
 package com.simple.common.websocket.handler;
 
 import com.alibaba.fastjson2.JSON;
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 import com.simple.common.core.utils.ThreadUtils;
 import com.simple.common.websocket.common.constant.WebSocketConstant;
 import com.simple.common.websocket.common.constant.WebsocketExceptionEnum;
@@ -9,6 +11,7 @@ import com.simple.common.websocket.common.manager.WebSocketListeningManager;
 import com.simple.common.websocket.common.manager.WebSocketSyncManager;
 import com.simple.common.websocket.common.properties.WebSocketProperties;
 import com.simple.common.websocket.utils.WebSocketUtils;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
@@ -118,13 +121,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             request.setCliKey(channelCliKey);
 
             // 提交到业务线程池异步执行，避免阻塞 Netty EventLoop
-            ThreadUtils.supplyAsync(() -> webSocketListeningManager.invoke(channelType, channelCliKey, request))
-                       .thenAccept(result -> result.ifPresent(o -> ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(o)))))
-                       .exceptionally(e -> {
-                           log.error("消息处理异常 [type={}, cliKey={}]", channelType, WebSocketUtils.maskKey(channelCliKey), e);
-                           sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());
-                           return null;
-                       });
+            dispatchAndReply(ctx, request);
         } catch (Exception e) {
             log.error("消息处理异常", e);
             sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());
@@ -132,11 +129,96 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
     }
 
     /**
-     * 处理二进制帧
+     * 处理二进制帧（Protobuf 信封，codec=proto 连接使用）
      */
     private void handleBinaryFrame(ChannelHandlerContext ctx, BinaryWebSocketFrame frame) {
-        log.debug("收到二进制消息，暂不支持");
-        sendError(ctx, WebsocketExceptionEnum.UNSUPPORTED_FRAME, "暂不支持二进制消息");
+        byte[] bytes = new byte[frame.content().readableBytes()];
+        frame.content().readBytes(bytes);
+
+        com.simple.common.websocket.proto.WebSocketFrame protoFrame;
+        try {
+            protoFrame = com.simple.common.websocket.proto.WebSocketFrame.parseFrom(bytes);
+        } catch (InvalidProtocolBufferException e) {
+            log.warn("二进制消息 Protobuf 解析失败，拒绝处理");
+            sendError(ctx, WebsocketExceptionEnum.INVALID_MESSAGE, "二进制帧 Protobuf 解析失败");
+            return;
+        }
+
+        // 通道标识以 Channel 属性为准（与文本帧一致）
+        String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
+        String channelCliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
+        if (channelType == null || channelCliKey == null) {
+            sendError(ctx, WebsocketExceptionEnum.UNAUTHORIZED);
+            return;
+        }
+
+        WebSocketRequest<byte[]> request = new WebSocketRequest<>();
+        String requestId = protoFrame.getRequestId();
+        request.setRequestId(requestId.isEmpty() ? null : requestId);
+        request.setType(channelType);
+        request.setCliKey(channelCliKey);
+        request.setData(protoFrame.getData().toByteArray());
+
+        // 同步请求回复匹配：requestId 非空时尝试唤醒等待线程
+        if (request.getRequestId() != null) {
+            boolean completed = webSocketSyncManager.complete(request.getRequestId(), request.getData());
+            if (completed) {
+                if (log.isDebugEnabled()) {
+                    log.debug("同步请求回复已匹配 [requestId={}]", request.getRequestId());
+                }
+                return;
+            }
+            log.debug("同步请求ID未找到匹配项，按普通消息分发 [requestId={}]", request.getRequestId());
+        }
+
+        // 提交到业务线程池异步执行，避免阻塞 Netty EventLoop
+        dispatchAndReply(ctx, request);
+    }
+
+    /**
+     * 提交到业务线程池异步执行，并按连接编解码方式回写结果
+     */
+    private void dispatchAndReply(ChannelHandlerContext ctx, WebSocketRequest<?> request) {
+        String channelType = request.getType();
+        String channelCliKey = request.getCliKey();
+        ThreadUtils.supplyAsync(() -> webSocketListeningManager.invoke(channelType, channelCliKey, request))
+                   .thenAccept(result -> result.ifPresent(o -> writeReply(ctx, o)))
+                   .exceptionally(e -> {
+                       log.error("消息处理异常 [type={}, cliKey={}]", channelType, WebSocketUtils.maskKey(channelCliKey), e);
+                       sendError(ctx, WebsocketExceptionEnum.PROCESS_ERROR, e.getMessage());
+                       return null;
+                   });
+    }
+
+    /**
+     * 按连接编解码方式回写业务结果。
+     * <p>
+     * json 连接：文本帧，沿用 String.valueOf 行为；
+     * proto 连接：二进制信封帧，业务返回值若为 byte[] 则直接作为 data，否则按 JSON bytes 封装。
+     * </p>
+     */
+    private void writeReply(ChannelHandlerContext ctx, Object result) {
+        if (result == null) {
+            return;
+        }
+        if (isProtoCodec(ctx)) {
+            byte[] payload = result instanceof byte[] ? (byte[]) result : JSON.toJSONBytes(result);
+            com.simple.common.websocket.proto.WebSocketFrame reply =
+                    com.simple.common.websocket.proto.WebSocketFrame.newBuilder()
+                            .setData(ByteString.copyFrom(payload))
+                            .build();
+            ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(reply.toByteArray())));
+        } else {
+            ctx.writeAndFlush(new TextWebSocketFrame(String.valueOf(result)));
+        }
+    }
+
+    /**
+     * 判断当前连接是否使用 Protobuf 编解码
+     */
+    private boolean isProtoCodec(ChannelHandlerContext ctx) {
+        Object codec = getChannelAttr(ctx, WebSocketConstant.ATTR_CODEC);
+        return WebSocketConstant.CODEC_PROTO.equalsIgnoreCase(codec == null ? null : codec.toString());
     }
 
     @Override

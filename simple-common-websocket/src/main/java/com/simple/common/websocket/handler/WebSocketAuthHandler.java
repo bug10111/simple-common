@@ -57,6 +57,7 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
             List<String> types = parameters.get(WebSocketConstant.TYPE);
             List<String> cliKeys = parameters.get(WebSocketConstant.CLI_KEY);
             List<String> tokens = parameters.get(WebSocketConstant.TOKEN);
+            List<String> codecs = parameters.get(WebSocketConstant.CODEC);
 
             // 参数校验
             if (types == null || types.isEmpty()) {
@@ -92,10 +93,18 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
                 }
             }
 
+            // 编解码方式校验：缺省 json，仅支持 json / proto
+            String codec = codecs != null && !codecs.isEmpty() ? codecs.get(0) : WebSocketConstant.CODEC_JSON;
+            if (!WebSocketConstant.CODEC_JSON.equalsIgnoreCase(codec) && !WebSocketConstant.CODEC_PROTO.equalsIgnoreCase(codec)) {
+                log.warn("codec参数非法，默认使用json [codec={}, uri={}]", codec, maskUri(request.uri()));
+                codec = WebSocketConstant.CODEC_JSON;
+            }
+
             // 保存客户端信息到Channel属性
             ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.ATTR_TYPE)).set(type);
             ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.ATTR_CLI_KEY)).set(cliKey);
             ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.ATTR_CONNECT_TIME)).set(System.currentTimeMillis());
+            ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.ATTR_CODEC)).set(codec.toLowerCase());
 
             // 保存通道
             WebSocketUtils.addMap(type, cliKey, ctx);

@@ -1,15 +1,21 @@
 package com.simple.common.websocket.utils;
 
+import com.google.protobuf.ByteString;
 import com.simple.common.core.utils.IdUtils;
 import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.websocket.common.channel.ChannelMap;
+import com.simple.common.websocket.common.constant.WebSocketConstant;
 import com.simple.common.websocket.common.entity.WebSocketRequest;
 import com.simple.common.websocket.common.manager.WebSocketSyncManager;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
+import io.netty.util.AttributeKey;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -135,6 +141,81 @@ public class WebSocketUtils {
     }
 
     /**
+     * 向指定类型的所有客户端发送二进制消息（Protobuf 帧，codec=proto 连接使用）
+     *
+     * @param type 类型标识
+     * @param data 二进制数据
+     */
+    public static void sendMsg(String type, byte[] data) {
+        if (type == null || data == null) {
+            return;
+        }
+        List<ChannelHandlerContext> ctxList = map.get(type);
+        if (ctxList == null || ctxList.isEmpty()) {
+            log.debug("无可用通道 [type={}]", type);
+            return;
+        }
+        int successCount = 0;
+        for (ChannelHandlerContext ctx : ctxList) {
+            if (ctx != null && ctx.channel().isActive()) {
+                ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data)));
+                successCount++;
+            }
+        }
+        log.debug("二进制消息发送完成 [type={}, 成功数={}]", type, successCount);
+    }
+
+    /**
+     * 向指定客户端发送二进制消息（Protobuf 帧，codec=proto 连接使用）
+     *
+     * @param type   类型标识
+     * @param cliKey 客户端标识
+     * @param data   二进制数据
+     * @return true 发送成功
+     */
+    public static boolean sendMsg(String type, String cliKey, byte[] data) {
+        if (type == null || cliKey == null || data == null) {
+            return false;
+        }
+        ChannelHandlerContext ctx = map.get(type, cliKey);
+        if (ctx != null && ctx.channel().isActive()) {
+            ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data)));
+            log.debug("二进制消息发送成功 [type={}, cliKey={}]", type, maskKey(cliKey));
+            return true;
+        }
+        log.debug("通道不可用 [type={}, cliKey={}]", type, maskKey(cliKey));
+        return false;
+    }
+
+    /**
+     * 向指定客户端发送 Protobuf 信封消息，自动组装 {@link WebSocketFrame}。
+     * <p>
+     * 适用于 codec=proto 连接的服务端主动推送：业务只需提供 type/cliKey 与 data 字节，
+     * 框架自动包上信封。requestId 非空时表示同步请求，客户端需携带相同 requestId 回复。
+     * </p>
+     *
+     * @param type      类型标识
+     * @param cliKey    客户端标识
+     * @param requestId 同步请求ID，可为 null
+     * @param data      业务负载字节
+     * @return true 发送成功
+     */
+    public static boolean sendProtoMsg(String type, String cliKey, String requestId, byte[] data) {
+        if (data == null) {
+            return false;
+        }
+        com.simple.common.websocket.proto.WebSocketFrame.Builder builder =
+                com.simple.common.websocket.proto.WebSocketFrame.newBuilder()
+                        .setType(type)
+                        .setCliKey(cliKey)
+                        .setData(ByteString.copyFrom(data));
+        if (requestId != null && !requestId.isEmpty()) {
+            builder.setRequestId(requestId);
+        }
+        return sendMsg(type, cliKey, builder.build().toByteArray());
+    }
+
+    /**
      * 同步发送消息并等待客户端回复。
      * <p>
      * 服务端向指定客户端发送请求消息，阻塞等待客户端处理完成后返回结果。
@@ -203,28 +284,42 @@ public class WebSocketUtils {
         // 注册到同步管理器，等待客户端回复
         syncManager.register(requestId, future);
 
-        // 构建消息：使用 WebSocketRequest 统一格式，客户端统一以此格式收发
-        WebSocketRequest<Object> request = new WebSocketRequest<>();
-        request.setRequestId(requestId);
+        // 构建消息并发送：按连接编解码方式选择文本(JSON)或二进制(Protobuf)帧
+        boolean sent;
+        if (isProtoCodec(type, cliKey)) {
+            // 二进制通道：Protobuf 信封承载，data 为 byte[] 时直接透传，否则按 JSON bytes 封装
+            byte[] payload = data instanceof byte[] ? (byte[]) data : JsonUtils.toJsonStr(data).getBytes(StandardCharsets.UTF_8);
+            com.simple.common.websocket.proto.WebSocketFrame frame =
+                    com.simple.common.websocket.proto.WebSocketFrame.newBuilder()
+                            .setType(type)
+                            .setCliKey(cliKey)
+                            .setRequestId(requestId)
+                            .setData(ByteString.copyFrom(payload))
+                            .build();
+            sent = sendMsg(type, cliKey, frame.toByteArray());
+        } else {
+            // 文本通道：使用 WebSocketRequest 统一格式，客户端统一以此格式收发
+            WebSocketRequest<Object> request = new WebSocketRequest<>();
+            request.setRequestId(requestId);
 
-        // 兼容处理：若 data 为 JSON 字符串，自动 parse 为 Map 避免 JSON 序列化时二次转义
-        // 客户端 SepSyncEnvelope.Data 为 JsonElement 类型，期望嵌套对象而非字符串
-        Object payload = data;
-        if (data instanceof String) {
-            String str = ((String) data).trim();
-            if (str.startsWith("{") || str.startsWith("[")) {
-                try {
-                    payload = JsonUtils.toJsonObj(str, Map.class);
-                } catch (Exception e) {
-                    log.debug("data 字符串非合法 JSON，保持原样发送 [error={}]", e.getMessage());
+            // 兼容处理：若 data 为 JSON 字符串，自动 parse 为 Map 避免 JSON 序列化时二次转义
+            // 客户端 SepSyncEnvelope.Data 为 JsonElement 类型，期望嵌套对象而非字符串
+            Object payload = data;
+            if (data instanceof String) {
+                String str = ((String) data).trim();
+                if (str.startsWith("{") || str.startsWith("[")) {
+                    try {
+                        payload = JsonUtils.toJsonObj(str, Map.class);
+                    } catch (Exception e) {
+                        log.debug("data 字符串非合法 JSON，保持原样发送 [error={}]", e.getMessage());
+                    }
                 }
             }
-        }
-        request.setData(payload);
-        String json = JsonUtils.toJsonStr(request);
+            request.setData(payload);
+            String json = JsonUtils.toJsonStr(request);
 
-        // 发送消息到客户端
-        boolean sent = sendMsg(type, cliKey, json);
+            sent = sendMsg(type, cliKey, json);
+        }
         if (!sent) {
 
             // 发送失败，清理 Future
@@ -293,6 +388,22 @@ public class WebSocketUtils {
     public static boolean isOnline(String type, String cliKey) {
         ChannelHandlerContext ctx = map.get(type, cliKey);
         return ctx != null && ctx.channel().isActive();
+    }
+
+    /**
+     * 判断指定客户端连接是否使用 Protobuf 编解码
+     *
+     * @param type   类型标识
+     * @param cliKey 客户端标识
+     * @return true 表示该连接以 codec=proto 建立
+     */
+    private static boolean isProtoCodec(String type, String cliKey) {
+        ChannelHandlerContext ctx = map.get(type, cliKey);
+        if (ctx == null) {
+            return false;
+        }
+        Object codec = ctx.channel().attr(AttributeKey.valueOf(WebSocketConstant.ATTR_CODEC)).get();
+        return WebSocketConstant.CODEC_PROTO.equalsIgnoreCase(codec == null ? null : codec.toString());
     }
 
     /**

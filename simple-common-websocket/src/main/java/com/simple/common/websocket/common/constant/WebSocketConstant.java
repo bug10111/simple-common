@@ -23,6 +23,21 @@ public class WebSocketConstant {
     public static final String TOKEN = "token";
 
     /**
+     * 编解码方式参数名（json / proto），缺省 json
+     */
+    public static final String CODEC = "codec";
+
+    /**
+     * 编解码方式：JSON
+     */
+    public static final String CODEC_JSON = "json";
+
+    /**
+     * 编解码方式：Protobuf
+     */
+    public static final String CODEC_PROTO = "proto";
+
+    /**
      * Channel属性：类型
      */
     public static final String ATTR_TYPE = "ws_type";
@@ -36,5 +51,10 @@ public class WebSocketConstant {
      * Channel属性：连接时间
      */
     public static final String ATTR_CONNECT_TIME = "ws_connect_time";
+
+    /**
+     * Channel属性：编解码方式
+     */
+    public static final String ATTR_CODEC = "ws_codec";
 
 }
