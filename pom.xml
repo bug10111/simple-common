@@ -5,7 +5,7 @@
 
     <groupId>com.simple.common</groupId>
     <artifactId>simple-common</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>pom</packaging>
 
     <name>simple-common</name>
@@ -27,6 +27,7 @@
         <module>simple-common-websocket</module>
         <module>simple-common-cache</module>
         <module>simple-common-alibaba</module>
+        <module>simple-common-exchange</module>
     </modules>
 
     <distributionManagement>
@@ -405,6 +406,12 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-logs-proto</artifactId>
+                <version>${common.simple.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.simple.common</groupId>
+                <artifactId>simple-common-exchange</artifactId>
                 <version>${common.simple.version}</version>
             </dependency>
         </dependencies>
