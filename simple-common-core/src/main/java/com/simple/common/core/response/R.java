@@ -38,9 +38,13 @@ public class R<T> {
     }
 
     public R(String code, String message) {
+        this(code, message, null);
+    }
+
+    public R(String code, String message, T data) {
         this.code = code;
         this.message = message;
-        this.data = null;
+        this.data = data;
     }
 
     public static R<Object> ok() {
@@ -61,5 +65,9 @@ public class R<T> {
 
     public static <T> R<T> error(String code, String message) {
         return new R<>(code, message);
+    }
+
+    public static <T> R<T> error(String code, String message, T data) {
+        return new R<>(code, message, data);
     }
 }
