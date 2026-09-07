@@ -16,6 +16,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Protobuf TCP 日志服务端（Fire-and-Forget 模式）
@@ -44,6 +45,14 @@ public class LogProtobufTcpServer {
     private Channel serverChannel;
 
     private final AtomicBoolean running = new AtomicBoolean(false);
+
+    /**
+     * 当前活跃连接计数
+     * <p>
+     * 跨连接共享，配合最大连接数配置实现服务端连接数限流。
+     * </p>
+     */
+    private final AtomicInteger activeConnections = new AtomicInteger(0);
 
     /**
      * 启动服务端
@@ -87,6 +96,9 @@ public class LogProtobufTcpServer {
                      @Override
                      protected void initChannel(SocketChannel ch) throws Exception {
                          ChannelPipeline pipeline = ch.pipeline();
+
+                         // 连接数限流：活跃连接超过最大连接数时立即拒绝新连接
+                         pipeline.addLast("connectionLimitHandler", new ConnectionLimitHandler());
 
                          // 心跳检测
                          pipeline.addLast("idleStateHandler", new IdleStateHandler(properties.getReaderIdleTime(), 0, 0, TimeUnit.SECONDS));
@@ -145,5 +157,33 @@ public class LogProtobufTcpServer {
             workerGroup.shutdownGracefully();
         }
         log.info("Protobuf TCP 日志服务端已关闭");
+    }
+
+    /**
+     * 连接数限流处理器
+     * <p>
+     * 连接建立时递增活跃连接计数，超过最大连接数则立即关闭新连接并记录 warn 日志；
+     * 连接断开时递减计数，保证计数与实际活跃连接数一致。
+     * </p>
+     */
+    private class ConnectionLimitHandler extends ChannelInboundHandlerAdapter {
+
+        @Override
+        public void channelActive(ChannelHandlerContext ctx) throws Exception {
+            int current = activeConnections.incrementAndGet();
+            if (current > properties.getMaxConnections()) {
+                // 超过最大连接数，拒绝新连接并保留可观测日志
+                log.warn("活跃连接数 {} 已超过最大连接数 {}，拒绝新连接: {}", current, properties.getMaxConnections(), ctx.channel().remoteAddress());
+                ctx.close();
+                return;
+            }
+            ctx.fireChannelActive();
+        }
+
+        @Override
+        public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+            activeConnections.decrementAndGet();
+            ctx.fireChannelInactive();
+        }
     }
 }

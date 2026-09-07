@@ -1,6 +1,7 @@
 package com.simple.common.xxljob.common.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -15,6 +16,7 @@ import lombok.experimental.Accessors;
 public class UpdateXxlJobTaskRequest extends CreateXxlJobTaskRequest {
 
     @Schema(description = "主键")
+    @NotNull(message = "任务主键不能为空")
     private Integer id;
 
 }

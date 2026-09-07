@@ -5,6 +5,7 @@ import cn.hutool.core.date.DateUtil;
 import com.simple.common.core.common.service.lock.LockService;
 import com.simple.common.core.function.DefaultFunction;
 import com.simple.common.core.utils.AssertUtils;
+import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.mp.common.enums.Status;
 import com.simple.common.sms.common.dto.sysSmsCode.FindAllSysSmsCodeRequest;
 import com.simple.common.sms.common.entity.sysSmsCode.SysSmsCode;
@@ -15,7 +16,9 @@ import com.simple.common.sms.common.view.sysSmsCode.SysSmsCodeView;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -73,7 +76,9 @@ public abstract class AbsSmsService implements SmsService {
                     process.execution(mobile, code);
                 }
             });
-            sendTemplateParam(mobile, sendType, "{'code':'" + code + "'}");
+            // 构建标准双引号 JSON 模板参数，符合短信平台变量模板参数规范
+            Map<String, String> templateParamMap = Collections.singletonMap("code", code);
+            sendTemplateParam(mobile, sendType, JsonUtils.toJsonStr(templateParamMap));
         };
         lockService.lock(mobile, function);
     }
@@ -90,17 +95,17 @@ public abstract class AbsSmsService implements SmsService {
         }
         AssertUtils.isTrue(increment <= smsProperties.getErrorSum(), "超过最大重试次数，请重新获取验证码");
 
-        //获取该用户
+        //查询该手机号该类型最新一条未使用验证码记录（不携带 code 条件，避免错误输入导致记录查不到）
         List<SysSmsCode> list = sysSmsCodeView.findByTimeAndPhoneAndState(
-                        new FindAllSysSmsCodeRequest().setPhone(mobile).setStatus(Status.NOT_USED).setSendType(sendType).setCode(code));
-        AssertUtils.notEmpty(list, "没有发送消息");
+                        new FindAllSysSmsCodeRequest().setPhone(mobile).setStatus(Status.NOT_USED).setSendType(sendType));
+        AssertUtils.notEmpty(list, "没有发送消息或验证码已过期");
 
-        //校验过期时间
+        //校验验证码是否过期
         SysSmsCode sysSmsCode = list.get(0);
         long between = DateUtil.between(sysSmsCode.getCreateTime(), DateUtil.date(), DateUnit.SECOND, true);
         AssertUtils.isTrue(between <= smsProperties.getOutTime(), "验证码已过期，请重新获取验证码");
 
-        //判断验证码是否正确
+        //比对验证码，不一致提示验证码错误
         AssertUtils.isTrue(sysSmsCode.getCode().equals(code), "验证码错误，请重新输入");
 
         //设置为已使用

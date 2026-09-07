@@ -39,6 +39,7 @@ public class IPUtils {
     /**
      * 获取客户端IP
      *
+     * @param request 当前HTTP请求对象
      * @return IP地址
      */
     public static String getIpAddr(HttpServletRequest request) {
@@ -65,6 +66,8 @@ public class IPUtils {
 
     /**
      * 获取本机内网IP
+     *
+     * @return 本机内网IPv4地址
      */
     @SneakyThrows
     public static String getIntranetIp() {
@@ -88,11 +91,24 @@ public class IPUtils {
     }
 
     /**
-     * 获取本机公网IP
+     * 获取本机地址（localhost解析结果，非公网IP）
+     *
+     * @return 本机IP地址
      */
     @SneakyThrows
-    public static String getPublicNetworkIp() {
+    public static String getLocalHostIp() {
         return InetAddress.getLocalHost().getHostAddress();
+    }
+
+    /**
+     * 获取本机公网IP
+     *
+     * @return 本机IP地址
+     * @deprecated 该方法实际返回本机地址（localhost解析结果）而非公网IP，请使用 {@link #getLocalHostIp()}
+     */
+    @Deprecated
+    public static String getPublicNetworkIp() {
+        return getLocalHostIp();
     }
 
     /**

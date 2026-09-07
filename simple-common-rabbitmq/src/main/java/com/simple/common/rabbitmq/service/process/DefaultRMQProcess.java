@@ -9,8 +9,11 @@ import org.springframework.amqp.core.Message;
 import org.springframework.stereotype.Component;
 
 /**
- * Created with IntelliJ IDEA
- * Description: 重复消费
+ * RabbitMQ 消息消费责任链默认处理器（占位实现）
+ * <p>
+ * 绑定占位枚举 {@link RMQKindProcess#TEST}（execute=false），不会参与责任链实际执行；
+ * execution 为空实现，集成方扩展前置处理时应新增自定义处理器，而非修改此占位实现。
+ * </p>
  *
  * @author qty
  */

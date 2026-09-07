@@ -6,7 +6,7 @@ import com.simple.common.sms.common.entity.sysSmsCode.SysSmsCode;
 import java.util.List;
 
 /**
- * 短信验证码(sys_code_record)数据库视图接口
+ * 短信验证码(sys_sms_code)数据库视图接口
  *
  * @author qty
  */
@@ -51,7 +51,7 @@ public interface SysSmsCodeView {
      * 根据主键获取数据
      *
      * @param id 主键
-     * @return SysCodeRecord 原始表数据
+     * @return SysSmsCode 原始表数据
      */
     SysSmsCode findById(String id);
 

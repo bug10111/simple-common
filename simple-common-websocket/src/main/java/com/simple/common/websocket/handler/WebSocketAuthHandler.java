@@ -17,6 +17,7 @@ import io.netty.util.CharsetUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -41,11 +42,9 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof FullHttpRequest request) {
-            // 解析uri，判断握手点
-            String uri = request.uri();
-            if (!uri.contains(properties.getPath())) {
-                log.error("握手端点错误：{}", properties.getPath());
-                sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_PATH);
+
+            // 校验握手路径：解析 uri 取路径段做严格前缀匹配，query 不参与判断，畸形 uri 直接拒绝握手
+            if (!matchHandshakePath(ctx, request.uri())) {
                 return;
             }
 
@@ -146,6 +145,40 @@ public class WebSocketAuthHandler extends ChannelInboundHandlerAdapter {
                 log.debug("连接断开 [type={}, cliKey={}]", type, WebSocketUtils.maskKey(cliKey));
             }
         }
+    }
+
+    /**
+     * 校验握手路径是否匹配配置的握手端点。
+     * <p>
+     * 解析请求 uri 取路径段后做严格匹配：路径全等或位于配置路径的子路径下才放行，
+     * query 参数不参与匹配；uri 非法或路径段缺失时拒绝握手。
+     * </p>
+     *
+     * @param ctx 通道上下文
+     * @param uri 握手请求 uri（可能为 ws 路径形态或绝对形态）
+     * @return true 路径匹配放行
+     */
+    private boolean matchHandshakePath(ChannelHandlerContext ctx, String uri) {
+        String requestPath;
+
+        // 解析 uri 取路径段，畸形 uri 直接拒绝握手
+        try {
+            URI requestUri = URI.create(uri);
+            requestPath = requestUri.getPath();
+        } catch (IllegalArgumentException e) {
+            log.warn("握手uri非法，拒绝握手 [uri={}]", maskUri(uri));
+            sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_PATH);
+            return false;
+        }
+
+        // 严格路径匹配：全等或配置路径下子路径，避免 contains 对同串 query 的误放行
+        String configuredPath = properties.getPath();
+        if (requestPath == null || (!requestPath.equals(configuredPath) && !requestPath.startsWith(configuredPath + "/"))) {
+            log.error("握手端点错误 [configuredPath={}, requestPath={}]", configuredPath, maskUri(requestPath));
+            sendHttpErrorAndClose(ctx, WebsocketExceptionEnum.INVALID_PATH);
+            return false;
+        }
+        return true;
     }
 
     /**

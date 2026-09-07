@@ -92,12 +92,11 @@ public class DefaultLogService implements LogService {
                 }
             }
 
-            // 请求状态处理
+            // 请求状态处理：记录真实 HTTP 状态码，非 200 响应不再统一压成 500
+            logDataEvent.setStatus(response.getStatus());
             if (response.getStatus() == HttpServletResponse.SC_OK) {
-                logDataEvent.setStatus(HttpServletResponse.SC_OK);
                 logDataEvent.setErrorMsg("请求成功");
             } else {
-                logDataEvent.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 // 优先使用传入的异常参数 ex，若为 null 再从 request 属性中获取
                 Exception exceptionToLog = ex;
                 if (exceptionToLog == null) {
@@ -107,10 +106,11 @@ public class DefaultLogService implements LogService {
                     }
                 }
                 if (exceptionToLog != null) {
-                    logDataEvent.setErrorMsg(exceptionToLog.getMessage());
+                    // 错误消息携带实际状态码与异常消息，保留响应错误语义
+                    logDataEvent.setErrorMsg("HTTP " + response.getStatus() + "：" + exceptionToLog.getMessage());
                     logDataEvent.setErrorData(getStackTraceAsString(exceptionToLog));
                 } else {
-                    logDataEvent.setErrorMsg("未收集到有效异常信息");
+                    logDataEvent.setErrorMsg("HTTP " + response.getStatus() + "，未收集到有效异常信息");
                 }
                 request.removeAttribute(CoreConstant.EXCEPTION);
             }

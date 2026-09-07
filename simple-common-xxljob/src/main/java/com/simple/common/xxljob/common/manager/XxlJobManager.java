@@ -22,17 +22,18 @@ import com.simple.common.xxljob.common.dto.UpdateXxlJobTaskRequest;
  * <pre>{@code
  * @Component
  * public class CustomXxlJobManager implements XxlJobManager {
- *     @Value("${xxl.job.admin.addresses}")
- *     private String adminAddresses;
- *     
+ *     @Autowired
+ *     private XxlJobConfig xxlJobConfig;
+ *
  *     @Override
  *     public String create(CreateXxlJobTaskRequest request) {
- *         // 调用XXL-JOB Admin API创建任务
- *         String url = adminAddresses + "/jobinfo/add";
- *         HttpResponse response = HttpUtil.post(url, JsonUtils.toJsonStr(request));
+ *         // 调用XXL-JOB Admin API创建任务，官方/jobinfo/add为表单参数绑定
+ *         String url = xxlJobConfig.getAdminAddresses() + "/jobinfo/add";
+ *         Map<String, Object> form = BeanUtils.toMap(request);
+ *         HttpResponse response = HttpUtil.post(url, form);
  *         return parseJobId(response);
  *     }
- *     
+ *
  *     // 其他方法实现...
  * }
  * }</pre>

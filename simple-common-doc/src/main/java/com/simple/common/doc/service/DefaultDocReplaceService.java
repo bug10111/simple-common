@@ -11,13 +11,20 @@ import java.io.OutputStream;
 import java.util.Map;
 
 /**
- * Created with IntelliJ IDEA
+ * 文档替换服务默认实现。
+ * <p>
+ * 委托容器中唯一的 {@link DocTemplateReplaceManager} 完成模板替换；
+ * 引擎装配规则见 {@link com.simple.common.doc.common.config.DocConfig}。
+ * </p>
  *
  * @author qty
  */
 @Service
 public class DefaultDocReplaceService implements DocReplaceService {
 
+    /**
+     * 文档模板替换引擎,容器内按类型唯一
+     */
     @Autowired
     private DocTemplateReplaceManager docTemplateReplaceManager;
 

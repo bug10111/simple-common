@@ -29,20 +29,26 @@ public class XxlJobConfig {
     //token
     private String accessToken;
 
+    //Admin登录账号，缺省空=不启用登录态鉴权；官方Admin的/jobinfo/*走登录cookie校验，配置账号密码后动态管理请求会先登录Admin取cookie
+    private String adminUsername;
+
+    //Admin登录密码，缺省空=不启用登录态鉴权；与adminUsername必须同时配置
+    private String adminPassword;
+
     //执行器名称
     private String executorAppname;
 
-    //端口
-    private int executorPort;
+    //执行器端口，未配置时默认9999
+    private int executorPort = 9999;
 
     //日志保存地址
     private String executorLogPath;
 
-    //日志保存时间
-    private int executorLogRetentionDays;
+    //日志保存天数，未配置时默认30天
+    private int executorLogRetentionDays = 30;
 
-    //手动添加的请求超时时间
-    private int requestTimeout;
+    //Admin远程调用超时时间，单位秒，未配置时默认10秒
+    private int requestTimeout = 10;
 
     @Bean
     public XxlJobSpringExecutor xxlJobExecutor() {

@@ -1,5 +1,6 @@
 package com.simple.common.redis.service;
 
+import com.simple.common.core.exception.DefaultException;
 import com.simple.common.core.function.DefaultFunction;
 import com.simple.common.core.function.ReturnValueFunction;
 import com.simple.common.redis.common.service.RedissonLockService;
@@ -14,6 +15,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Created by IntelliJ IDEA
  * Description: redisson分布式锁的默认实现
@@ -25,6 +28,9 @@ import org.springframework.stereotype.Component;
 @Primary
 @ConditionalOnProperty(prefix = "redisson", name = "open", havingValue = "true", matchIfMissing = true)
 public class DefaultRedissonLockService extends RedissonLockService {
+
+    //信号量获取许可的最长等待秒数,超过该时长仍未获取到许可则抛出业务异常
+    private static final long SEMAPHORE_ACQUIRE_WAIT_SECONDS = 5L;
 
     @Autowired
     private Redisson redisson;
@@ -151,14 +157,17 @@ public class DefaultRedissonLockService extends RedissonLockService {
     public void countDownLatch(String key, Integer lockSum) {
         key = getKey("downLatchLock", key);
         RCountDownLatch door = redisson.getCountDownLatch(key);
+
+        //设置计数器初始值
         door.trySetCount(lockSum);
         if (log.isDebugEnabled()) {
             log.debug("key [{}] 闭锁上锁成功,当前计数 [{}]", key, lockSum);
         }
+
+        //当前线程阻塞等待,直到计数被其他调用方减至0才继续执行
         door.await();
-        //        door.await(10,TimeUnit.SECONDS);
         if (log.isDebugEnabled()) {
-            log.debug("key [{}] 闭锁成功通行,当前计数", key);
+            log.debug("key [{}] 闭锁成功通行,当前计数 [{}]", key, door.getCount());
         }
     }
 
@@ -170,6 +179,20 @@ public class DefaultRedissonLockService extends RedissonLockService {
         if (log.isDebugEnabled()) {
             log.debug("key [{}] 闭锁计数减少,当前计数 [{}]", key, door.getCount());
         }
+    }
+
+    @Override
+    @SneakyThrows
+    public boolean tryAwait(String key, Long timeout, TimeUnit unit) {
+        key = getKey("downLatchLock", key);
+        RCountDownLatch door = redisson.getCountDownLatch(key);
+
+        //在指定时长内等待计数归零,超时仍未归零返回false
+        boolean passed = door.await(timeout, unit);
+        if (log.isDebugEnabled()) {
+            log.debug("key [{}] 闭锁等待结束,结果 [{}]", key, passed);
+        }
+        return passed;
     }
 
     @Override
@@ -197,10 +220,14 @@ public class DefaultRedissonLockService extends RedissonLockService {
     public void decreaseSemaphoreLock(String key, Integer lockNum) {
         key = getKey("semaphoreLock", key);
         RSemaphore park = redisson.getSemaphore(key);
-        park.acquire(lockNum);
 
-//        //最多等待秒数
-//        park.tryAcquire(Duration.ofSeconds(5));
+        //在限定时长内获取许可,避免许可不足时线程无限悬挂
+        boolean acquired = park.tryAcquire(lockNum, SEMAPHORE_ACQUIRE_WAIT_SECONDS, TimeUnit.SECONDS);
+
+        //超时仍未获取到许可,抛出业务异常交由调用方处理
+        if (!acquired) {
+            throw new DefaultException("信号量获取超时, key: " + key);
+        }
         if (log.isDebugEnabled()) {
             log.debug("key [{}] 信号量锁减少成功", key);
         }

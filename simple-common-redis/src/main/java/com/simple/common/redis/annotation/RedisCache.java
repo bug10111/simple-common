@@ -26,7 +26,7 @@ public @interface RedisCache {
     int cacheTime() default 10;
 
     /**
-     * 追加随机时长的范围，0为不追加
+     * 追加随机时长的范围（秒），0 或负数为不追加
      */
     int appendRandomDuration() default 5;
 

@@ -60,6 +60,28 @@ public final class Docs {
         }
 
         /**
+         * 添加条件判断数据
+         * code格式：{{?code}}...{{/code}}
+         * <p>
+         * 值为 true 时渲染条件块内内容，为 false 或未提供时跳过整块，
+         * 底层由 poi-tl 原生 Boolean 条件标签能力实现。
+         * </p>
+         * <p>模板写法示例：</p>
+         * <pre>{@code
+         * {{?isVip}}
+         *   尊贵的VIP会员，您已享受专属折扣
+         * {{/isVip}}
+         * }</pre>
+         *
+         * @param key   模板key
+         * @param value 条件值
+         */
+        public DocBuilder addBoolean(String key, Boolean value) {
+            templateData.put(key, value);
+            return this;
+        }
+
+        /**
          * 添加本地图片
          * code格式：{{@code}}
          *
@@ -150,6 +172,7 @@ public final class Docs {
             Tables.TableBuilder builder = Tables.ofPercentWidth(percentWidth).center();
             builder.addRow(Rows.of(head).center().textFontSize(size).create());
 
+            // 逐行填充表数据,空集合或空元素不产生表格行
             if (list != null) {
                 list.forEach(t -> {
                     if (t != null) {
@@ -175,6 +198,7 @@ public final class Docs {
                 return this;
             }
             Numberings.NumberingBuilder numberingBuilder = Numberings.of(NumberingFormat.BULLET);
+            // 过滤空元素后逐条添加列表项
             list.stream().filter(Objects::nonNull).forEach(numberingBuilder::addItem);
             templateData.put(key, numberingBuilder.create());
             return this;
@@ -194,6 +218,7 @@ public final class Docs {
                 return this;
             }
             Numberings.NumberingBuilder numberingBuilder = Numberings.of(numberingFormat);
+            // 过滤空元素后逐条添加列表项
             list.stream().filter(Objects::nonNull).forEach(numberingBuilder::addItem);
             templateData.put(key, numberingBuilder.create());
             return this;

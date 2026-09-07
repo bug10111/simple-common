@@ -3,24 +3,25 @@
 <mapper namespace="com.simple.common.sms.view.sysSmsCode.SysSmsCodeRepository">
 
     <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
-        insert into sys_code_record(id, date, phone, code, ip, req_status, req_results, status, deleted, create_time, update_time)
+        insert into sys_sms_code(id, date, send_type, phone, code, ip, req_status, req_results, status, deleted, create_time, update_time)
         values
         <foreach collection="entities" item="entity" separator=",">
-            (#{entity.id}, #{entity.date}, #{entity.phone}, #{entity.code}, #{entity.ip}, #{entity.reqStatus}, #{entity.reqResults}, #{entity.status}, #{entity.deleted}, #{entity.createTime},
+            (#{entity.id}, #{entity.date}, #{entity.sendType}, #{entity.phone}, #{entity.code}, #{entity.ip}, #{entity.reqStatus}, #{entity.reqResults}, #{entity.status}, #{entity.deleted}, #{entity.createTime},
             #{entity.updateTime})
         </foreach>
     </insert>
 
     <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
-        insert into sys_code_record(id, date, phone, code, ip, req_status, req_results, status, deleted, create_time, update_time)
+        insert into sys_sms_code(id, date, send_type, phone, code, ip, req_status, req_results, status, deleted, create_time, update_time)
         values
         <foreach collection="entities" item="entity" separator=",">
-            (#{entity.id}, #{entity.date}, #{entity.phone}, #{entity.code}, #{entity.ip}, #{entity.reqStatus}, #{entity.reqResults}, #{entity.status}, #{entity.deleted}, #{entity.createTime},
+            (#{entity.id}, #{entity.date}, #{entity.sendType}, #{entity.phone}, #{entity.code}, #{entity.ip}, #{entity.reqStatus}, #{entity.reqResults}, #{entity.status}, #{entity.deleted}, #{entity.createTime},
             #{entity.updateTime})
         </foreach>
         on duplicate key update
         id = values(id),
         date = values(date),
+        send_type = values(send_type),
         phone = values(phone),
         code = values(code),
         ip = values(ip),

@@ -52,7 +52,9 @@ public class DefaultWebSocketListeningManager implements WebSocketListeningManag
                 typedRequest.setType(request.getType());
                 typedRequest.setCliKey(request.getCliKey());
                 Object invoke = target.method().invoke(target.bean(), typedRequest);
-                return Optional.of(invoke);
+
+                // void 监听方法反射调用返回 null，用 ofNullable 承载，避免 Optional.of 抛出 NPE
+                return Optional.ofNullable(invoke);
             }
         }
         return Optional.empty();

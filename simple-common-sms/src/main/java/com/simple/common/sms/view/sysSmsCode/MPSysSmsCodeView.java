@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 
 /**
- * 短信验证码(sys_code_record)数据库视图实现
+ * 短信验证码(sys_sms_code)数据库视图实现
  *
  * @author qty
  */
@@ -44,7 +44,8 @@ class MPSysSmsCodeView implements SysSmsCodeView {
                     .eq(ObjUtil.isNotEmpty(findAllRequest.getStatus()), SysSmsCode::getStatus, findAllRequest.getStatus())
                     .eq(ObjUtil.isNotEmpty(findAllRequest.getSendType()), SysSmsCode::getSendType, findAllRequest.getSendType())
                     .eq(ObjUtil.isNotEmpty(findAllRequest.getCode()), SysSmsCode::getCode, findAllRequest.getCode())
-                    .orderByDesc(ObjUtil.isNotEmpty(findAllRequest.getCreateTime()), SysSmsCode::getCreateTime)
+                    .orderByDesc(SysSmsCode::getCreateTime)
+                    .orderByDesc(SysSmsCode::getId)
                     .last("limit 1");
         return sysSmsCodeRepository.selectList(queryWrapper);
     }

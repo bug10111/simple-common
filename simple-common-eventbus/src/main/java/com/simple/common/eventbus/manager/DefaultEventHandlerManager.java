@@ -13,6 +13,7 @@ import com.simple.common.eventbus.common.entity.EventHandlerKey;
 import com.simple.common.eventbus.common.entity.EventHandlerValue;
 import com.simple.common.eventbus.common.function.EventHandlerFunction;
 import com.simple.common.eventbus.common.manager.EventHandlerManager;
+import com.simple.common.eventbus.common.properties.EventProperties;
 import com.simple.common.eventbus.util.EventThreadLocalUtils;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -53,31 +54,53 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
     @Autowired
     private ApplicationProperties applicationProperties;
 
+    @Autowired
+    private EventProperties eventProperties;
+
     /**
-     * 注册事件监听器（通过方法对象，已废弃）
+     * 判断当前事件模式是否为同步模式
+     * <p>模式口径与 SyncEventBusService/MqEventBusService 的装配条件一致，均以 simple.event.type 为准</p>
      *
-     * @param method 带有 @EventHandler 注解的方法
-     * @deprecated 该方法通过 Class 查找 Bean 可能不准确，建议使用 {@link #register(String, Method)}
+     * @return true 表示同步模式（simple.event.type=sync）
      */
-    @Override
-    @Deprecated
-    public void register(Method method) {
-        Class<?> declaringClass = method.getDeclaringClass();
-        Object bean;
-        try {
-            bean = applicationContext.getBean(declaringClass);
-        } catch (Exception e) {
-            log.error("通过 Class 获取事件处理器 Bean 失败: {}，该方法将被忽略", declaringClass.getName(), e);
-            throw new IllegalStateException("无法获取事件处理器Bean: " + declaringClass.getName(), e);
-        }
-        // 获取 Bean 名称（降级处理）
-        String[] beanNames = applicationContext.getBeanNamesForType(declaringClass);
-        String beanName = beanNames.length > 0 ? beanNames[0] : declaringClass.getSimpleName();
-        doRegister(beanName, method, bean);
+    private boolean isSyncMode() {
+        return EventConstant.EVENT_TYPE_SYNC.equals(eventProperties.getType());
     }
 
     /**
-     * 注册事件监听器（推荐使用，精确指定 beanName）
+     * 将同步模式下的事件处理器异常向上传播给发布方
+     * <p>保持原始异常类型与栈信息，无法原样抛出时以受检异常包装并保留原因链</p>
+     *
+     * @param e         处理器执行异常
+     * @param eventData 事件数据
+     * @param evenHandler 失败的处理器
+     */
+    private void rethrowSyncFailure(Throwable e, EventData eventData, EventHandlerValue evenHandler) {
+        // 运行时异常与错误原样抛出，保留原始类型与栈信息
+        if (e instanceof RuntimeException runtimeException) {
+            throw runtimeException;
+        }
+        if (e instanceof Error error) {
+            throw error;
+        }
+        // 受检异常无法原样抛出，包装为运行时异常并保留原因链
+        throw new IllegalStateException("同步事件处理器执行失败, 事件名称: " + eventData.getEventName()
+                + ", 处理器: " + handlerName(evenHandler), e);
+    }
+
+    /**
+     * 获取事件处理器的展示名称，用于异常信息与日志定位
+     *
+     * @param evenHandler 事件处理器
+     * @return 处理器方法名，无法获取时返回 unknown
+     */
+    private String handlerName(EventHandlerValue evenHandler) {
+        Method method = evenHandler.getMethodForDebug();
+        return method != null ? method.getName() : "unknown";
+    }
+
+    /**
+     * 注册事件监听器（精确指定 beanName）
      *
      * @param beanName Spring 容器中的 bean 名称
      * @param method   带有 @EventHandler 注解的方法
@@ -114,14 +137,15 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
 
     /**
      * 处理事件
-     * <p>修复：统一在此处管理 ThreadLocal 生命周期，避免同步调用时未清理导致内存泄漏</p>
+     * <p>统一在此处管理 ThreadLocal 生命周期，避免同步调用时未清理导致内存泄漏</p>
      *
      * @param event 事件对象（必须为EventData类型）
      */
     @Override
     public void handler(Object event) {
         if (!(event instanceof EventData eventData)) {
-            log.error("事件处理器只接受EventData类型，当前类型: {}", event.getClass().getName());
+            String eventTypeName = event == null ? "null" : event.getClass().getName();
+            log.error("事件处理器只接受EventData类型，当前类型: {}", eventTypeName);
             return;
         }
 
@@ -164,7 +188,11 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
 
     /**
      * 针对特定目标执行监听器列表
-     * <p>优化：使用 ObjectReader 缓存提升反序列化性能，避免每次创建 Reader</p>
+     * <p>使用 ObjectReader 缓存提升反序列化性能，避免每次创建 Reader</p>
+     * <p>异常语义按事件模式区分：
+     * 同步模式（simple.event.type=sync）下发布方与处理器同线程执行，任一处理器失败立即向发布方抛出，保证发布方可感知业务失败；
+     * MQ 异步模式（simple.event.type=mq）下处理器在消费线程执行，单个处理器失败仅记录日志并继续执行其余处理器（失败隔离），
+     * 消息级重试由 MQ 消费链路负责</p>
      *
      * @param eventData    事件数据
      * @param listenerList 监听器列表
@@ -184,10 +212,13 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
                 // 使用 MethodHandle 高效调用，性能接近原生方法调用
                 evenHandler.getMethodHandle().invoke(paramObj);
             } catch (Throwable e) {
+                // 同步模式：异常向上传播，发布方必须感知处理器失败
+                if (isSyncMode()) {
+                    rethrowSyncFailure(e, eventData, evenHandler);
+                }
+                // MQ 异步模式：失败隔离，记录日志后继续执行其他监听器
                 log.error("执行事件处理器失败, 事件名称: {}, 处理器: {}",
-                          eventData.getEventName(),
-                          evenHandler.getMethodForDebug() != null ? evenHandler.getMethodForDebug().getName() : "unknown", e);
-                // 继续执行其他监听器，不中断
+                          eventData.getEventName(), handlerName(evenHandler), e);
             }
         }
     }
@@ -247,7 +278,7 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
 
     /**
      * 使用 MethodHandle 创建高效的方法调用句柄（Java 17 优化）
-     * <p>修复：简化降级逻辑，确保私有方法可访问，并保留终极反射降级方案</p>
+     * <p>简化降级逻辑，确保私有方法可访问，并保留终极反射降级方案</p>
      *
      * @param method 目标方法
      * @param bean   目标 Bean 实例
@@ -297,17 +328,5 @@ public class DefaultEventHandlerManager implements EventHandlerManager {
         // 使用反射 MethodHandle 构造一个调用点
         MethodHandle target = MethodHandles.lookup().unreflect(method).bindTo(bean);
         return target.asType(MethodType.methodType(void.class, Object.class));
-    }
-
-    /**
-     * 执行具体的事件监听方法（保留原有方法签名，用于兼容）
-     *
-     * @param eventData            事件数据
-     * @param evenHandlerAllValues 监听器列表
-     * @deprecated 建议使用 {@link #handlerForTarget(EventData, List)} 以获得更好的缓存性能
-     */
-    @Deprecated
-    protected void handler(EventData eventData, List<EventHandlerValue> evenHandlerAllValues) {
-        handlerForTarget(eventData, evenHandlerAllValues);
     }
 }

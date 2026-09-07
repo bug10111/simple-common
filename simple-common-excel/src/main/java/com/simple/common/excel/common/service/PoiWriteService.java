@@ -43,8 +43,9 @@ public interface PoiWriteService {
      * <pre>{@code
      * List<UserDTO> users = userService.findAll();
      * String[] headers = {"用户ID", "姓名", "年龄"};
-     * Integer[] widths = {20, 30, 15};
-     * 
+     * // 列宽单位为 1/256 字符宽(POI 原生单位),如需 20 字符宽请传 20 * 256
+     * Integer[] widths = {20 * 256, 30 * 256, 15 * 256};
+     *
      * ByteArrayOutputStream outputStream = writeService.writeOutputStream(
      *     (rowNum, user) -> {
      *         // 填充每一行的数据
@@ -60,12 +61,13 @@ public interface PoiWriteService {
      * @param function     数据填充函数,接收行号和数据对象,返回该行的单元格值数组
      * @param list         数据集合
      * @param head         表头名称数组,如 {"用户ID", "姓名", "年龄"}
-     * @param width        列宽数组(单位:字符),如 {20, 30, 15}
-     * @param num          每个 Sheet 的最大行数(不要超过 1048576)
+     * @param width        列宽数组(单位:1/256 字符宽,POI 原生单位;如需 20 字符宽请传 20 * 256)
+     * @param num          每个 Sheet 的最大行数,必须大于等于 1(不要超过 1048576)
      * @param outputStream 目标输出流
      * @param <T>          数据类型
      * @return 写入完成后的 ByteArrayOutputStream
-     * @throws RuntimeException 当写入失败时抛出异常
+     * @throws IllegalArgumentException 当 num 为 null 或小于 1,或 head/width 为 null 时抛出
+     * @throws RuntimeException         当写入失败时抛出异常
      */
     <T> ByteArrayOutputStream writeOutputStream(PoiExportFunction<T> function, List<T> list, String[] head, Integer[] width, Integer num,
                                                 ByteArrayOutputStream outputStream);
@@ -83,8 +85,9 @@ public interface PoiWriteService {
      * public void exportUsers(HttpServletResponse response) {
      *     List<UserDTO> users = userService.findAll();
      *     String[] headers = {"用户ID", "姓名", "年龄"};
-     *     Integer[] widths = {20, 30, 15};
-     *     
+     *     // 列宽单位为 1/256 字符宽(POI 原生单位),如需 20 字符宽请传 20 * 256
+     *     Integer[] widths = {20 * 256, 30 * 256, 15 * 256};
+     *
      *     writeService.exportResponse(
      *         (rowNum, user) -> new Object[]{user.getId(), user.getName(), user.getAge()},
      *         users,
@@ -99,11 +102,12 @@ public interface PoiWriteService {
      * @param function  数据填充函数
      * @param list      数据集合
      * @param head      表头名称数组
-     * @param width     列宽数组
-     * @param num       每个 Sheet 的最大行数
+     * @param width     列宽数组(单位:1/256 字符宽,POI 原生单位;如需 20 字符宽请传 20 * 256)
+     * @param num       每个 Sheet 的最大行数,必须大于等于 1(不要超过 1048576)
      * @param excelName 导出文件名(不含扩展名,会自动添加 .xlsx)
      * @param <T>       数据类型
-     * @throws RuntimeException 当写入失败时抛出异常
+     * @throws IllegalArgumentException 当 num 为 null 或小于 1,或 head/width 为 null 时抛出
+     * @throws RuntimeException         当写入失败时抛出异常
      */
     <T> void exportResponse(PoiExportFunction<T> function, List<T> list, String[] head, Integer[] width, Integer num, String excelName);
 
@@ -114,7 +118,7 @@ public interface PoiWriteService {
      * @param list     数据集合
      * @param head     导出列的名字
      * @param width    列宽
-     * @param num      Excel每一页多少数据（不要超过1048576）
+     * @param num      Excel每一页多少数据，必须大于等于 1（不要超过1048576）
      */
     default <T> ByteArrayInputStream writeInputStream(PoiExportFunction<T> function, List<T> list, String[] head, Integer[] width, Integer num) {
         ByteArrayOutputStream export = writeOutputStream(function, list, head, width, num);
@@ -128,7 +132,7 @@ public interface PoiWriteService {
      * @param list     数据集合
      * @param head     导出列的名字
      * @param width    列宽
-     * @param num      Excel每一页多少数据（不要超过1048576）
+     * @param num      Excel每一页多少数据，必须大于等于 1（不要超过1048576）
      */
     default <T> ByteArrayOutputStream writeOutputStream(PoiExportFunction<T> function, List<T> list, String[] head, Integer[] width, Integer num) {
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

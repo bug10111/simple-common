@@ -32,7 +32,7 @@ public class DefaultCompletionVerificationRouterManager implements CompletionVer
             for (CompletionVerificationStrategyManager strategy : strategies) {
                 String queueName = strategy.getQueueName();
                 if (queueName != null) {
-                    // 修复：检测重复队列名并警告
+                    // 检测重复队列名并警告，后注册的策略覆盖先注册的策略
                     if (strategyMap.containsKey(queueName)) {
                         log.warn("队列[{}]已有校验策略[{}]，新策略[{}]将覆盖原策略",
                                 queueName,

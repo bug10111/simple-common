@@ -64,6 +64,10 @@ public class LogTcpServerProperties {
 
     /**
      * 最大连接数
+     * <p>
+     * 服务端活跃连接数超过该值时，新连接将被立即关闭（拒绝），
+     * 并记录 warn 级别日志说明被拒绝的连接来源。
+     * </p>
      */
     @Min(value = 10, message = "最大连接数最小为 10")
     @Max(value = 50000, message = "最大连接数最大为 50000")

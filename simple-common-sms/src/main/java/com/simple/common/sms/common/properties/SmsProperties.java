@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Created with IntelliJ IDEA
- * Description: minio配置类
+ * Description: 短信发送配置类
  *
  *
  * @author qty
@@ -24,10 +24,10 @@ public class SmsProperties {
     //一天相同手机号发送短信最大次数
     private int phoneSendMax = 5;
 
-    //发送最低时间间隔
+    //发送最低时间间隔（单位：秒）
     private int timeInter = 60;
 
-    //验证码超时时间
+    //验证码超时时间（单位：秒）
     private int outTime = 300;
 
     //每次短信验证码允许的错误验证次数

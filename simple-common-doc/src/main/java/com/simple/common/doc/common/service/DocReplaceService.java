@@ -104,7 +104,7 @@ public interface DocReplaceService {
      * }
      * }</pre>
      *
-     * @param name        下载文件名(不含扩展名),会自动添加.docx后缀
+     * @param name        下载文件名(不含扩展名),会自动添加.docx后缀,已带.docx后缀时不重复拼接
      * @param inputStream 模板文件输入流
      * @param values      参数Map,key为占位符名称,value为替换值
      * @throws RuntimeException 当模板解析、替换或响应写入失败时抛出异常
@@ -113,7 +113,7 @@ public interface DocReplaceService {
     default void replaceResponse(String name, InputStream inputStream, Map<String, Object> values) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         replace(inputStream, byteArrayOutputStream, values);
-        ResponseUtils.writeResponse(name + ".docx", byteArrayOutputStream);
+        ResponseUtils.writeResponse(buildDocxName(name), byteArrayOutputStream);
     }
 
     /**
@@ -140,7 +140,7 @@ public interface DocReplaceService {
      * }
      * }</pre>
      *
-     * @param name         下载文件名(不含扩展名)
+     * @param name         下载文件名(不含扩展名),已带.docx后缀时不重复拼接
      * @param templatePath 模板文件路径(相对于resources目录),如 "/templates/contract.docx"
      * @param values       参数Map,key为占位符名称,value为替换值
      * @throws RuntimeException 当模板加载、解析、替换或响应写入失败时抛出异常
@@ -148,7 +148,7 @@ public interface DocReplaceService {
     @SneakyThrows
     default void replaceResponse(String name, String templatePath, Map<String, Object> values) {
         ByteArrayOutputStream byteArrayOutputStream = replaceAndGetOutputStream(templatePath, values);
-        ResponseUtils.writeResponse(name + ".docx", byteArrayOutputStream);
+        ResponseUtils.writeResponse(buildDocxName(name), byteArrayOutputStream);
     }
 
     /**
@@ -214,6 +214,24 @@ public interface DocReplaceService {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         replace(inputStream, byteArrayOutputStream, values);
         return byteArrayOutputStream;
+    }
+
+    /**
+     * 构建下载文件名
+     * <p>
+     * 统一为下载文件名补全.docx扩展名；调用方传入的名称已带.docx后缀
+     * (忽略大小写)时直接返回原名称，避免出现 xx.docx.docx 重复扩展名。
+     * </p>
+     *
+     * @param name 下载文件名(不含扩展名)
+     * @return 补全扩展名后的下载文件名
+     */
+    private String buildDocxName(String name) {
+        // 已带.docx后缀(忽略大小写)时直接使用原名称,避免重复拼接出现 xx.docx.docx
+        if (name.toLowerCase().endsWith(".docx")) {
+            return name;
+        }
+        return name + ".docx";
     }
 
 }

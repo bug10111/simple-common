@@ -11,7 +11,7 @@ import lombok.experimental.Accessors;
 import java.util.Date;
 
 /**
- * 短信验证码(sys_code_record)实体类
+ * 短信验证码(sys_sms_code)实体类
  * 注解@JSONField(serialize = false)，表示不返回这个字段
  * 注解@TableField，用于标志属性
  * value = "数据库字段"，用于标志数据库对应字段
@@ -25,7 +25,7 @@ import java.util.Date;
  *
  * @author qty
  */
-@Schema(title = "短信验证码(sys_code_record)实体类")
+@Schema(title = "短信验证码(sys_sms_code)实体类")
 @Data //提供读写属性, 此外还提供了 equals()、hashCode()、toString() 方法
 @JsonIgnoreProperties(ignoreUnknown = true) //json转换时，字段少了也可以转换
 @Accessors(chain = true) //开启链式调用

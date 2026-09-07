@@ -44,7 +44,7 @@ public enum WebsocketExceptionEnum implements AbstractException {
     PROCESS_ERROR("2003", "处理异常"),
 
     /**
-     * 不支持的消息类型
+     * 不支持的消息类型（预留错误码：非 Text/Binary 帧由 Netty 协议处理器处理，框架层暂不触发）
      */
     UNSUPPORTED_FRAME("2004", "不支持的消息类型"),
 

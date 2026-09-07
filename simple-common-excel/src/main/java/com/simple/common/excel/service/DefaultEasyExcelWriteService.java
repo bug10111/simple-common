@@ -28,6 +28,10 @@ public class DefaultEasyExcelWriteService implements EasyExcelWriteService {
     @Override
     @SneakyThrows
     public <T> ByteArrayOutputStream writeOutputStream(ByteArrayOutputStream outputStream, Class<T> clazz, List<T> data) {
+        // 参数校验：目标输出流必须提供,写入完成后流会被关闭
+        if (outputStream == null) {
+            throw new IllegalArgumentException("outputStream(目标输出流)不能为空");
+        }
         EasyExcel.write(outputStream, clazz).sheet().doWrite(data);
         outputStream.close();
         return outputStream;

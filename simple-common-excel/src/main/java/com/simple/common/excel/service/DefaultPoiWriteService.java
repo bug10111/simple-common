@@ -29,6 +29,19 @@ public class DefaultPoiWriteService implements PoiWriteService {
     @SneakyThrows
     public <T> ByteArrayOutputStream writeOutputStream(PoiExportFunction<T> function, List<T> list, String[] head, Integer[] width, Integer num,
                                                        ByteArrayOutputStream outputStream) {
+        // 参数校验：每个 Sheet 的最大行数必须为正数,否则取模运算会出现除零或空指针
+        if (num == null || num < 1) {
+            throw new IllegalArgumentException("num(每个 Sheet 的最大行数)必须大于等于 1");
+        }
+
+        // 参数校验：表头与列宽数组必须提供,否则写入过程中会出现空指针
+        if (head == null) {
+            throw new IllegalArgumentException("head(表头名称数组)不能为空");
+        }
+        if (width == null) {
+            throw new IllegalArgumentException("width(列宽数组)不能为空");
+        }
+
         int withSize = width.length;
 
         if (withSize > 1) {
@@ -106,7 +119,10 @@ public class DefaultPoiWriteService implements PoiWriteService {
 
         response.reset();
         response.setContentType("application/octet-stream");
-        response.setHeader("content-disposition", "attachment; filename=" + URLEncoder.encode(excelName + ".xlsx", StandardCharsets.UTF_8));
+
+        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,与模块内 EasyExcel 下载头风格保持一致,防止中文文件名乱码
+        String fileName = URLEncoder.encode(excelName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
+        response.setHeader("content-disposition", "attachment;filename*=" + fileName + ".xlsx");
         String originalURL = request.getHeader("Origin");
         if (originalURL != null) {
             response.addHeader("Access-Control-Allow-Origin", originalURL);

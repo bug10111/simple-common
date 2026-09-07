@@ -1,7 +1,5 @@
 package com.simple.common.excel.common.service;
 
-import lombok.SneakyThrows;
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
@@ -60,12 +58,13 @@ public interface EasyExcelWriteService {
      * ossClient.putObject("exports/orders.xlsx", outputStream.toByteArray());
      * }</pre>
      *
-     * @param outputStream 目标输出流,可为 null,为 null 时会自动创建新的流
+     * @param outputStream 目标输出流(必填,写入完成后会被关闭)
      * @param clazz        数据实体类 Class,需使用 @ExcelProperty 注解标注列信息
      * @param data         数据集合
      * @param <T>          数据类型
      * @return 写入完成后的 ByteArrayOutputStream
-     * @throws RuntimeException 当数据为空或写入失败时抛出异常
+     * @throws IllegalArgumentException 当 outputStream 为 null 时抛出
+     * @throws RuntimeException         当数据为空或写入失败时抛出异常
      */
     <T> ByteArrayOutputStream writeOutputStream(ByteArrayOutputStream outputStream, Class<T> clazz, List<T> data);
 
@@ -112,12 +111,9 @@ public interface EasyExcelWriteService {
      * @param data  数据集合
      * @param <T>   数据对象
      */
-    @SneakyThrows
     default <T> ByteArrayInputStream writeInputStream(Class<T> clazz, List<T> data) {
         ByteArrayOutputStream write = writeOutputStream(clazz, data);
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(write.toByteArray());
-        byteArrayInputStream.close();
-        return byteArrayInputStream;
+        return new ByteArrayInputStream(write.toByteArray());
     }
 
     /**

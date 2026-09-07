@@ -47,6 +47,11 @@ public class DefaultRedisCacheAspectManager implements RedisCacheAspectManager {
 
     @Override
     public Integer getCacheTime(Integer cacheTime, Integer appendRandomDuration) {
+        // 不追加随机时长时直接返回基础缓存时间，避免随机数上限非正数导致异常
+        if (appendRandomDuration <= 0) {
+            return cacheTime;
+        }
+        // 追加随机时长，打散过期时间点防止缓存雪崩
         return cacheTime + RandomUtil.randomInt(0, appendRandomDuration);
     }
 }

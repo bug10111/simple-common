@@ -32,6 +32,8 @@ public class IdUtils {
 
     /**
      * 获取ID，雪花算法（基于本机IP保证分布式唯一）
+     *
+     * @return 雪花算法生成的唯一ID字符串
      */
     public static String getSnowflakeNextIdStr() {
         return SNOWFLAKE.nextIdStr();
@@ -39,20 +41,26 @@ public class IdUtils {
 
     /**
      * 获取ID，uuid去掉横线
+     *
+     * @return 不含横线的32位uuid字符串
      */
     public static String getFastSimpleUUID() {
         return IdUtil.fastSimpleUUID();
     }
 
     /**
-     * 获取ID，uuid
+     * 获取ID，uuid（带横线）
+     *
+     * @return 含横线的36位uuid字符串
      */
     public static String getFastUUID() {
-        return IdUtil.simpleUUID();
+        return IdUtil.fastUUID();
     }
 
     /**
      * 生成随机字符串-纯数字
+     *
+     * @return 9位纯数字随机字符串
      */
     public static String randomNumbers() {
         return RandomUtil.randomNumbers(9);
@@ -62,6 +70,7 @@ public class IdUtils {
      * 生成随机字符串-纯数字
      *
      * @param length 长度
+     * @return 指定长度的纯数字随机字符串
      */
     public static String randomNumbers(int length) {
         return RandomUtil.randomNumbers(length);

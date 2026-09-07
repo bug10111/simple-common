@@ -2,6 +2,7 @@ package com.simple.common.xxljob.common.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -16,7 +17,7 @@ import lombok.experimental.Accessors;
 public class CreateXxlJobTaskRequest {
 
     @Schema(description = "执行器主键ID")
-    @NotEmpty(message = "执行器住建不能为空")
+    @NotNull(message = "执行器主键不能为空")
     private Integer jobGroup;
 
     @Schema(description = "调度配置，值含义取决于调度类型,一般是时间cron")

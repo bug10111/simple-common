@@ -29,6 +29,12 @@ import java.util.Map;
  * </ul>
  *
  * <h3>扩展示例：</h3>
+ * <p>
+ * 业务方以 {@code @Component} 注册自定义实现后，默认引擎
+ * {@link com.simple.common.doc.manager.PoiTlTemplateReplaceManager} 会自动让位
+ * （默认引擎以 {@code @ConditionalOnMissingBean(DocTemplateReplaceManager.class)} 方式装配），
+ * 全局模板替换即切换为自定义实现，无需任何排除配置。
+ * </p>
  * <pre>{@code
  * @Component
  * public class CustomDocTemplateManager implements DocTemplateReplaceManager {

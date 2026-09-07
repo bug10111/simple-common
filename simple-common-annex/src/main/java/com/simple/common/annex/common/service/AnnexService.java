@@ -12,12 +12,13 @@ import java.io.InputStream;
  * <p>
  * 提供统一的文件上传、下载、删除等功能。
  * 基于S3协议实现,支持MinIO、阿里云OSS、AWS S3等存储服务。
- * 默认实现 {@link com.simple.common.annex.service.S3AnnexService} 封装了文件类型校验、大小限制等业务逻辑。
+ * 默认实现 {@link com.simple.common.annex.service.S3AnnexService} 不做文件类型白名单与大小限制,
+ * 输入流通过 readAllBytes 全量读入内存,调用方需自行保障文件类型与大小符合业务要求。
  * </p>
  *
  * <h3>使用场景：</h3>
  * <ul>
- *   <li>用户头像上传：支持图片格式校验和压缩</li>
+ *   <li>用户头像上传：将头像文件存储到对象存储并生成访问URL</li>
  *   <li>文档管理：合同、报告等文件的存储和管理</li>
  *   <li>商品图片：电商平台的商品图片上传和管理</li>
  * </ul>
@@ -82,7 +83,7 @@ public interface AnnexService {
      * @param applicationName 应用服务名称,用于组织文件目录结构,如 "user-service"
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
      * @return 上传响应结果,包含objectKey、访问URL等信息
-     * @throws RuntimeException 当文件为空、格式不支持或上传失败时抛出异常
+     * @throws RuntimeException 当文件为null或上传失败时抛出异常
      */
     UploadResponse upload(MultipartFile file, String applicationName, ShareType shareType);
 
@@ -110,7 +111,7 @@ public interface AnnexService {
      * @param packageName     业务包名,如 "avatars"、"documents"、"reports" 等
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
      * @return 上传响应结果,包含objectKey、访问URL等信息
-     * @throws RuntimeException 当文件为空、格式不支持或上传失败时抛出异常
+     * @throws RuntimeException 当文件为null或上传失败时抛出异常
      */
     UploadResponse upload(MultipartFile file, String applicationName, String packageName, ShareType shareType);
 

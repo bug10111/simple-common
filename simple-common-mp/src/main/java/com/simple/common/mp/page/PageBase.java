@@ -32,7 +32,7 @@ public class PageBase {
     @NotNull(message = "当前页不能为空")
     private Integer current = 1;
 
-    @Schema(description = "每页显示条数，<0的时候默认查询所有")
+    @Schema(description = "每页显示条数，上限1000条，超出会被断言拦截；负值不做特殊处理，行为由MyBatis-Plus Page决定")
     @NotNull(message = "每页显示条数不能为空")
     private Integer size = 10;
 

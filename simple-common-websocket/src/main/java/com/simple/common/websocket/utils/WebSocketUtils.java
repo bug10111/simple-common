@@ -407,11 +407,30 @@ public class WebSocketUtils {
     }
 
     /**
-     * 清空所有通道
+     * 清空所有通道并关闭对应连接。
+     * <p>
+     * 先逐个关闭通道持有的连接（单个关闭失败仅记录日志，不中断其余通道关闭），
+     * 再清空内存注册表，避免残留 TCP 连接以及服务端失忆后客户端消息无路由。
+     * </p>
      */
     public static void clearAll() {
+        List<Map.Entry<String, ChannelHandlerContext>> entries = map.entries();
+
+        // 逐个关闭通道连接，单个失败不影响其余
+        for (Map.Entry<String, ChannelHandlerContext> entry : entries) {
+            ChannelHandlerContext ctx = entry.getValue();
+            if (ctx == null) {
+                continue;
+            }
+            try {
+                ctx.close();
+            } catch (Exception e) {
+                log.warn("通道关闭失败 [channel={}]", entry.getKey(), e);
+            }
+        }
+
         map.clear();
-        log.info("所有通道已清空");
+        log.info("所有通道连接已关闭并清空");
     }
 
     /**

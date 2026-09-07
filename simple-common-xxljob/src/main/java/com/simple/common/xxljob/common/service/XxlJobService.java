@@ -26,7 +26,7 @@ import com.simple.common.xxljob.common.dto.UpdateXxlJobTaskRequest;
  * // 创建定时任务
  * CreateXxlJobTaskRequest request = new CreateXxlJobTaskRequest();
  * request.setJobDesc("订单超时取消任务");
- * request.setCron("0 0/5 * * * ?");  // 每5分钟执行一次
+ * request.setScheduleConf("0 0/5 * * * ?");  // 每5分钟执行一次
  * request.setExecutorHandler("orderTimeoutHandler");
  * request.setExecutorParam("{\"timeoutMinutes\": 30}");
  * String jobId = xxlJobService.create(request);
@@ -53,7 +53,7 @@ public interface XxlJobService {
      * <pre>{@code
      * CreateXxlJobTaskRequest request = new CreateXxlJobTaskRequest();
      * request.setJobDesc("数据同步任务");
-     * request.setCron("0 0 2 * * ?");  // 每天凌晨2点执行
+     * request.setScheduleConf("0 0 2 * * ?");  // 每天凌晨2点执行
      * request.setExecutorHandler("dataSyncHandler");
      * request.setExecutorParam("{\"source\": \"mysql\", \"target\": \"es\"}");
      * 
@@ -78,7 +78,7 @@ public interface XxlJobService {
      * <pre>{@code
      * UpdateXxlJobTaskRequest request = new UpdateXxlJobTaskRequest();
      * request.setId(123);
-     * request.setCron("0 0 3 * * ?");  // 修改为每天凌晨3点执行
+     * request.setScheduleConf("0 0 3 * * ?");  // 修改为每天凌晨3点执行
      * request.setExecutorParam("{\"source\": \"oracle\", \"target\": \"es\"}");
      * 
      * xxlJobService.update(request);

@@ -1,6 +1,7 @@
 package com.simple.common.sms.service;
 
 import cn.hutool.core.date.DateUtil;
+import cn.hutool.json.JSONUtil;
 import com.aliyun.dysmsapi20170525.Client;
 import com.aliyun.dysmsapi20170525.models.SendSmsRequest;
 import com.aliyun.dysmsapi20170525.models.SendSmsResponse;
@@ -13,7 +14,6 @@ import com.simple.common.core.utils.JsonUtils;
 import com.simple.common.mp.common.enums.Status;
 import com.simple.common.sms.common.entity.sysSmsCode.SysSmsCode;
 import com.simple.common.sms.common.entity.sysSmsTemplate.SysSmsTemplate;
-import com.simple.common.sms.common.properties.SmsProperties;
 import com.simple.common.sms.common.view.sysSmsCode.SysSmsCodeView;
 import com.simple.common.sms.common.view.sysSmsTemplate.SysSmsTemplateView;
 import lombok.SneakyThrows;
@@ -30,9 +30,6 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service("aliSmsService")
 public class AliSmsService extends AbsSmsService {
-
-    @Autowired
-    private SmsProperties smsProperties;
 
     @Autowired
     private AlibabaProperties alibabaProperties;
@@ -60,11 +57,11 @@ public class AliSmsService extends AbsSmsService {
         //初始化返回对象
         SendSmsResponse sendSmsResponse = null;
 
-        //初始化短信信息
+        //初始化短信信息，code 落库原始验证码（从模板参数中提取），供验证码校验等值比对
         SysSmsCode codeRecord = new SysSmsCode();
         codeRecord.setDate(DateUtil.date().toDateStr());
         codeRecord.setSendType(sendType);
-        codeRecord.setCode(templateParam);
+        codeRecord.setCode(JSONUtil.parseObj(templateParam).getStr("code"));
         codeRecord.setPhone(mobile);
         codeRecord.setIp(ip);
 
@@ -81,14 +78,19 @@ public class AliSmsService extends AbsSmsService {
         }
 
         //收集阿里云返回信息，校验短信是否发送成功
-        if ("OK".equalsIgnoreCase(sendSmsResponse.getBody().getCode())) {
+        boolean sendSuccess = "OK".equalsIgnoreCase(sendSmsResponse.getBody().getCode());
+        if (sendSuccess) {
             codeRecord.setReqStatus(Status.OK);
-            codeRecord.setReqResults(JsonUtils.toJsonStr(sendSmsResponse));
         } else {
             codeRecord.setReqStatus(Status.ERROR);
-            codeRecord.setReqResults(JsonUtils.toJsonStr(sendSmsResponse));
         }
+        codeRecord.setReqResults(JsonUtils.toJsonStr(sendSmsResponse));
         sysSmsCodeView.save(codeRecord);
+
+        //网关业务失败（签名/模板未过审、限流等）时向调用方抛出，携带阿里云原始返回码与描述，避免发送失败被静默掩盖
+        if (!sendSuccess) {
+            AssertUtils.error("短信发送失败：[{}]-[{}]", sendSmsResponse.getBody().getCode(), sendSmsResponse.getBody().getMessage());
+        }
     }
 
     /**

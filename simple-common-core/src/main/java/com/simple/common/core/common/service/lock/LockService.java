@@ -7,7 +7,7 @@ import com.simple.common.core.function.ReturnValueFunction;
  * 分布式锁服务接口。
  * <p>
  * 提供统一的锁操作接口,支持可重入锁、公平锁等多种锁类型。
- * 默认实现 {@link com.simple.common.core.service.lock.RedissonLockService} 基于 Redisson 实现分布式锁。
+ * 默认实现 {@code com.simple.common.redis.service.DefaultRedissonLockService} 由 simple-common-redis 模块提供,基于 Redisson 实现分布式锁。
  * </p>
  *
  * <h3>使用场景：</h3>

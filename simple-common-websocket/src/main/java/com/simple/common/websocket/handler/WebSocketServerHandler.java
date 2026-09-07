@@ -20,6 +20,8 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
+import java.nio.charset.StandardCharsets;
+
 /**
  * WebSocket消息处理器
  * <p>
@@ -81,9 +83,12 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
+        // 消息长度按 UTF-8 字节口径校验（配置上限为字节）：UTF-8 每字符最多 3 字节，
+        // 字符数未达上限三分之一时必然未超限，仅在可能超限时才计算实际字节数，避免常规消息重复编码开销
         int maxLength = properties.getMaxTextMessageLength();
-        if (text.length() > maxLength) {
-            log.warn("消息过长，拒绝处理 [length={}, max={}]", text.length(), maxLength);
+        int byteLength = text.length() > maxLength / 3 ? text.getBytes(StandardCharsets.UTF_8).length : text.length();
+        if (byteLength > maxLength) {
+            log.warn("文本消息过长，拒绝处理 [byteLength={}, max={}]", byteLength, maxLength);
             sendError(ctx, WebsocketExceptionEnum.MESSAGE_TOO_LARGE, "最大允许" + maxLength + "字节");
             return;
         }

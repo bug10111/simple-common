@@ -7,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import java.io.File;
+
 /**
  * RabbitMQ 消息队列配置属性类
  * <p>
@@ -117,6 +119,16 @@ public class RabbitMqProperties {
      * <p>默认值：{@code 60000}（60秒）</p>
      */
     private long retryDelayMaxMs = 60000L;
+
+    /**
+     * 消息本地兜底持久化目录（死信消息与发送失败消息默认兜底实现的 JSON 行文件根目录）
+     * <p>
+     * 默认值为系统临时目录下 simple-rabbitmq-fallback 子目录，兜底文件按天滚动；
+     * 生产环境建议配置到持久化磁盘目录，并实现 DeadLetterService / SendFailurePersistenceManager
+     * 接口将失败消息落库，替换默认本地文件兜底实现。
+     * </p>
+     */
+    private String fallbackDir = System.getProperty("java.io.tmpdir") + File.separator + "simple-rabbitmq-fallback";
 
     /**
      * 动态获取防重锁的 Redis Key 前缀

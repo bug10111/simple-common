@@ -9,6 +9,7 @@ import com.simple.common.rabbitmq.common.manager.ConsumptionLockManager;
 import com.simple.common.rabbitmq.common.manager.RetryCountManager;
 import com.simple.common.rabbitmq.common.manager.RetryMessageManager;
 import com.simple.common.rabbitmq.common.service.process.RabbitMqProcess;
+import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -22,9 +23,11 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * RabbitMQ 消息消费切面（增强版：支持锁续期，优化锁竞争逻辑）
@@ -58,9 +61,9 @@ public class RabbitMqProcessAspect {
     private final Map<String, RabbitMqConsumption> annotationCache = new ConcurrentHashMap<>();
 
     /**
-     * 排序后的前置处理器列表（初始化后不变）
+     * 排序后的前置处理器列表（初始化后不变，仅包含启用执行的处理器）
      */
-//    private List<RabbitMqProcess> sortedProcesses;
+    private List<RabbitMqProcess> sortedProcesses;
 
     /**
      * 单线程调度器，用于锁续期任务（守护线程）
@@ -73,15 +76,19 @@ public class RabbitMqProcessAspect {
 
     /**
      * 初始化方法，在 Bean 创建后对前置处理器进行排序并缓存
+     * <p>
+     * 仅收集枚举声明为执行的处理器；默认装配下无业务处理器（占位处理器 execute=false 被过滤）时列表为空，
+     * 责任链执行环节为无害空转，不影响现有消费方
      */
-//    @PostConstruct
-//    public void init() {
-//        sortedProcesses = processList.stream()
-//                                     .filter(rabbitMqProcess -> rabbitMqProcess.getProcess().isExecute())
-//                                     .sorted(Comparator.comparingInt(p -> p.getProcess().getOrdered()))
-//                                     .collect(Collectors.toList());
-//        log.debug("RabbitMQ前置处理器初始化完成，共{}个", sortedProcesses.size());
-//    }
+    @PostConstruct
+    public void init() {
+        // 按枚举声明的执行顺序升序排列，order 值越小越先执行
+        sortedProcesses = processList.stream()
+                                     .filter(rabbitMqProcess -> rabbitMqProcess.getProcess().isExecute())
+                                     .sorted(Comparator.comparingInt(p -> p.getProcess().getOrdered()))
+                                     .collect(Collectors.toList());
+        log.debug("RabbitMQ前置处理器初始化完成，共{}个", sortedProcesses.size());
+    }
 
     /**
      * 销毁方法，在容器关闭时优雅停止续期线程池
@@ -193,18 +200,14 @@ public class RabbitMqProcessAspect {
         Exception businessException = null;
 
         try {
-//            // 执行前置处理器
-//            for (RabbitMqProcess process : sortedProcesses) {
-//                if (process.getProcess().isExecute()) {
-//                    try {
-//                        process.execution(message, channel, annotation);
-//                    } catch (Exception ex) {
-//                        log.error("前置处理器[{}]执行异常", process.getProcess().getMsg(), ex);
-//                        // 若处理器异常不应继续，可在此根据配置决定是否抛出
-//                        // 此处保持原有行为：仅记录日志，继续执行
-//                    }
-//                }
-//            }
+            // 执行前置处理器责任链，任一处理器异常仅记录日志并继续后续处理器，不阻断消费流程
+            for (RabbitMqProcess process : sortedProcesses) {
+                try {
+                    process.execution(message, channel, annotation);
+                } catch (Exception ex) {
+                    log.error("前置处理器[{}]执行异常", process.getProcess().getMsg(), ex);
+                }
+            }
 
             // 定期检查中断标志，若已被续期任务中断则主动抛出异常
             if (Thread.interrupted()) {

@@ -3,9 +3,12 @@ package com.simple.common.core.utils;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.asymmetric.SM2;
 import cn.hutool.crypto.asymmetric.Sign;
+import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.util.*;
@@ -17,6 +20,7 @@ import java.util.stream.Collectors;
  *
  * @author qty
  */
+@Slf4j
 public class SignUtils {
 
     /**
@@ -40,8 +44,10 @@ public class SignUtils {
 
     /**
      * 获取可用于签名的字段
-     * @param t 对象
+     *
+     * @param t             对象
      * @param excludeFields 排除字段
+     * @return 可参与签名的字段键值对（字段名 -> 字段值字符串）
      */
     private static <T> Map<String, String> getSignableFields(T t, String[] excludeFields) {
         Set<String> excludeSet = excludeFields == null ? Collections.emptySet() : new HashSet<>(Arrays.asList(excludeFields));
@@ -63,7 +69,8 @@ public class SignUtils {
                     String strValue = value != null ? value.toString() : "";
                     params.put(field.getName(), strValue);
                 } catch (Exception e) {
-                    // 忽略反射异常，继续处理其他字段
+                    // 反射异常的字段跳过签名，记录告警供排查缺失签名参数
+                    log.warn("读取签名字段失败，跳过字段: {}，原因: {}", field.getName(), e.getMessage());
                 }
             }
             clazz = clazz.getSuperclass();
@@ -140,6 +147,9 @@ public class SignUtils {
 
     /**
      * 验证HMAC-SHA256签名
+     * <p>
+     * 使用常量时间比较，防止时序侧信道攻击逐字节猜测签名。
+     * </p>
      *
      * @param message   内容
      * @param signature 签名字符串
@@ -147,8 +157,12 @@ public class SignUtils {
      * @return 验签结果
      */
     public static boolean verifyWeb(String message, String signature, String secretKey) {
+        // 空签名直接判定不通过，属正常入参校验
+        if (signature == null) {
+            return false;
+        }
         String calculatedSignature = signWeb(message, secretKey);
-        return calculatedSignature.equals(signature);
+        return MessageDigest.isEqual(calculatedSignature.getBytes(StandardCharsets.UTF_8), signature.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -182,7 +196,7 @@ public class SignUtils {
      */
     private static String urlEncode(String value) {
         try {
-            return java.net.URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20") // 保持与API服务端一致
+            return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20") // 保持与API服务端一致
                                       .replace("%21", "!").replace("%27", "'").replace("%28", "(").replace("%29", ")").replace("%7E", "~");
         } catch (Exception e) {
             throw new RuntimeException("URL编码失败", e);

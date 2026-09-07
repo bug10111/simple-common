@@ -3,10 +3,10 @@ package com.simple.common.eventbus.common.config;
 import com.simple.common.core.common.properties.ApplicationProperties;
 import com.simple.common.eventbus.common.constants.EventConstant;
 import com.simple.common.eventbus.util.MqNameUtil;
-import com.simple.common.rabbitmq.common.config.RabbitMqConfig;
 import org.springframework.amqp.core.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Component;
@@ -16,6 +16,9 @@ import java.util.Map;
 
 /**
  * RabbitMQ异步事件队列相关声明和创建
+ * <p>装配条件：仅当 simple.event.type=mq（或缺省默认 mq）时才声明队列/交换机/绑定等 MQ 组件，
+ * 同步模式（simple.event.type=sync）下本类 MQ Bean 全部跳过，纯同步使用无需 RabbitMQ 连接；
+ * 类上的 @ComponentScan 保持无条件执行，保证事件模块自身组件（事件管理器、同步/MQ 事件执行器等）正常装配</p>
  *
  * @author qty
  */
@@ -32,6 +35,7 @@ public class RabbiEventConfig {
      * @return Queue
      */
     @Bean("simpleEventQueue")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Queue simpleEventQueue() {
         return new Queue(MqNameUtil.queueName(applicationProperties.getName()), true, false, false);
     }
@@ -42,6 +46,7 @@ public class RabbiEventConfig {
      * @return DirectExchange
      */
     @Bean("simpleEventExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public DirectExchange simpleEventExchange() {
         return new DirectExchange(MqNameUtil.exchangeName(applicationProperties.getName()), true, false);
     }
@@ -52,6 +57,7 @@ public class RabbiEventConfig {
      * @return Exchange
      */
     @Bean("simpleEventDelayExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Exchange simpleEventDelayExchange() {
         Map<String, Object> args = new HashMap<>();
         args.put("x-delayed-type", "direct");
@@ -64,6 +70,7 @@ public class RabbiEventConfig {
      * @return FanoutExchange
      */
     @Bean("simpleEventAllExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public FanoutExchange simpleEventAllExchange() {
         return new FanoutExchange(MqNameUtil.exchangeName(EventConstant.TARGET_ALL_X), true, false);
     }
@@ -74,6 +81,7 @@ public class RabbiEventConfig {
      * @return Exchange
      */
     @Bean("simpleEventAllDelayExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Exchange simpleEventAllDelayExchange() {
         Map<String, Object> args = new HashMap<>();
         args.put("x-delayed-type", "fanout");
@@ -88,6 +96,7 @@ public class RabbiEventConfig {
      * @return Binding
      */
     @Bean("bindingSimpleEventExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Binding bindingSimpleEventExchange(@Qualifier("simpleEventQueue") Queue queue, @Qualifier("simpleEventExchange") DirectExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(MqNameUtil.keyName(applicationProperties.getName()));
     }
@@ -100,6 +109,7 @@ public class RabbiEventConfig {
      * @return Binding
      */
     @Bean("bindingDelaySimpleEventExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Binding bindingDelaySimpleEventExchange(@Qualifier("simpleEventQueue") Queue queue, @Qualifier("simpleEventDelayExchange") Exchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(MqNameUtil.keyName(applicationProperties.getName())).noargs();
     }
@@ -112,6 +122,7 @@ public class RabbiEventConfig {
      * @return Binding
      */
     @Bean("bindingSimpleEventAllExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Binding bindingSimpleEventAllExchange(@Qualifier("simpleEventQueue") Queue queue, @Qualifier("simpleEventAllExchange") FanoutExchange exchange) {
         return BindingBuilder.bind(queue).to(exchange);
     }
@@ -124,18 +135,20 @@ public class RabbiEventConfig {
      * @return Binding
      */
     @Bean("bindingDelaySimpleEventAllExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Binding bindingDelaySimpleEventAllExchange(@Qualifier("simpleEventQueue") Queue queue, @Qualifier("simpleEventAllDelayExchange") Exchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with("").noargs();
     }
 
     /**
-     * 绑定本服务队列到重试延迟交换机（用于消息消费失败后的延迟重试）
+     * 绑定本服务队列到重试延迟交换机（用于消息消费失败后的延迟重试，重试交换机由 simple-common-rabbitmq 的 RabbitMqConfig 定义）
      *
      * @param queue    注入本服务队列
-     * @param exchange 注入重试延迟交换机（由父类RabbitMqConfig定义）
+     * @param exchange 注入重试延迟交换机
      * @return Binding
      */
     @Bean("bindingSimpleDelayedRetryExchange")
+    @ConditionalOnProperty(prefix = EventConstant.EVENT_TYPE_PREFIX, name = "type", havingValue = EventConstant.EVENT_TYPE_MQ, matchIfMissing = true)
     public Binding bindingSimpleDelayedRetryExchange(@Qualifier("simpleEventQueue") Queue queue, @Qualifier("simpleDelayedRetryExchange") Exchange exchange) {
         return BindingBuilder.bind(queue).to(exchange).with(MqNameUtil.keyName(applicationProperties.getName())).noargs();
     }

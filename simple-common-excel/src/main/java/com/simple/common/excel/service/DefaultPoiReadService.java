@@ -30,15 +30,19 @@ public class DefaultPoiReadService implements PoiReadService {
     @Override
     @SneakyThrows
     public void read(String filename, XSSFSheetXMLHandler.SheetContentsHandler sheetContentsHandler) {
-        OPCPackage pkg = OPCPackage.open(filename, PackageAccess.READ);
-        execution(pkg, sheetContentsHandler);
+        // try-with-resources 确保读取结束后(含异常路径)释放文档占用的文件句柄
+        try (OPCPackage pkg = OPCPackage.open(filename, PackageAccess.READ)) {
+            execution(pkg, sheetContentsHandler);
+        }
     }
 
     @Override
     @SneakyThrows
     public void read(InputStream inputStream, XSSFSheetXMLHandler.SheetContentsHandler sheetContentsHandler) {
-        OPCPackage pkg = OPCPackage.open(inputStream);
-        execution(pkg, sheetContentsHandler);
+        // try-with-resources 确保读取结束后(含异常路径)释放文档占用的资源
+        try (OPCPackage pkg = OPCPackage.open(inputStream)) {
+            execution(pkg, sheetContentsHandler);
+        }
     }
 
     /**
@@ -53,12 +57,10 @@ public class DefaultPoiReadService implements PoiReadService {
         XSSFReader xssfReader = new XSSFReader(pkg);
         StylesTable styles = xssfReader.getStylesTable();
         XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) xssfReader.getSheetsData();
-        InputStream stream = null;
         while (iter.hasNext()) {
-            stream = iter.next();
-            parserSheetXml(styles, strings, sheetContentsHandler, stream);
-            if (stream != null) {
-                stream.close();
+            // 逐个 sheet 解析,每个 sheet 解析完毕后(含异常路径)立即关闭其流,避免句柄占用
+            try (InputStream stream = iter.next()) {
+                parserSheetXml(styles, strings, sheetContentsHandler, stream);
             }
         }
     }

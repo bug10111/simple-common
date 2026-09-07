@@ -25,6 +25,8 @@ public class CustomIdGenerator implements IdentifierGenerator {
 
     /**
      * 雪花算法
+     * <p>
+     * nextUUID 实际返回雪花 ID 字符串（非 UUID），雪花 ID 具备顺序性；ASSIGN_UUID 策略下落库为雪花字符串。
      *
      * @param entity 实体
      */

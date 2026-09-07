@@ -65,6 +65,15 @@ public class LogDataEvent implements Serializable {
     private String nickname;
 
     /**
+     * 操作名称
+     * <p>
+     * 协议字段（proto LogData operName=9），由调用方按需填充；
+     * 客户端日志服务无固定操作名称来源，不做默认填充。
+     * </p>
+     */
+    private String operName;
+
+    /**
      * 请求参数
      */
     private String operParam;
@@ -162,6 +171,7 @@ public class LogDataEvent implements Serializable {
                                          .setOperLocation(operLocation != null ? operLocation : "")
                                          .setUserId(userId != null ? userId : "")
                                          .setNickname(nickname != null ? nickname : "")
+                                         .setOperName(operName != null ? operName : "")
                                          .setOperParam(operParam != null ? operParam : "")
                                          .setStatus(status)
                                          .setErrorMsg(errorMsg != null ? errorMsg : "")
@@ -188,6 +198,7 @@ public class LogDataEvent implements Serializable {
         event.setOperLocation(logData.getOperLocation());
         event.setUserId(logData.getUserId());
         event.setNickname(logData.getNickname());
+        event.setOperName(logData.getOperName());
         event.setOperParam(logData.getOperParam());
         event.setStatus(logData.getStatus());
         event.setErrorMsg(logData.getErrorMsg());
@@ -212,6 +223,7 @@ public class LogDataEvent implements Serializable {
         this.operLocation = null;
         this.userId = null;
         this.nickname = null;
+        this.operName = null;
         this.operParam = null;
         this.status = 0;
         this.errorMsg = null;

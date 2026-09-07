@@ -11,7 +11,7 @@ import com.simple.common.annex.common.dto.UploadResponse;
  *
  * <h3>使用场景：</h3>
  * <ul>
- *   <li>文件去重：根据MD5或SHA1判断文件是否已上传</li>
+ *   <li>文件去重：根据摘要算法值(UploadResponse.algorithmValue)判断文件是否已上传,该值仅当配置摘要算法后才有值</li>
  *   <li>业务关联：将上传的文件与业务数据(如订单、用户)关联</li>
  *   <li>权限校验：检查用户是否有权限上传该类型的文件</li>
  *   <li>配额限制：检查用户的存储空间是否充足</li>
@@ -21,20 +21,19 @@ import com.simple.common.annex.common.dto.UploadResponse;
  * <pre>{@code
  * @Component
  * public class OrderAttachmentUploadFunction implements UploadFunction {
- *     @Autowired
- *     private AnnexService annexService;
- *     
+ *
  *     @Override
  *     public boolean handler(UploadResponse uploadResponse) throws Throwable {
- *         // 1. 检查文件是否已存在(MD5去重)
- *         Annex existingAnnex = annexService.findByMd5(uploadResponse.getMd5());
+ *         // 检查文件是否已存在(按摘要算法值去重,仅当配置algorithm为MD5时algorithmValue才有值)
+ *         String md5 = uploadResponse.getAlgorithmValue();
+ *         Annex existingAnnex = ...; // 业务侧根据md5查询附件是否已上传
  *         if (existingAnnex != null) {
  *             // 文件已存在,直接返回已有记录
  *             BeanUtils.copyProperties(existingAnnex, uploadResponse);
  *             return true;
  *         }
- *         
- *         // 2. 文件不存在,继续上传流程
+ *
+ *         // 文件不存在,继续上传流程
  *         return false;
  *     }
  * }
@@ -59,7 +58,7 @@ public interface UploadFunction {
      *   <li>false - 需要继续执行上传流程</li>
      * </ul>
      *
-     * @param uploadResponse 附件上传的返回参数对象,包含文件名、MD5、大小等信息
+     * @param uploadResponse 附件上传的返回参数对象,包含文件名、摘要算法值(algorithmValue,配置摘要算法后才有)、大小等信息
      * @return true表示已处理完成(跳过上传),false表示需要继续上传
      * @throws Throwable 处理过程中抛出的异常,将中断上传流程
      */

@@ -13,7 +13,7 @@ import java.util.Date;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @Accessors(chain = true)
-@Schema(title = "短信验证码(sys_code_record)列表请求参数")
+@Schema(title = "短信验证码(sys_sms_code)列表请求参数")
 public class FindAllSysSmsCodeRequest extends PageBase {
 
     @Schema(description = "短信类型")

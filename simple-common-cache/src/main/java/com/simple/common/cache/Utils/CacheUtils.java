@@ -181,10 +181,15 @@ public final class CacheUtils {
      * </pre>
      *
      * @param cacheTime            基础缓存时间（秒）
-     * @param appendRandomDuration 随机增加的上限（秒）
+     * @param appendRandomDuration 随机增加的上限（秒），0 或负数表示不追加随机时长
      * @return 最终的缓存过期时间（秒）
      */
     public static int getCacheTime(int cacheTime, int appendRandomDuration) {
+        // 不追加随机时长时直接返回基础缓存时间，避免随机数上限非正数导致异常
+        if (appendRandomDuration <= 0) {
+            return cacheTime;
+        }
+        // 追加随机时长，打散过期时间点防止缓存雪崩
         return cacheTime + RandomUtil.randomInt(0, appendRandomDuration);
     }
 }

@@ -6,6 +6,7 @@ import com.alibaba.csp.sentinel.EntryType;
 import com.alibaba.csp.sentinel.SphU;
 import com.alibaba.csp.sentinel.slots.block.BlockException;
 import com.simple.common.auth.client.util.LoginUserUtils;
+import com.simple.common.core.exception.DefaultException;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -15,7 +16,9 @@ import org.springframework.stereotype.Component;
 /**
  * 统一用户限流 Aspect
  * <p>
- * 自动拦截所有子服务 Controller 方法，从 LoginUserUtils 获取 userId，
+ * 拦截范围口径：凡被 {@code @RestController} 标注的 Controller 类，不限包名与子包深度，
+ * 其全部方法均纳入限流切面；仅对已认证用户执行限流，匿名访问直接放行。
+ * 从 LoginUserUtils 获取 userId，
  * 调用 Sentinel 的 {@code SphU.entry()} 进行两级参数限流：
  * <ol>
  *   <li><b>接口级</b>（资源名 {@code {Controller}:{method}}）— 按 userId 维度，逐接口配置</li>
@@ -35,14 +38,19 @@ public class UserRateLimitAspect {
     /** 全局统一资源名 — 按 userId 维度，所有接口合计限流 */
     private static final String RESOURCE_GLOBAL = "user:rate:limit";
 
+    /** 限流触发专用业务码，对齐 HTTP 429 语义，经 DefaultExceptionHandler 透出 */
+    private static final String CODE_RATE_LIMITED = "429";
+
     /**
-     * 拦截所有子服务 Controller 方法，执行两级 userId 参数限流。
+     * 拦截所有被 {@code @RestController} 标注的 Controller 方法（不限包名与子包深度），
+     * 执行两级 userId 参数限流。
      * <p>
      * 优先级：接口级 > 全局。
      * 仅对已认证用户执行限流，匿名访问直接放行。
+     * 切点使用注解匹配，避免包路径字面量漏配非标准包结构的 Controller。
      * </p>
      */
-    @Around("execution(* com.simple.*.controller.*.*(..))")
+    @Around("@within(org.springframework.web.bind.annotation.RestController)")
     public Object aroundControllerMethod(ProceedingJoinPoint pjp) throws Throwable {
         String userId = LoginUserUtils.getUserTemporary().getUserId();
 
@@ -60,8 +68,9 @@ public class UserRateLimitAspect {
              Entry e2 = SphU.entry(RESOURCE_GLOBAL, EntryType.IN, 1, userId)) {
             return pjp.proceed();
         } catch (BlockException e) {
+            // 限流命中走框架统一异常出口,由 DefaultExceptionHandler 透出业务码与提示,避免被兜底为系统繁忙
             log.warn("用户 {} 触发限流, resource={}", userId, apiResource);
-            throw new RuntimeException("请求已被限流，请稍后重试");
+            throw new DefaultException(CODE_RATE_LIMITED, "请求已被限流，请稍后重试");
         }
     }
 

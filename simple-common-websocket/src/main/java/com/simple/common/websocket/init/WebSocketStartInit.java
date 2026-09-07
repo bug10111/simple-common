@@ -47,32 +47,39 @@ public class WebSocketStartInit implements ApplicationListener<ApplicationReadyE
     private volatile EventLoopGroup workerGroup;
 
     /**
-     * Spring应用启动完成事件处理
+     * Spring应用启动完成事件处理。
+     * <p>
+     * 端口绑定失败等启动异常直接向上抛出，交由 Spring 启动流程终止宿主应用，
+     * 保证启动失败语义清晰（应用未就绪即失败退出），不在框架层静默终止 JVM。
+     * </p>
      */
     @Override
     public void onApplicationEvent(ApplicationReadyEvent event) {
         try {
 
-            // 1. 初始化线程组
+            // 初始化线程组
             bossGroup = new NioEventLoopGroup(webSocketProperties.getBossThreads());
             workerGroup = new NioEventLoopGroup(webSocketProperties.getWorkerThreads());
 
-            // 2. 配置服务器引导
+            // 配置服务器引导
             ServerBootstrap bootstrap = new ServerBootstrap();
             configureBootstrap(bootstrap);
 
-            // 3. 绑定端口并启动
+            // 绑定端口并启动
             bootstrap.bind(webSocketProperties.getPort()).sync();
             log.info("websocket服务启动成功，监听端口：{}", webSocketProperties.getPort());
 
         } catch (InterruptedException e) {
-            log.error("服务器启动被中断", e);
-            registerShutdownHook();
-            System.exit(1);
+
+            // 启动被中断：恢复中断标记后向上抛出，交由 Spring 启动流程终止宿主应用
+            Thread.currentThread().interrupt();
+            log.error("websocket服务启动被中断", e);
+            throw new IllegalStateException("websocket服务启动被中断", e);
         } catch (Exception e) {
-            log.error("服务器启动失败", e);
-            registerShutdownHook();
-            System.exit(1);
+
+            // 启动失败（如端口被占用）：向上抛出，交由 Spring 启动流程终止宿主应用
+            log.error("websocket服务启动失败", e);
+            throw new IllegalStateException("websocket服务启动失败", e);
         }
     }
 
@@ -101,10 +108,10 @@ public class WebSocketStartInit implements ApplicationListener<ApplicationReadyE
     }
 
     /**
-     * 注册JVM关闭钩子（备用方案）
+     * Spring容器关闭时优雅停机：关闭 Netty 线程组，释放连接资源
      */
     @PreDestroy
-    private void registerShutdownHook() {
+    private void shutdown() {
         if (bossGroup != null) {
             bossGroup.shutdownGracefully();
         }

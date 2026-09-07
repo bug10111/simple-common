@@ -14,6 +14,7 @@ import org.redisson.api.RRateLimiter;
 import org.redisson.api.RateIntervalUnit;
 import org.redisson.api.RateType;
 import org.redisson.api.RedissonClient;
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -46,6 +47,11 @@ public class RedissonCurrentLimitingManager implements CurrentLimitingManager {
 
     /**
      * 获取限流规则 Key
+     * <p>
+     * USER_ID 维度依赖业务工程实现的 CoreLoginUserService bean;
+     * 业务工程未实现该 bean 时（无登录体系的部署形态）,降级使用 anonymous 作为限流key,
+     * 使所有未登录请求在 USER_ID 维度合并为一个限流桶。
+     * </p>
      */
     protected String getKey(CurrentLimiting currentLimiting) {
         HttpServletRequest request = HttpServletUtils.getRequest();
@@ -55,17 +61,49 @@ public class RedissonCurrentLimitingManager implements CurrentLimitingManager {
         if (keyType == CurrentLimitingRulesEnum.URL) {
             keyStr = request.getRequestURI();
         } else if (keyType == CurrentLimitingRulesEnum.USER_ID) {
-            CoreLoginUserService bean = SpringUtil.getBean(CoreLoginUserService.class);
-            if (bean != null) {
-                keyStr = bean.getUserId();
-            } else {
-                log.error("未获取到userId，请实现CoreLoginUserService的getUserId方法");
-                keyStr = "anonymous";
-            }
+            keyStr = resolveUserIdKey();
         } else if (keyType == CurrentLimitingRulesEnum.IP) {
             keyStr = IPUtils.getIpAddr() + ":" + request.getRequestURI();
         }
         return keyStr;
+    }
+
+    /**
+     * 解析 USER_ID 维度的限流key
+     * <p>
+     * 优先从 Spring 容器获取 CoreLoginUserService 并取当前登录用户id;
+     * 容器中不存在该 bean 时（含 NoSuchBeanDefinitionException 等 BeansException）降级返回 anonymous,
+     * 不中断限流检查。
+     * </p>
+     *
+     * @return 当前登录用户id;无登录体系部署形态下返回 anonymous
+     */
+    protected String resolveUserIdKey() {
+        CoreLoginUserService loginUserService = getLoginUserService();
+
+        //业务工程未实现登录用户服务时降级为匿名桶
+        if (loginUserService == null) {
+            log.error("未获取到userId，请实现CoreLoginUserService的getUserId方法");
+            return "anonymous";
+        }
+        return loginUserService.getUserId();
+    }
+
+    /**
+     * 从 Spring 容器获取 CoreLoginUserService
+     * <p>
+     * 容器中不存在该 bean 时 SpringUtil.getBean 会抛出异常,此处捕获 BeansException
+     * （含 NoSuchBeanDefinitionException）返回 null,由调用方执行降级逻辑。
+     * </p>
+     *
+     * @return CoreLoginUserService 实例;容器中无该 bean 时返回 null
+     */
+    private CoreLoginUserService getLoginUserService() {
+        try {
+            return SpringUtil.getBean(CoreLoginUserService.class);
+        } catch (BeansException e) {
+            return null;
+        }
     }
 
     /**

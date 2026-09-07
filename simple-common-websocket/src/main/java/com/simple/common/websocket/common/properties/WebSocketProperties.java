@@ -77,7 +77,9 @@ public class WebSocketProperties {
     private int maxWebSocketFrameSize = 1048576;
 
     /**
-     * 文本消息最大长度（字节），默认1MB，超过此长度将拒绝处理，可通过 simple.websocket.max-text-message-length 配置
+     * 文本消息最大长度（字节口径，按 UTF-8 编码字节数比较），默认1MB，超过此长度将拒绝处理，
+     * 可通过 simple.websocket.max-text-message-length 配置；
+     * Netty 帧解码层另有 maxWebSocketFrameSize 字节上限兜底
      */
     private int maxTextMessageLength = 1048576;
 

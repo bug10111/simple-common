@@ -38,6 +38,27 @@ public class HttpRequestUtils {
     }
 
     /**
+     * post表单请求
+     *
+     * @param url     请求路径
+     * @param heads   请求头
+     * @param form    表单参数
+     * @param outTime 请求超时时间 毫秒
+     * @return 数据返回
+     */
+    public static HttpRecord post(String url, Map<String, String> heads, Map<String, Object> form, Integer outTime) {
+        HttpRequest post = HttpRequest.post(url);
+        if (ObjUtil.isNotEmpty(form)) {
+            post.form(form);
+        }
+
+        if (ObjUtil.isNotEmpty(heads)) {
+            post.headerMap(heads, true);
+        }
+        return new HttpRecord(post.timeout(outTime).execute());
+    }
+
+    /**
      * get请求
      *
      * @param url     请求路径

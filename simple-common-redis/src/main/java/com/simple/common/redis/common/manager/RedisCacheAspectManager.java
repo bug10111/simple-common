@@ -26,7 +26,7 @@ public interface RedisCacheAspectManager {
      * 获取缓存时间
      *
      * @param cacheTime            缓存时间
-     * @param appendRandomDuration 追加随机值，防止雪崩
+     * @param appendRandomDuration 追加随机值，防止雪崩；0 或负数表示不追加随机时长
      */
     Integer getCacheTime(Integer cacheTime, Integer appendRandomDuration);
 
