@@ -92,9 +92,9 @@ public class ResponseUtils {
     public static void writeResponse(String name, ByteArrayOutputStream byteArrayOutputStream) {
         HttpServletResponse response = HttpServletUtils.getResponse();
 
-        // 这里URLEncoder.encode可以防止中文乱码
+        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,下载头带 UTF-8'' 字符集前缀严格符合 RFC 5987,防止中文文件名乱码
         String fileName = URLEncoder.encode(name, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename*=" + fileName);
+        response.setHeader("Content-disposition", "attachment;filename*=UTF-8''" + fileName);
 
         byteArrayOutputStream.writeTo(response.getOutputStream());
     }
@@ -108,9 +108,9 @@ public class ResponseUtils {
     public static OutputStream getResponseOutputStream(String name) {
         HttpServletResponse response = HttpServletUtils.getResponse();
 
-        // 这里URLEncoder.encode可以防止中文乱码
+        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,下载头带 UTF-8'' 字符集前缀严格符合 RFC 5987,防止中文文件名乱码
         String fileName = URLEncoder.encode(name, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename*=" + fileName);
+        response.setHeader("Content-disposition", "attachment;filename*=UTF-8''" + fileName);
 
         return response.getOutputStream();
     }

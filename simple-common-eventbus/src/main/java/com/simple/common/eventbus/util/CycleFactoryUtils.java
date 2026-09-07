@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class CycleFactoryUtils {
 
     private static final Map<String, AbsEventCycleService> SERVICE_CACHE = new ConcurrentHashMap<>();
-    // 修复：添加 volatile 保证多线程间的可见性，防止指令重排导致其他线程看到未完全初始化的缓存
+    // volatile 保证多线程间的可见性，防止指令重排导致其他线程看到未完全初始化的缓存
     private static volatile boolean initialized = false;
 
     private CycleFactoryUtils() {
@@ -62,7 +62,7 @@ public final class CycleFactoryUtils {
 
     /**
      * 刷新服务缓存，用于动态注册场景
-     * <p>优化：简化为 clear + putAll，避免 retainAll 的潜在并发困惑</p>
+     * <p>刷新时整体清空缓存后重新加载容器内全部服务，保证缓存与容器状态一致</p>
      */
     public static void refreshServiceCache() {
         synchronized (CycleFactoryUtils.class) {

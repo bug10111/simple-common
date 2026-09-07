@@ -87,7 +87,7 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
         String[] fileUrl = object.getKey().split("/");
         var key = fileUrl[fileUrl.length - 1];
         key = URLEncoder.encode(key, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename*=utf-8''" + key);
+        response.setHeader("Content-disposition", "attachment;filename*=UTF-8''" + key);
 
         //写入输出流，并关闭输出流
         ServletOutputStream outputStream = response.getOutputStream();

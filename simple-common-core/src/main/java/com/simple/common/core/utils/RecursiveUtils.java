@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class RecursiveUtils {
 
     // 定义默认的递归第一级父节点数据
-    public static final String initial_id = "0000000000";
+    public static final String INITIAL_ID = "0000000000";
 
     // 定义id字段名
     private static final String ID_KEY = "id";
@@ -68,7 +68,7 @@ public class RecursiveUtils {
      * @return 以默认根节点构建的树
      */
     public static <T> List<Tree<String>> getFromRoot(List<T> list) {
-        return getFromRoot(list, SERIAL_KEY, initial_id);
+        return getFromRoot(list, SERIAL_KEY, INITIAL_ID);
     }
 
     /**
@@ -106,7 +106,7 @@ public class RecursiveUtils {
         }
 
         // 如果没有明确的顶级节点，回退到从固定根节点构建
-        return buildTreeFromRoot(list, weightKey, initial_id);
+        return buildTreeFromRoot(list, weightKey, INITIAL_ID);
     }
 
     /**

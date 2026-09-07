@@ -46,9 +46,9 @@ public class DefaultEasyExcelWriteService implements EasyExcelWriteService {
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");
 
-        // 这里URLEncoder.encode可以防止中文乱码
+        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,下载头带 UTF-8'' 字符集前缀严格符合 RFC 5987,防止中文文件名乱码
         String fileName = URLEncoder.encode(writeName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
-        response.setHeader("Content-disposition", "attachment;filename*=" + fileName + ".xlsx");
+        response.setHeader("Content-disposition", "attachment;filename*=UTF-8''" + fileName + ".xlsx");
 
         String originalURL = request.getHeader("Origin");
         if (originalURL != null) {

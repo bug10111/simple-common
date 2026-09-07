@@ -120,9 +120,9 @@ public class DefaultPoiWriteService implements PoiWriteService {
         response.reset();
         response.setContentType("application/octet-stream");
 
-        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,与模块内 EasyExcel 下载头风格保持一致,防止中文文件名乱码
+        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,下载头带 UTF-8'' 字符集前缀严格符合 RFC 5987,防止中文文件名乱码
         String fileName = URLEncoder.encode(excelName, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
-        response.setHeader("content-disposition", "attachment;filename*=" + fileName + ".xlsx");
+        response.setHeader("content-disposition", "attachment;filename*=UTF-8''" + fileName + ".xlsx");
         String originalURL = request.getHeader("Origin");
         if (originalURL != null) {
             response.addHeader("Access-Control-Allow-Origin", originalURL);

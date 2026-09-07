@@ -28,11 +28,10 @@ public class ZipUtils extends ZipUtil {
     public static void downloadZip(String fileName, ZipWriteFunction function)  {
         HttpServletResponse response = HttpServletUtils.getResponse();
 
-        // 使用 RFC 5987 编码文件名
-        String encodedFilename = URLEncoder.encode(fileName + ".zip", StandardCharsets.UTF_8).replaceAll("\\+", "%20"); // 关键替换
+        // 文件名按 UTF-8 URL 编码并将空格替换为 %20,下载头带 UTF-8'' 字符集前缀严格符合 RFC 5987,防止中文文件名乱码
+        String encodedFilename = URLEncoder.encode(fileName + ".zip", StandardCharsets.UTF_8).replaceAll("\\+", "%20");
 
-        // 设置响应头（同时兼容新旧浏览器）
-        response.setHeader("Content-Disposition", "attachment; filename=" + encodedFilename);
+        response.setHeader("Content-Disposition", "attachment;filename*=UTF-8''" + encodedFilename);
 
         try (ZipOutputStream zipOut = new ZipOutputStream(response.getOutputStream())) {
             function.addExcelToZip(zipOut, fileName);

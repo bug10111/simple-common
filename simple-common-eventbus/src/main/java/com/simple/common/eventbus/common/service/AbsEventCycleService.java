@@ -116,7 +116,7 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> impleme
 
     /**
      * 处理执行失败的情况
-     * <p>修复：彻底移除递归调用，当发送延迟消息连续失败时，触发 more 回调告知任务终止</p>
+     * <p>通过发送延迟消息进行有限次重试，重试发送彻底失败或已达最大次数时，触发 more 回调告知任务终止</p>
      */
     private void handleFailure(CycleEvent event, T runBody) {
         int nextNum = event.getNum() + 1;
@@ -167,8 +167,8 @@ public abstract class AbsEventCycleService<T> extends AbsCycleService<T> impleme
 
     /**
      * 获取当前 Bean 在 Spring 容器中的真实名称
-     * <p>优化：优先使用 BeanNameAware 自动注入的名称，降级时才动态查找，提升可靠性和性能</p>
-     * <p>修复：动态查找时正确处理 AOP 代理对象，确保比较的是真实 Bean 实例</p>
+     * <p>优先使用 BeanNameAware 自动注入的名称，未注入时才从容器动态查找，减少不必要的容器遍历</p>
+     * <p>动态查找时解开 AOP 代理取最终目标对象，确保比较的是真实 Bean 实例</p>
      *
      * @return Bean 名称，若获取失败返回 null
      */

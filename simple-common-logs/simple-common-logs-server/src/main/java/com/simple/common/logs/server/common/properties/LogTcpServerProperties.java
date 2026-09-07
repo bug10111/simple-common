@@ -56,13 +56,6 @@ public class LogTcpServerProperties {
     private int workerThreads = Runtime.getRuntime().availableProcessors() * 2;
 
     /**
-     * 连接超时时间（毫秒）
-     */
-    @Min(value = 1000, message = "连接超时时间最小为 1000ms")
-    @Max(value = 120000, message = "连接超时时间最大为 120000ms")
-    private int connectTimeout = 30000;
-
-    /**
      * 最大连接数
      * <p>
      * 服务端活跃连接数超过该值时，新连接将被立即关闭（拒绝），

@@ -38,7 +38,7 @@ public class RecursiveUtilsTest {
         List<Demo1> list = new ArrayList<>();
         Demo1 demo1 = new Demo1();
         demo1.setId("1");
-        demo1.setParentId(RecursiveUtils.initial_id);
+        demo1.setParentId(RecursiveUtils.INITIAL_ID);
         demo1.setSerial(2);
         demo1.setName("测试第一级1号");
         demo1.setName1("name1");
@@ -48,7 +48,7 @@ public class RecursiveUtilsTest {
 
         Demo1 demo2 = new Demo1();
         demo2.setId("2");
-        demo2.setParentId(RecursiveUtils.initial_id);
+        demo2.setParentId(RecursiveUtils.INITIAL_ID);
         demo2.setSerial(1);
         demo2.setName("测试第一级2号");
         demo2.setName1("name1");
