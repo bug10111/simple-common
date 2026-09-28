@@ -72,9 +72,9 @@ public class DefaultLoginService implements LoginService {
         String accessToken = tokenManager.create(tokenData.getAccessTokenMap());
         String refreshToken = tokenManager.create(tokenData.getRefreshTokenMap());
 
-        // 添加返回数据
+        // 添加返回数据，type 字段使用响应契约值常量（不含空格）
         Map<String, String> loginReturn = new LinkedHashMap<>();
-        loginReturn.put(TokenConstant.bearerKey, TokenConstant.bearer);
+        loginReturn.put(TokenConstant.bearerKey, TokenConstant.bearerValue);
         loginReturn.put(TokenConstant.accessTokenKey, accessToken);
         loginReturn.put(TokenConstant.refreshTokenKey, refreshToken);
         loginReturn.put(TokenConstant.expKey, tokenData.getAccessTokenMap().get(TokenConstant.expKey).toString());
@@ -144,9 +144,9 @@ public class DefaultLoginService implements LoginService {
         // 清除旧的信息
         loginUserOperationManager.loginOut(userInfo.get(TokenConstant.userIdKey).toString(), jti);
 
-        // 添加返回数据
+        // 添加返回数据，type 字段使用响应契约值常量（不含空格）
         Map<String, String> loginReturn = new LinkedHashMap<>();
-        loginReturn.put(TokenConstant.bearerKey, TokenConstant.bearer);
+        loginReturn.put(TokenConstant.bearerKey, TokenConstant.bearerValue);
         loginReturn.put(TokenConstant.accessTokenKey, accessToken);
         loginReturn.put(TokenConstant.refreshTokenKey, refreshToken);
         loginReturn.put(TokenConstant.expKey, tokenData.getAccessTokenMap().get(TokenConstant.expKey).toString());

@@ -32,8 +32,16 @@ public class TokenConstant {
 
     /**
      * Bearer Token前缀
+     * HTTP 授权头前缀解析专用，前缀含空格用于区分头值中的 token 部分
      */
     public static final String bearer = "Bearer ";
+
+    /**
+     * Token类型契约值
+     * 登录与刷新响应 type 字段的标准契约值，RFC 6750 规定 token_type 为 "Bearer"（不含空格）；
+     * 与授权头前缀常量 bearer 职责不同，本常量用于响应体字段值
+     */
+    public static final String bearerValue = "Bearer";
 
     /**
      * Basic Auth前缀
