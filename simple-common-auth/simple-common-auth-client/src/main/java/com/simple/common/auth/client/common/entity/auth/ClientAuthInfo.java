@@ -37,9 +37,6 @@ public class ClientAuthInfo {
     //所有请求是否鉴权
     private boolean authentication = false;
 
-    //是否只允许同时一人登陆
-    private boolean oneLogin = false;
-
     //开启IP白名单
     @Getter
     private boolean iPWhitelist;
@@ -99,16 +96,6 @@ public class ClientAuthInfo {
      */
     public ClientAuthInfo openAuthentication() {
         authentication = true;
-        return this;
-    }
-
-    /**
-     * 开启单点登录限制，同一账号只允许同时一人在线
-     *
-     * @return 当前实例，支持链式调用
-     */
-    public ClientAuthInfo openOneLogin() {
-        oneLogin = true;
         return this;
     }
 
@@ -177,15 +164,6 @@ public class ClientAuthInfo {
      */
     public boolean getLogin() {
         return isLogin;
-    }
-
-    /**
-     * 获取是否开启单点登录限制的标识
-     *
-     * @return true表示限制单人登录，false表示不限制
-     */
-    public boolean getOneLogin() {
-        return oneLogin;
     }
 
     /**

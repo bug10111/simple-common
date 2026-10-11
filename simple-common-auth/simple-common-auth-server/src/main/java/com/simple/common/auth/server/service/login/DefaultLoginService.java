@@ -2,7 +2,6 @@ package com.simple.common.auth.server.service.login;
 
 import cn.hutool.core.util.ObjUtil;
 import com.simple.common.auth.client.common.constant.TokenConstant;
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
@@ -43,9 +42,6 @@ public class DefaultLoginService implements LoginService {
 
     @Autowired
     private LoginUserOperationManager loginUserOperationManager;
-
-    @Autowired
-    private ClientAuthInfo clientAuthInfo;
 
     @Autowired
     private List<LoginSucProcess> list;
@@ -167,14 +163,10 @@ public class DefaultLoginService implements LoginService {
         UserTemporary userTemporary = LoginUserUtils.getUserTemporary();
         String userId = userTemporary.getUserId();
 
-        if (clientAuthInfo.getOneLogin()) {
-            logout(userId);
-        } else {
-            loginUserOperationManager.loginOut();
-
-            // 发布用户退出登录事件（广播到所有系统）
-            logoutEventPublisher.publishLogout(userId);
-        }
+        // 退出当前登录用户执行全端下线：清除该用户在所有端的登录态（含同账号其他会话的 token 关联），
+        // 并广播退出事件让各客户端同步清理本地缓存；若仅清除当前会话，同账号其他会话会因授权中心
+        // 登录数据仍在而经内省回源后复活，导致退出登录后业务侧 token 继续可用
+        logout(userId);
     }
 
     /**
