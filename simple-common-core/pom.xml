@@ -128,4 +128,15 @@
         </dependency>
 
     </dependencies>
+
+    <!-- 模块级覆盖父 pom 的 surefire 2.12.4:旧版不识别 JUnit 5 测试(Tests run 恒为 0),升级至 3.2.5 使 JUnit Platform 生效 -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>

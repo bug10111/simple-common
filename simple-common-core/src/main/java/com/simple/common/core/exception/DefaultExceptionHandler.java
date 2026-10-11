@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -44,13 +45,24 @@ public class DefaultExceptionHandler {
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ResponseBody
     public R<Object> handle(MethodArgumentNotValidException exception) {
         ExceptionHandlerUtils.errorHandler(exception);
         // 取第一条校验错误的默认消息作为响应消息
         String message = exception.getBindingResult().getAllErrors().get(0).getDefaultMessage();
-        return errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, message);
+        return errorResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    // 静态资源与未匹配路由同属请求侧资源不存在,映射404避免落入500兜底
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    public R<Object> handle(NoResourceFoundException exception) {
+        ExceptionHandlerUtils.errorHandler(exception);
+        // 拼装资源不存在提示,附上请求的资源路径
+        String message = "请求的资源不存在：" + exception.getResourcePath();
+        return errorResponse(HttpStatus.NOT_FOUND, message);
     }
 
     @ExceptionHandler(Exception.class)
