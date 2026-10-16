@@ -4,6 +4,8 @@ package com.simple.common.auth.client.exchange.http;
  * 授权中心 API 端点枚举
  * <p>
  * 统一管理客户端向授权中心发起的所有 HTTP 请求 URL。
+ * 旧密钥拉取端点（/auth/api/secrets 等）已随守卫化整体退役，
+ * 客户端密钥获取收敛到实例注册自举（REGISTER_INSTANCE 注册响应携带）。
  * </p>
  *
  * @author qty
@@ -16,26 +18,13 @@ public enum AuthEndpointEnum {
     USER_INFO("/auth/api/user", "GET"),
 
     /**
-     * 获取当前签名密钥
-     * @deprecated 已废弃，请使用 {@link #UNIFIED_SECRETS} 统一获取双密钥
-     */
-    @Deprecated
-    SIGN_SECRET("/auth/api/sign/secret", "GET"),
-
-    /**
-     * 获取当前 JWT 密钥
-     * @deprecated 已废弃，请使用 {@link #UNIFIED_SECRETS} 统一获取双密钥
-     */
-    @Deprecated
-    JWT_SECRET("/auth/api/jwt/secret", "GET"),
-
-    /**
-     * 统一获取双密钥（JWT + SIGN）
+     * 实例注册（注册自举）
      * <p>
-     * 推荐使用此接口，一次性获取JWT和SIGN两种密钥。
+     * 实例启动上报身份与本机信息，注册响应同步携带当前密钥；
+     * 未注册客户端被明确拒绝并引导控制台注册。
      * </p>
      */
-    UNIFIED_SECRETS("/auth/api/secrets", "GET");
+    REGISTER_INSTANCE("/auth/api/instance/register", "POST");
 
     private final String path;
     private final String method;

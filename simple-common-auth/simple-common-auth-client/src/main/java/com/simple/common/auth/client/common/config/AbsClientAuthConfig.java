@@ -65,6 +65,9 @@ public abstract class AbsClientAuthConfig {
                             //放开admin监控
                             .antMatchers("/actuator/**").permitAll();
         }
+
+        //实例同步接收端点：内网端点不鉴权（设计裁定），接收中心投递引擎变更载荷；部署侧由 nginx 不代理清单隔离外网
+        clientAuthInfo.antMatchers("/internal/sync/**").permitAll();
         return clientAuthInfo;
     }
 

@@ -59,6 +59,15 @@ public class AuthProperties {
     //超级管理员角色标识，拥有此角色的用户自动拥有所有权限，不参与权限校验。默认 admin
     private String superAdminRoleKey = "admin";
 
+    //客户端凭证（实例注册自举用，即控制台项目客户端的 clientSecret；客户端模式必配）
+    private String clientSecret;
+
+    //实例接收回调地址（授权中心投递引擎按此回调本实例，如 http://10.0.0.5:8080；客户端模式必配）
+    private String instanceCallbackUrl;
+
+    //实例本机 IP（缺省自动探测本机地址；容器部署建议显式配置 Pod IP）
+    private String instanceIp;
+
     /**
      * 获取项目编码
      * <p>
