@@ -6,10 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.toolkit.JdbcUtils;
-import com.simple.common.mp.common.handler.DataScopeSqlHandler;
-import com.simple.common.mp.common.interceptor.DataScopeInnerInterceptor;
 import com.simple.common.mp.common.properties.MpProperties;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -23,18 +20,14 @@ import java.util.List;
  * MyBatis Plus 配置
  * <p>
  * 分页方言通过 simple.mp.db-type 配置指定；未配置时按数据源 JDBC URL 自动探测数据库类型。
+ * 历史说明：原数据权限行级改写拦截器（DataScopeInnerInterceptor/DataScopeSqlHandler/DataScopeTable）
+ * 已随行级机制退役整体移除，租户过滤职责移交 PostgreSQL 库层 RLS 策略。
  *
  * @author qty
  */
 @Configuration
 @ComponentScan(basePackages = { "com.simple.common.mp" })
 public class MybatisPlusConfig {
-
-    @Bean
-    @ConditionalOnBean(DataScopeSqlHandler.class)
-    public DataScopeInnerInterceptor dataScopeInnerInterceptor(DataScopeSqlHandler dataScopeSqlHandler) {
-        return new DataScopeInnerInterceptor(dataScopeSqlHandler);
-    }
 
     @Bean
     public PaginationInnerInterceptor paginationInnerInterceptor(MpProperties mpProperties, DataSource dataSource) {
