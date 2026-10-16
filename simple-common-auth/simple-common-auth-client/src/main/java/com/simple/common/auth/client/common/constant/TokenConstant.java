@@ -183,20 +183,35 @@ public class TokenConstant {
     }
 
     /**
-     * 获取登录用户的权限信息key（按项目维度）
+     * 获取登录用户的权限信息key（按项目+租户维度）
      * <p>
-     * 支持项目维度的权限隔离，缓存 key 格式为：login:auth:{roleKey}:{projectCode}
-     * 一个角色可能属于多个项目模块，因此 roleKey 在前便于按角色查询。
+     * 支持项目+租户维度的权限隔离，缓存 key 格式为：login:auth:{roleKey}:{projectCode}:{tenantId}；
+     * tenantId 为空时保持旧格式（无租户段），兼容无租户归属的历史角色。
+     * 一个角色可能属于多个项目模块，因此 roleKey 在前便于按角色查询；
+     * 同项目跨租户同名 roleKey 的权限互不覆盖（RLS 多租户形态的隔离基础）。
      * </p>
+     *
+     * @param roleKey     角色标识，如 "admin"、"editor"
+     * @param projectCode 项目编码，如 "xiaoyue"、"erp_system"
+     * @param tenantId    租户 ID（角色归属租户；无租户归属的历史角色传空）
+     * @return 权限缓存 key
+     */
+    public static String getAuthKey(String roleKey, String projectCode, String tenantId) {
+        AssertUtils.notEmpty(roleKey, "角色标识不能为空");
+        AssertUtils.notEmpty(projectCode, "项目编码不能为空");
+        String base = TokenConstant.userAuthKey + ":" + roleKey + ":" + projectCode;
+        return (tenantId == null || tenantId.isEmpty()) ? base : base + ":" + tenantId;
+    }
+
+    /**
+     * 获取登录用户的权限信息key（按项目维度·无租户角色兼容入口）
      *
      * @param roleKey     角色标识，如 "admin"、"editor"
      * @param projectCode 项目编码，如 "xiaoyue"、"erp_system"
      * @return 权限缓存 key
      */
     public static String getAuthKey(String roleKey, String projectCode) {
-        AssertUtils.notEmpty(roleKey, "角色标识不能为空");
-        AssertUtils.notEmpty(projectCode, "项目编码不能为空");
-        return TokenConstant.userAuthKey + ":" + roleKey + ":" + projectCode;
+        return getAuthKey(roleKey, projectCode, null);
     }
 
     /**
