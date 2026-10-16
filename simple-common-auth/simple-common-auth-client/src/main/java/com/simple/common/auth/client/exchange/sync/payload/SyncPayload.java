@@ -46,6 +46,11 @@ public class SyncPayload {
     private String roleKey;
 
     /**
+     * 租户 ID（PERMISSION 载荷；角色的租户归属，接收端缓存键的租户维度）
+     */
+    private String tenantId;
+
+    /**
      * 角色权限键值（PERMISSION 载荷；key 为权限标识，value 为权限描述）
      */
     private Map<String, String> permissions;

@@ -55,4 +55,19 @@ public interface PermissionAutoLoader {
      * @return 权限标识 -> 权限描述的 Map，不可返回 null
      */
     Map<String, String> loadPermissions(String roleKey, String projectCode);
+
+    /**
+     * 加载指定角色在指定项目、指定租户下的权限数据（多租户形态；默认委托两参实现保持兼容）。
+     * <p>
+     * 业务实现可覆写本方法按租户过滤；未覆写时忽略租户维度退回项目级查询。
+     * </p>
+     *
+     * @param roleKey     角色标识
+     * @param projectCode 项目编码（clientId）
+     * @param tenantId    租户 ID（可能为 null——无租户归属的历史角色）
+     * @return 权限标识 -> 权限描述的 Map，不可返回 null
+     */
+    default Map<String, String> loadPermissions(String roleKey, String projectCode, String tenantId) {
+        return loadPermissions(roleKey, projectCode);
+    }
 }

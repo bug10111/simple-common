@@ -1,6 +1,7 @@
 package com.simple.common.auth.server.manager;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
+import com.simple.common.auth.client.common.entity.login.DataPermission;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.manager.permission.PermissionAutoLoader;
 import com.simple.common.auth.client.common.manager.user.LoginInfoManager;
@@ -136,14 +137,14 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
         
         Map<Object, Map<Object, Object>> result = new HashMap<>();
         for (String role : loginRole) {
-            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode, currentTenantId()));
             if (perms != null && !perms.isEmpty()) {
                 result.put(role, perms);
             } else if (permissionAutoLoader != null) {
                 // 缓存中没有权限数据，通过 SPI 从数据库自动加载
-                autoLoadAndCachePermissions(role, projectCode);
+                autoLoadAndCachePermissions(role, projectCode, currentTenantId());
                 // 重新查询缓存
-                perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+                perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode, currentTenantId()));
                 if (perms != null && !perms.isEmpty()) {
                     result.put(role, perms);
                 }
@@ -153,17 +154,27 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
     }
 
     /**
+     * 当前请求的租户上下文（权限缓存键的租户维度来源；无租户归属返回 null 走旧键格式）。
+     *
+     * @return 租户 ID（可能为 null）
+     */
+    private String currentTenantId() {
+        var dataPermission = LoginUserUtils.getUserTemporary().getDataPermission();
+        return dataPermission == null ? null : dataPermission.getTenantId();
+    }
+
+    /**
      * 自动从数据库加载并缓存权限数据。
      * 当缓存过期或 Redis 重启导致权限数据丢失时，通过 PermissionAutoLoader 回源加载。
      *
      * @param roleKey     角色标识
      * @param projectCode 项目编码
      */
-    private void autoLoadAndCachePermissions(String roleKey, String projectCode) {
+    private void autoLoadAndCachePermissions(String roleKey, String projectCode, String tenantId) {
         try {
-            Map<String, String> perms = permissionAutoLoader.loadPermissions(roleKey, projectCode);
+            Map<String, String> perms = permissionAutoLoader.loadPermissions(roleKey, projectCode, tenantId);
             if (perms != null && !perms.isEmpty()) {
-                String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+                String authKey = TokenConstant.getAuthKey(roleKey, projectCode, currentTenantId());
                 cacheManager.hashPutAll(authKey, new HashMap<>(perms));
                 // 使用默认的权限缓存过期时间
                 Integer expireSeconds = authProperties.getPermissionCacheExpire();
@@ -203,12 +214,12 @@ public class ServerLoginUserOperationManager implements LoginUserOperationManage
 
         // 直接通过 CacheManager 查询权限（由配置决定使用 Redis 或 Local）
         for (String role : loginRole) {
-            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+            Map<Object, Object> perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode, currentTenantId()));
             if (perms == null || perms.isEmpty()) {
                 // 缓存中没有数据，尝试从数据库自动加载
                 if (permissionAutoLoader != null) {
-                    autoLoadAndCachePermissions(role, projectCode);
-                    perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+                    autoLoadAndCachePermissions(role, projectCode, currentTenantId());
+                    perms = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode, currentTenantId()));
                 }
             }
             if (perms != null) {

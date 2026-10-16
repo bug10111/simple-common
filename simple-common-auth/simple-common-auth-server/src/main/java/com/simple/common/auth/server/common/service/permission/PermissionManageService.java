@@ -44,7 +44,7 @@ public interface PermissionManageService {
      * @param roleKey     角色标识，如 "admin"、"editor"
      * @param permissions 要添加的权限配置，key 为权限标识，value 为权限描述
      */
-    void addPermissions(String projectCode, String roleKey, Map<String, String> permissions);
+    void addPermissions(String projectCode, String tenantId, String roleKey, Map<String, String> permissions);
 
     /**
      * 新增权限（按项目维度，支持控制是否发布事件）
@@ -59,7 +59,7 @@ public interface PermissionManageService {
      * @param permissions  要添加的权限配置
      * @param publishEvent 是否发布权限变更事件广播到所有客户端
      */
-    void addPermissions(String projectCode, String roleKey, Map<String, String> permissions, boolean publishEvent);
+    void addPermissions(String projectCode, String tenantId, String roleKey, Map<String, String> permissions, boolean publishEvent);
 
     /**
      * 全量替换角色权限（按项目维度）
@@ -72,7 +72,7 @@ public interface PermissionManageService {
      * @param roleKey     角色标识
      * @param permissions 新的权限配置，key 为权限标识，value 为权限描述
      */
-    void updateRolePermission(String projectCode, String roleKey, Map<String, String> permissions);
+    void updateRolePermission(String projectCode, String tenantId, String roleKey, Map<String, String> permissions);
 
     /**
      * 删除单个权限（按项目维度）
@@ -84,7 +84,7 @@ public interface PermissionManageService {
      * @param roleKey       角色标识
      * @param permissionKey 要删除的权限标识
      */
-    void deletePermission(String projectCode, String roleKey, String permissionKey);
+    void deletePermission(String projectCode, String tenantId, String roleKey, String permissionKey);
 
     /**
      * 批量删除权限（按项目维度）
@@ -96,7 +96,7 @@ public interface PermissionManageService {
      * @param roleKey        角色标识
      * @param permissionKeys 要删除的权限标识列表
      */
-    void deletePermissions(String projectCode, String roleKey, List<String> permissionKeys);
+    void deletePermissions(String projectCode, String tenantId, String roleKey, List<String> permissionKeys);
 
     /**
      * 清空角色所有权限（按项目维度）
@@ -107,5 +107,5 @@ public interface PermissionManageService {
      * @param projectCode 项目编码
      * @param roleKey     角色标识
      */
-    void clearPermissions(String projectCode, String roleKey);
+    void clearPermissions(String projectCode, String tenantId, String roleKey);
 }

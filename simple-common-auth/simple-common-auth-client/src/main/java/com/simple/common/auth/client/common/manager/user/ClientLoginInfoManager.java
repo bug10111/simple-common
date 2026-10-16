@@ -162,12 +162,14 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         String projectCode = authProperties.getProjectCode();
         AssertUtils.notEmpty(projectCode, "项目编码未配置，请在 application.yml 中配置 simple.auth.project-code");
 
+        // 解析登录用户租户上下文（权限缓存键的租户维度来源）
+        String tenantId = resolveTenantId(userInfo);
         // 优先使用 auth-server 返回的权限数据
-        boolean hasAuthFromServer = loadAuthFromServerResponse(responseMap, projectCode, expireSeconds);
+        boolean hasAuthFromServer = loadAuthFromServerResponse(responseMap, projectCode, tenantId, expireSeconds);
 
         // auth-server 无权限数据时，从本地数据库加载
         if (!hasAuthFromServer && permissionAutoLoader != null) {
-            loadAuthFromLocal(userInfo, projectCode, expireSeconds);
+            loadAuthFromLocal(userInfo, projectCode, tenantId, expireSeconds);
         }
     }
 
@@ -179,7 +181,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
      * @param expireSeconds 缓存过期时间
      * @return true 表示成功加载了权限，false 表示无权限数据
      */
-    private boolean loadAuthFromServerResponse(Map<Object, Object> responseMap, String projectCode, long expireSeconds) {
+    private boolean loadAuthFromServerResponse(Map<Object, Object> responseMap, String projectCode, String tenantId, long expireSeconds) {
         if (!responseMap.containsKey(TokenConstant.userAuthName)) {
             return false;
         }
@@ -196,7 +198,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         for (Map.Entry<Object, Object> entry : authMap.entrySet()) {
             String roleKey = entry.getKey().toString();
             Map<Object, Object> auth = JsonUtils.toJsonObj(entry.getValue().toString(), Map.class);
-            String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+            String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
             cacheManager.hashPutAll(authKey, auth);
             cacheManager.expire(authKey, expireSeconds);
         }
@@ -212,7 +214,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
      * @param projectCode   项目编码
      * @param expireSeconds 缓存过期时间
      */
-    private void loadAuthFromLocal(Map<Object, Object> userInfo, String projectCode, long expireSeconds) {
+    private void loadAuthFromLocal(Map<Object, Object> userInfo, String projectCode, String tenantId, long expireSeconds) {
         log.info("auth-Server 未返回权限数据，尝试通过 PermissionAutoLoader 从本地数据库加载 projectCode=[{}]", projectCode);
         try {
             Object loginRoleObj = userInfo.get(TokenConstant.loginRole);
@@ -221,11 +223,11 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
             }
             Set<String> loginRoles = parseLoginRoles(loginRoleObj);
             for (String roleKey : loginRoles) {
-                Map<String, String> perms = permissionAutoLoader.loadPermissions(roleKey, projectCode);
+                Map<String, String> perms = permissionAutoLoader.loadPermissions(roleKey, projectCode, tenantId);
                 if (perms == null || perms.isEmpty()) {
                     continue;
                 }
-                String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+                String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
                 cacheManager.hashPutAll(authKey, new HashMap<>(perms));
                 cacheManager.expire(authKey, expireSeconds);
                 log.debug("已通过 PermissionAutoLoader 缓存角色 [{}] 在项目 [{}] 下的 {} 个权限",
@@ -250,6 +252,32 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         return new HashSet<>(roleList);
     }
 
+    /**
+     * 从登录用户信息中解析租户上下文（权限缓存键的租户维度来源；无租户归属返回 null 走旧键格式）
+     *
+     * @param userInfo 登录用户信息 Map
+     * @return 租户 ID（可能为 null）
+     */
+    private String resolveTenantId(Map<Object, Object> userInfo) {
+        Object dataPermissionObj = userInfo.get(TokenConstant.dataPermissionKey);
+        if (dataPermissionObj == null) {
+            return null;
+        }
+        Map<Object, Object> dataPermission = JsonUtils.toJsonObj(dataPermissionObj.toString(), Map.class);
+        Object tenantId = dataPermission.get("tenantId");
+        return tenantId == null ? null : tenantId.toString();
+    }
+
+    /**
+     * 当前请求的租户上下文（权限缓存键的租户维度来源；无租户归属返回 null 走旧键格式）
+     *
+     * @return 租户 ID（可能为 null）
+     */
+    private String currentTenantId() {
+        var dataPermission = LoginUserUtils.getUserTemporary().getDataPermission();
+        return dataPermission == null ? null : dataPermission.getTenantId();
+    }
+
     @Override
     public Map<Object, Map<Object, Object>> getAuthorities(Set<String> loginRole) {
         String projectCode = authProperties.getProjectCode();
@@ -258,7 +286,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         Map<Object, Map<Object, Object>> map = new HashMap<>();
         if (loginRole != null) {
             for (String role : loginRole) {
-                Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode));
+                Map<Object, Object> entries = cacheManager.hashGetAll(TokenConstant.getAuthKey(role, projectCode, currentTenantId()));
                 if (ObjUtil.isNotEmpty(entries)) {
                     map.put(role, entries);
                 }
@@ -290,7 +318,7 @@ public class ClientLoginInfoManager implements LoginInfoManager, CoreLoginUserSe
         if (loginRole != null) {
             for (String role : loginRole) {
                 for (String perm : authority) {
-                    Boolean has = cacheManager.hashHasKey(TokenConstant.getAuthKey(role, projectCode), perm);
+                    Boolean has = cacheManager.hashHasKey(TokenConstant.getAuthKey(role, projectCode, currentTenantId()), perm);
                     if (Boolean.TRUE.equals(has)) {
                         return true;
                     }

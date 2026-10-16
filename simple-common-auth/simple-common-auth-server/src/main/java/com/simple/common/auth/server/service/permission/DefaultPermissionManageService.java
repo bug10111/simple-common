@@ -55,8 +55,8 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param permissions 要添加的权限配置
      */
     @Override
-    public void addPermissions(String projectCode, String roleKey, Map<String, String> permissions) {
-        addPermissions(projectCode, roleKey, permissions, true);
+    public void addPermissions(String projectCode, String tenantId, String roleKey, Map<String, String> permissions) {
+        addPermissions(projectCode, tenantId, roleKey, permissions, true);
     }
 
     /**
@@ -68,13 +68,13 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param publishEvent 是否发布权限变更事件广播到所有客户端
      */
     @Override
-    public void addPermissions(String projectCode, String roleKey, Map<String, String> permissions, boolean publishEvent) {
+    public void addPermissions(String projectCode, String tenantId, String roleKey, Map<String, String> permissions, boolean publishEvent) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
         AssertUtils.notNull(permissions, "权限配置不能为空");
         AssertUtils.isTrue(!permissions.isEmpty(), "权限配置不能为空Map");
 
-        String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+        String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
 
         // 1. 增量添加权限（不删除现有权限）
         cacheManager.hashPutAll(authKey, new HashMap<>(permissions));
@@ -84,7 +84,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
 
         // 3. 根据参数决定是否发布事件
         if (publishEvent) {
-            publishPermissionChange(projectCode, roleKey, permissions, PermissionChangeTypeEnum.ADD);
+            publishPermissionChange(projectCode, tenantId, roleKey, permissions, PermissionChangeTypeEnum.ADD);
             log.info("项目 [{}] 角色 [{}] 新增了 {} 个权限，事件已发布", projectCode, roleKey, permissions.size());
         } else {
             log.debug("项目 [{}] 角色 [{}] 新增了 {} 个权限（未发布事件）", projectCode, roleKey, permissions.size());
@@ -99,12 +99,12 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param permissions 新的权限配置
      */
     @Override
-    public void updateRolePermission(String projectCode, String roleKey, Map<String, String> permissions) {
+    public void updateRolePermission(String projectCode, String tenantId, String roleKey, Map<String, String> permissions) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
         AssertUtils.notNull(permissions, "权限配置不能为空");
 
-        String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+        String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
 
         // 1. 先删除所有旧权限
         cacheManager.delete(authKey);
@@ -116,7 +116,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
         cacheManager.expire(authKey, authProperties.getPermissionCacheExpire());
 
         // 4. 发布权限变更事件
-        publishPermissionChange(projectCode, roleKey, permissions, PermissionChangeTypeEnum.UPDATE);
+        publishPermissionChange(projectCode, tenantId, roleKey, permissions, PermissionChangeTypeEnum.UPDATE);
 
         log.info("项目 [{}] 角色 [{}] 权限已全量更新，共 {} 个权限，事件已发布", projectCode, roleKey, permissions.size());
     }
@@ -129,18 +129,18 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param permissionKey 要删除的权限标识
      */
     @Override
-    public void deletePermission(String projectCode, String roleKey, String permissionKey) {
+    public void deletePermission(String projectCode, String tenantId, String roleKey, String permissionKey) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
         AssertUtils.notEmpty(permissionKey, "权限标识不能为空");
 
-        String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+        String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
         cacheManager.hashDelete(authKey, permissionKey);
 
         // 发布事件（只发送被删除的权限标识）
         Map<String, String> deletedPerm = new HashMap<>();
         deletedPerm.put(permissionKey, "");
-        publishPermissionChange(projectCode, roleKey, deletedPerm, PermissionChangeTypeEnum.DELETE);
+        publishPermissionChange(projectCode, tenantId, roleKey, deletedPerm, PermissionChangeTypeEnum.DELETE);
 
         log.info("项目 [{}] 角色 [{}] 的权限 [{}] 已删除，事件已发布", projectCode, roleKey, permissionKey);
     }
@@ -153,12 +153,12 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param permissionKeys 要删除的权限标识列表
      */
     @Override
-    public void deletePermissions(String projectCode, String roleKey, List<String> permissionKeys) {
+    public void deletePermissions(String projectCode, String tenantId, String roleKey, List<String> permissionKeys) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
         AssertUtils.notEmpty(permissionKeys, "权限标识列表不能为空");
 
-        String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+        String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
 
         // 批量删除指定权限（使用可变参数一次删除，消除多次网络IO）
         cacheManager.hashDelete(authKey, permissionKeys.toArray(new String[0]));
@@ -168,7 +168,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
         for (String key : permissionKeys) {
             deletedPerms.put(key, "");
         }
-        publishPermissionChange(projectCode, roleKey, deletedPerms, PermissionChangeTypeEnum.DELETE);
+        publishPermissionChange(projectCode, tenantId, roleKey, deletedPerms, PermissionChangeTypeEnum.DELETE);
 
         log.info("项目 [{}] 角色 [{}] 批量删除了 {} 个权限，事件已发布", projectCode, roleKey, permissionKeys.size());
     }
@@ -180,15 +180,15 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param roleKey     角色标识
      */
     @Override
-    public void clearPermissions(String projectCode, String roleKey) {
+    public void clearPermissions(String projectCode, String tenantId, String roleKey) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
 
-        String authKey = TokenConstant.getAuthKey(roleKey, projectCode);
+        String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
         cacheManager.delete(authKey);
 
         // 发布空权限事件
-        publishPermissionChange(projectCode, roleKey, new HashMap<>(), PermissionChangeTypeEnum.CLEAR);
+        publishPermissionChange(projectCode, tenantId, roleKey, new HashMap<>(), PermissionChangeTypeEnum.CLEAR);
 
         log.info("项目 [{}] 角色 [{}] 的所有权限已清空，事件已发布", projectCode, roleKey);
     }
@@ -200,10 +200,11 @@ public class DefaultPermissionManageService implements PermissionManageService {
      * @param permissions 权限数据
      * @param changeType  变更类型
      */
-    private void publishPermissionChange(String projectCode, String roleKey, Map<String, String> permissions, PermissionChangeTypeEnum changeType) {
+    private void publishPermissionChange(String projectCode, String tenantId, String roleKey, Map<String, String> permissions, PermissionChangeTypeEnum changeType) {
         SyncPayload payload = new SyncPayload();
         payload.setPayloadType(SyncPayloadType.PERMISSION);
         payload.setRoleKey(roleKey);
+        payload.setTenantId(tenantId);
         payload.setPermissions(permissions);
         payload.setChangeType(changeType);
         payload.setTimestamp(System.currentTimeMillis());

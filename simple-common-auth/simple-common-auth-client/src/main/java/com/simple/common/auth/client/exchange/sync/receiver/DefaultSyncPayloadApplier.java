@@ -119,7 +119,7 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
         }
 
         Map<String, String> permissions = payload.getPermissions();
-        String authKey = TokenConstant.getAuthKey(roleKey, payload.getProjectCode());
+        String authKey = TokenConstant.getAuthKey(roleKey, payload.getProjectCode(), payload.getTenantId());
 
         // 按变更类型分流落地
         switch (changeType) {
