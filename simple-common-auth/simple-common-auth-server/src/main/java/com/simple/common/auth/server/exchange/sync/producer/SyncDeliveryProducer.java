@@ -47,11 +47,16 @@ public class SyncDeliveryProducer {
 
     /**
      * 定向投递到指定客户端
+     * <p>
+     * 载荷的 projectCode 由本方法按目标客户端盖章（权威目标以 clientId 入参为准），
+     * 接收端按 projectCode 与自身项目比对做归属过滤。
+     * </p>
      *
      * @param payload  同步载荷
      * @param clientId 目标客户端编码
      */
     public void dispatchToClient(SyncPayload payload, String clientId) {
+        payload.setProjectCode(clientId);
         SyncDeliveryTask task = new SyncDeliveryTask();
         task.setTaskId(IdUtil.fastSimpleUUID())
             .setClientId(clientId)
@@ -63,8 +68,11 @@ public class SyncDeliveryProducer {
 
     /**
      * 全员通知投递（按实例注册表扇出为逐客户端任务）
+     * <p>
+     * 逐客户端独立载荷（projectCode 按目标盖章）独立任务独立重投，互不阻塞。
+     * </p>
      *
-     * @param payload 同步载荷
+     * @param payload 同步载荷（projectCode 由扇出过程按目标盖章）
      */
     public void dispatchToAllClients(SyncPayload payload) {
         List<String> clientIds = syncInstanceRegistry.findAllClientIds();

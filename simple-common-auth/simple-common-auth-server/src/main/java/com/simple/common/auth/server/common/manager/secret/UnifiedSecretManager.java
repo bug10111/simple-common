@@ -20,7 +20,7 @@ import java.util.Map;
  * <pre>
  * ┌─────────────┐         EventBus          ┌─────────────┐
  * │   Server    │ ───────────────────────►  │   Client    │
- * │             │   SecretEvent(密钥更新)    │             │
+ * │             │  变更投递引擎(HTTP回调)   │             │
  * │ SecretKey   │                           │  缓存密钥    │
  * │  Manager    │                           │             │
  * └─────────────┘                           └─────────────┘

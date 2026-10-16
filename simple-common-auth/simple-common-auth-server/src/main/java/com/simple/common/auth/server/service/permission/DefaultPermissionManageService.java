@@ -2,10 +2,12 @@ package com.simple.common.auth.server.service.permission;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.PermissionChangeTypeEnum;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.server.common.service.permission.PermissionManageService;
-import com.simple.common.auth.server.exchange.event.publisher.PermissionEventPublisher;
+import com.simple.common.auth.server.exchange.sync.producer.SyncDeliveryProducer;
 import com.simple.common.core.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +42,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
     private CacheManager cacheManager;
 
     @Autowired
-    private PermissionEventPublisher permissionEventPublisher;
+    private SyncDeliveryProducer syncDeliveryProducer;
 
     @Autowired
     private AuthProperties authProperties;
@@ -82,7 +84,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
 
         // 3. 根据参数决定是否发布事件
         if (publishEvent) {
-            permissionEventPublisher.publish(projectCode, roleKey, permissions, PermissionChangeTypeEnum.ADD);
+            publishPermissionChange(projectCode, roleKey, permissions, PermissionChangeTypeEnum.ADD);
             log.info("项目 [{}] 角色 [{}] 新增了 {} 个权限，事件已发布", projectCode, roleKey, permissions.size());
         } else {
             log.debug("项目 [{}] 角色 [{}] 新增了 {} 个权限（未发布事件）", projectCode, roleKey, permissions.size());
@@ -114,7 +116,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
         cacheManager.expire(authKey, authProperties.getPermissionCacheExpire());
 
         // 4. 发布权限变更事件
-        permissionEventPublisher.publish(projectCode, roleKey, permissions, PermissionChangeTypeEnum.UPDATE);
+        publishPermissionChange(projectCode, roleKey, permissions, PermissionChangeTypeEnum.UPDATE);
 
         log.info("项目 [{}] 角色 [{}] 权限已全量更新，共 {} 个权限，事件已发布", projectCode, roleKey, permissions.size());
     }
@@ -138,7 +140,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
         // 发布事件（只发送被删除的权限标识）
         Map<String, String> deletedPerm = new HashMap<>();
         deletedPerm.put(permissionKey, "");
-        permissionEventPublisher.publish(projectCode, roleKey, deletedPerm, PermissionChangeTypeEnum.DELETE);
+        publishPermissionChange(projectCode, roleKey, deletedPerm, PermissionChangeTypeEnum.DELETE);
 
         log.info("项目 [{}] 角色 [{}] 的权限 [{}] 已删除，事件已发布", projectCode, roleKey, permissionKey);
     }
@@ -166,7 +168,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
         for (String key : permissionKeys) {
             deletedPerms.put(key, "");
         }
-        permissionEventPublisher.publish(projectCode, roleKey, deletedPerms, PermissionChangeTypeEnum.DELETE);
+        publishPermissionChange(projectCode, roleKey, deletedPerms, PermissionChangeTypeEnum.DELETE);
 
         log.info("项目 [{}] 角色 [{}] 批量删除了 {} 个权限，事件已发布", projectCode, roleKey, permissionKeys.size());
     }
@@ -186,8 +188,25 @@ public class DefaultPermissionManageService implements PermissionManageService {
         cacheManager.delete(authKey);
 
         // 发布空权限事件
-        permissionEventPublisher.publish(projectCode, roleKey, new HashMap<>(), PermissionChangeTypeEnum.CLEAR);
+        publishPermissionChange(projectCode, roleKey, new HashMap<>(), PermissionChangeTypeEnum.CLEAR);
 
         log.info("项目 [{}] 角色 [{}] 的所有权限已清空，事件已发布", projectCode, roleKey);
+    }
+    /**
+     * 发布权限变更投递（经投递引擎定向回调目标客户端，落地角色权限缓存）
+     *
+     * @param projectCode 项目编码（即目标客户端编码）
+     * @param roleKey     角色标识
+     * @param permissions 权限数据
+     * @param changeType  变更类型
+     */
+    private void publishPermissionChange(String projectCode, String roleKey, Map<String, String> permissions, PermissionChangeTypeEnum changeType) {
+        SyncPayload payload = new SyncPayload();
+        payload.setPayloadType(SyncPayloadType.PERMISSION);
+        payload.setRoleKey(roleKey);
+        payload.setPermissions(permissions);
+        payload.setChangeType(changeType);
+        payload.setTimestamp(System.currentTimeMillis());
+        syncDeliveryProducer.dispatchToClient(payload, projectCode);
     }
 }

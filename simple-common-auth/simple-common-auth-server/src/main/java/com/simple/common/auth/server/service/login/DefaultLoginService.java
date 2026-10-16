@@ -15,7 +15,9 @@ import com.simple.common.auth.server.common.manager.user.LoginUserOperationManag
 import com.simple.common.auth.server.common.process.LoginSucProcess;
 import com.simple.common.auth.server.common.service.client.ClientDetailsService;
 import com.simple.common.auth.server.common.service.login.LoginService;
-import com.simple.common.auth.server.exchange.event.publisher.LogoutEventPublisher;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
+import com.simple.common.auth.server.exchange.sync.producer.SyncDeliveryProducer;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.HttpServletUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,7 +49,7 @@ public class DefaultLoginService implements LoginService {
     private List<LoginSucProcess> list;
 
     @Autowired
-    private LogoutEventPublisher logoutEventPublisher;
+    private SyncDeliveryProducer syncDeliveryProducer;
 
 
     @Override
@@ -154,8 +156,11 @@ public class DefaultLoginService implements LoginService {
     public void logout(String userId) {
         loginUserOperationManager.loginOut(userId);
 
-        // 发布用户退出登录事件（广播到所有系统，触发各客户端清除本地Redis Token）
-        logoutEventPublisher.publishLogout(userId);
+        // 全员投递登出通知（经投递引擎逐客户端回调，触发各实例清除本地令牌缓存）
+        SyncPayload logoutPayload = new SyncPayload();
+        logoutPayload.setPayloadType(SyncPayloadType.LOGOUT);
+        logoutPayload.setUserId(userId);
+        syncDeliveryProducer.dispatchToAllClients(logoutPayload);
     }
 
     @Override
