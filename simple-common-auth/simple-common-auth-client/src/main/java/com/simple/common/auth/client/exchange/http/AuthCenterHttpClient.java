@@ -46,25 +46,27 @@ public class AuthCenterHttpClient {
     /**
      * 实例注册（注册自举）
      * <p>
-     * 携带 Basic 客户端凭证上报实例身份与接收回调地址，注册响应携带当前密钥。
+     * 携带 Basic 客户端凭证（clientId + clientSecret）上报实例身份与接收回调地址，
+     * 请求体携带 projectCode（服务端约定 clientId 即项目编码，两者同值校验），
+     * 注册响应携带当前密钥。
      * </p>
      *
-     * @param projectCode 项目编码（即客户端编码）
+     * @param clientId     客户端编码（即项目编码，simple.auth.client-id 优先，缺省 spring.application.name）
      * @param clientSecret 客户端凭证
      * @param instanceIp   实例本机 IP
      * @param callbackUrl  实例接收回调地址
      * @return HTTP 响应（body 为 R，data 含 jwt/sign 密钥）
      */
-    public HttpResponse registerInstance(String projectCode, String clientSecret, String instanceIp, String callbackUrl) {
+    public HttpResponse registerInstance(String clientId, String clientSecret, String instanceIp, String callbackUrl) {
         String url = AuthEndpointEnum.REGISTER_INSTANCE.buildUrl(authProperties.getServerUrl());
-        String authorization = TokenConstant.basic + Base64Utils.encode((projectCode + ":" + clientSecret).getBytes());
+        String authorization = TokenConstant.basic + Base64Utils.encode((clientId + ":" + clientSecret).getBytes());
 
         Map<String, String> body = new HashMap<>();
-        body.put("projectCode", projectCode);
+        body.put("projectCode", clientId);
         body.put("instanceIp", instanceIp);
         body.put("callbackUrl", callbackUrl);
 
-        log.debug("实例注册: url={} projectCode={}", url, projectCode);
+        log.debug("实例注册: url={} clientId={}", url, clientId);
         return HttpRequest.post(url)
                           .header("Content-Type", "application/json")
                           .header("Authorization", authorization)

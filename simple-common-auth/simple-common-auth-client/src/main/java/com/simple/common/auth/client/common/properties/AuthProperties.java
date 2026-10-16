@@ -62,6 +62,9 @@ public class AuthProperties {
     //客户端凭证（实例注册自举用，即控制台项目客户端的 clientSecret；客户端模式必配）
     private String clientSecret;
 
+    //客户端编码（实例注册自举用，即控制台项目客户端的 clientId；可选，未配置回落 spring.application.name；配置后须与 project-code、控制台登记 client_id 同值）
+    private String clientId;
+
     //实例接收回调地址（授权中心投递引擎按此回调本实例，如 http://10.0.0.5:8080；客户端模式必配）
     private String instanceCallbackUrl;
 

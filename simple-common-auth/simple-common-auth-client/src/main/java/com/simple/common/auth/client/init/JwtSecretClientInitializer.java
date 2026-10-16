@@ -26,6 +26,8 @@ import java.util.Map;
  * <p>
  * 客户端模式应用启动时向授权中心注册实例（Basic 客户端凭证 + projectCode==clientId），
  * 注册响应同步携带当前密钥（注册自举），实例即刻获得当前密钥态；
+ * 注册身份= simple.auth.client-id（显式配置优先，缺省回落 spring.application.name），
+ * Basic 凭证= client-id + simple.auth.client-secret；
  * 未注册客户端被明确拒绝并引导控制台注册，注册失败即终止应用启动（密钥缺失无法验签，带病启动无意义）。
  * 旧 HTTP 密钥拉取路径（/auth/api/secrets）已随守卫化整体退役。
  * 投递引擎后续变更（密钥轮换/权限/登出）经 /internal/sync/** 回调本实例。
@@ -67,8 +69,10 @@ public class JwtSecretClientInitializer implements ApplicationListener<Applicati
             return;
         }
 
+        // 注册身份解析（clientId 显式配置优先，缺省回落 spring.application.name；服务端约定 clientId 即项目编码）
+        String clientId = resolveClientId();
+
         // 注册入参校验（凭证/回调地址缺失明确指引配置项）
-        String projectCode = applicationProperties.getName();
         String clientSecret = authProperties.getClientSecret();
         if (StrUtil.isEmpty(clientSecret)) {
             throw new IllegalStateException("客户端凭证未配置，请在 application.yml 配置 simple.auth.client-secret（实例注册自举依赖）");
@@ -80,10 +84,10 @@ public class JwtSecretClientInitializer implements ApplicationListener<Applicati
         String instanceIp = resolveInstanceIp();
 
         try {
-            log.info("开始向授权中心注册实例 [{}]...", projectCode);
+            log.info("开始向授权中心注册实例 [{}]...", clientId);
 
-            // 实例注册（注册自举：响应携带当前密钥）
-            HttpResponse response = authCenterHttpClient.registerInstance(projectCode, clientSecret, instanceIp, callbackUrl);
+            // 实例注册（Basic 客户端凭证 + projectCode，注册自举：响应携带当前密钥）
+            HttpResponse response = authCenterHttpClient.registerInstance(clientId, clientSecret, instanceIp, callbackUrl);
             R<?> r = JsonUtils.toJsonObj(response.body(), R.class);
             if (!DefaultExceptionEnum.OK.getCode().equals(r.getCode())) {
                 String errorMsg = String.format("实例注册失败: %s（未注册请先在授权中心控制台完成项目客户端注册后再接入）", r.getMessage());
@@ -124,6 +128,19 @@ public class JwtSecretClientInitializer implements ApplicationListener<Applicati
             log.error(errorMsg, e);
             throw new IllegalStateException(errorMsg, e);
         }
+    }
+
+    /**
+     * 解析注册客户端编码（simple.auth.client-id 显式配置优先，缺省回落 spring.application.name）
+     *
+     * @return 注册用客户端编码（服务端约定 clientId 即项目编码，配置后须与 project-code 同值）
+     */
+    private String resolveClientId() {
+        String configured = authProperties.getClientId();
+        if (StrUtil.isNotEmpty(configured)) {
+            return configured;
+        }
+        return applicationProperties.getName();
     }
 
     /**
