@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.simple.common</groupId>
         <artifactId>simple-common</artifactId>
-        <version>1.0.0</version>
+        <version>1.0.2</version>
     </parent>
 
     <artifactId>simple-common-annex</artifactId>
@@ -39,5 +39,22 @@
             <groupId>com.aliyun.oss</groupId>
             <artifactId>aliyun-sdk-oss</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <!-- 模块级覆盖父 pom 的 surefire 2.12.4:旧版不识别 JUnit 5 测试(Tests run 恒为 0),升级至 3.2.5 使 JUnit Platform 生效 -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+            </plugin>
+        </plugins>
+    </build>
 </project>

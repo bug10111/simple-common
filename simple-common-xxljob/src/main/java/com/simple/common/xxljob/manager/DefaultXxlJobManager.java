@@ -162,8 +162,8 @@ public class DefaultXxlJobManager implements XxlJobManager {
      */
     private HttpRecord doExecuteForm(XxlJobRequestUrl requestUrl, Map<String, Object> form) {
         // 发起表单请求，超时时间由配置的秒数换算为毫秒
-        return HttpRequestUtils.post(requestUrl.url(xxlJobConfig), buildAuthHeaders(), form,
-                                     xxlJobConfig.getRequestTimeout() * SECONDS_TO_MILLIS);
+        return HttpRequestUtils.postForm(requestUrl.url(xxlJobConfig), buildAuthHeaders(), form,
+                                         xxlJobConfig.getRequestTimeout() * SECONDS_TO_MILLIS);
     }
 
     /**
@@ -241,8 +241,8 @@ public class DefaultXxlJobManager implements XxlJobManager {
         form.put(LOGIN_PARAM_PASSWORD, xxlJobConfig.getAdminPassword());
 
         // 发起登录请求并解析返回体
-        HttpRecord record = HttpRequestUtils.post(xxlJobConfig.getAdminAddresses() + LOGIN_URL, new HashMap<>(), form,
-                                                  xxlJobConfig.getRequestTimeout() * SECONDS_TO_MILLIS);
+        HttpRecord record = HttpRequestUtils.postForm(xxlJobConfig.getAdminAddresses() + LOGIN_URL, new HashMap<>(), form,
+                                                      xxlJobConfig.getRequestTimeout() * SECONDS_TO_MILLIS);
         XxlJobResponse response = record.get(XxlJobResponse.class,
                                              body -> new DefaultException(DefaultExceptionEnum.ERROR, "xxl-job Admin登录失败：" + body));
 

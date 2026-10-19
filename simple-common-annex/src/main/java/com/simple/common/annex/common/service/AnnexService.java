@@ -41,18 +41,19 @@ import java.io.InputStream;
  *         
  *         // 3. 上传到S3
  *         try (InputStream inputStream = file.getInputStream()) {
- *             String objectKey = s3Manager.upload(
- *                 file.getOriginalFilename(), 
- *                 applicationName, 
- *                 "images", 
- *                 shareType, 
+ *             String objectUrl = s3Manager.upload(
+ *                 file.getOriginalFilename(),
+ *                 applicationName,
+ *                 "images",
+ *                 shareType,
  *                 inputStream
  *             );
- *             
+ *
  *             // 4. 构建响应
  *             UploadResponse response = new UploadResponse();
- *             response.setObjectKey(objectKey);
- *             response.setUrl(s3Manager.generateUrl(objectKey, 60));
+ *             response.setSaveUrl(objectUrl);
+ *             // 需要临时访问链接时，以完整对象存储 URL 为入参签发
+ *             String tempUrl = s3Manager.generateUrl(objectUrl, 60);
  *             return response;
  *         }
  *     }
@@ -82,7 +83,7 @@ public interface AnnexService {
      * @param file            上传的文件对象,不能为null
      * @param applicationName 应用服务名称,用于组织文件目录结构,如 "user-service"
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
-     * @return 上传响应结果,包含objectKey、访问URL等信息
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      * @throws RuntimeException 当文件为null或上传失败时抛出异常
      */
     UploadResponse upload(MultipartFile file, String applicationName, ShareType shareType);
@@ -110,7 +111,7 @@ public interface AnnexService {
      * @param applicationName 应用服务名称,如 "user-service"
      * @param packageName     业务包名,如 "avatars"、"documents"、"reports" 等
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
-     * @return 上传响应结果,包含objectKey、访问URL等信息
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      * @throws RuntimeException 当文件为null或上传失败时抛出异常
      */
     UploadResponse upload(MultipartFile file, String applicationName, String packageName, ShareType shareType);
@@ -147,7 +148,7 @@ public interface AnnexService {
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
      * @param inputStream     文件输入流,调用方负责关闭
      * @param uploadFunction  文件对比函数,用于判断是否需要重新上传,null表示总是上传
-     * @return 上传响应结果,包含objectKey、访问URL等信息
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      * @throws RuntimeException 当上传失败时抛出异常
      */
     UploadResponse upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream,
@@ -162,18 +163,18 @@ public interface AnnexService {
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
-     * @GetMapping("/download/{objectKey}")
-     * public void download(@PathVariable String objectKey, HttpServletResponse response) {
+     * @GetMapping("/download")
+     * public void download(@RequestParam String objectUrl, HttpServletResponse response) {
      *     // 设置响应头
      *     response.setContentType("application/octet-stream");
      *     response.setHeader("Content-Disposition", "attachment; filename=\"file.pdf\"");
      *     // 下载文件
-     *     annexService.writeGetObjectResponse(objectKey);
+     *     annexService.writeGetObjectResponse(objectUrl);
      * }
      * }</pre>
      *
-     * @param objectUrl 文件的对象Key或完整URL
-     * @throws RuntimeException 当文件不存在或下载失败时抛出异常
+     * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
+     * @throws RuntimeException 当入参不是完整对象存储 URL、文件不存在或下载失败时抛出异常
      */
     void writeGetObjectResponse(String objectUrl);
 
@@ -187,13 +188,13 @@ public interface AnnexService {
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 获取合同文件的临时访问链接
-     * String url = annexService.generateUrl(contractObjectKey);
+     * String url = annexService.generateUrl(contractObjectUrl);
      * // 返回: https://minio.example.com/bucket/contract.pdf?X-Amz-Algorithm=...
      * }</pre>
      *
-     * @param objectUrl 文件的对象Key或完整URL
+     * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
      * @return 带签名的临时访问URL,过期后无法访问
-     * @throws RuntimeException 当生成URL失败时抛出异常
+     * @throws RuntimeException 当入参不是完整对象存储 URL 或生成URL失败时抛出异常
      */
     String generateUrl(String objectUrl);
 
@@ -208,11 +209,11 @@ public interface AnnexService {
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 删除用户头像
-     * annexService.delete("user-service/avatars/avatar_123.jpg");
+     * annexService.delete("http://minio.example.com/user-service-private/avatars/avatar_123.jpg");
      * }</pre>
      *
-     * @param objectUrl 文件的对象Key或完整URL
-     * @throws RuntimeException 当文件不存在或删除失败时抛出异常
+     * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
+     * @throws RuntimeException 当入参不是完整对象存储 URL 或删除失败时抛出异常
      */
     void delete(String objectUrl);
 
@@ -224,6 +225,7 @@ public interface AnnexService {
      * @param packageName     包名
      * @param shareType       文件权限
      * @param inputStream     文件流
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      */
     default UploadResponse upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream) {
         return upload(fileName, applicationName, packageName, shareType, inputStream, null);
@@ -236,6 +238,7 @@ public interface AnnexService {
      * @param applicationName 系统服务名
      * @param shareType       文件权限
      * @param inputStream     文件流
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      */
     default UploadResponse upload(String fileName, String applicationName, ShareType shareType, InputStream inputStream) {
         return upload(fileName, applicationName, null, shareType, inputStream, null);

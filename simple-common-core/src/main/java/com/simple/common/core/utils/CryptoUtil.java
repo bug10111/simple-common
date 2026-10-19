@@ -17,9 +17,13 @@ import cn.hutool.crypto.symmetric.SymmetricCrypto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -35,6 +39,11 @@ import java.security.spec.X509EncodedKeySpec;
  */
 @Slf4j
 public class CryptoUtil {
+
+    /**
+     * GCM 认证加密的认证标签长度（位）
+     */
+    private static final int GCM_TAG_LENGTH_BITS = 128;
 
     /**
      * 生成对称加密秘钥
@@ -103,16 +112,19 @@ public class CryptoUtil {
         }
 
         try {
+            // 生成随机初始向量
             byte[] iv = RandomUtil.randomBytes(algorithm.getIvLength());
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm.getAlgorithm());
 
-            SymmetricCrypto crypto = switch (algorithm) {
-                case AES_CBC -> new AES(algorithm.getMode(), algorithm.getPadding(), keySpec, ivSpec);
-                case AES_GCM, SM4_GCM, SM4_CBC -> new SymmetricCrypto(algorithm.getFullAlgorithm(), keySpec, ivSpec);
-                case DES_CBC -> new DES(algorithm.getMode(), algorithm.getPadding(), keySpec, ivSpec);
-            };
+            // GCM 模式使用标准 JCE 与 GCMParameterSpec，密文尾部自带认证标签
+            if (algorithm.isGcm()) {
+                byte[] encrypted = encryptGcm(algorithm, keySpec, iv, data);
+                return ArrayUtil.addAll(iv, encrypted);
+            }
 
+            // CBC 模式沿用 Hutool 对称加密实现
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            SymmetricCrypto crypto = createCbcCrypto(algorithm, keySpec, ivSpec);
             byte[] encrypted = crypto.encrypt(data);
             return ArrayUtil.addAll(iv, encrypted);
         } catch (Exception e) {
@@ -130,7 +142,7 @@ public class CryptoUtil {
      */
     public static String encryptStr(SymmetricAlgorithmType algorithm, String key, String data) {
         byte[] keyBytes = Base64Utils.decode(key);
-        byte[] dataBytes = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
         byte[] encrypted = encrypt(algorithm, keyBytes, dataBytes);
         return Base64Utils.encode(encrypted);
     }
@@ -150,21 +162,23 @@ public class CryptoUtil {
         }
 
         try {
+            // 校验密文长度并拆分初始向量与密文体
             int ivLength = algorithm.getIvLength();
             if (encryptedData.length < ivLength) {
                 throw new IllegalArgumentException("密文过短，无法提取IV");
             }
             byte[] iv = ArrayUtil.sub(encryptedData, 0, ivLength);
             byte[] cipherData = ArrayUtil.sub(encryptedData, ivLength, encryptedData.length);
-            IvParameterSpec ivSpec = new IvParameterSpec(iv);
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm.getAlgorithm());
 
-            SymmetricCrypto crypto = switch (algorithm) {
-                case AES_CBC -> new AES(algorithm.getMode(), algorithm.getPadding(), keySpec, ivSpec);
-                case AES_GCM, SM4_GCM, SM4_CBC -> new SymmetricCrypto(algorithm.getFullAlgorithm(), keySpec, ivSpec);
-                case DES_CBC -> new DES(algorithm.getMode(), algorithm.getPadding(), keySpec, ivSpec);
-            };
+            // GCM 模式由认证标签校验密文完整性，篡改密文将抛出异常
+            if (algorithm.isGcm()) {
+                return decryptGcm(algorithm, keySpec, iv, cipherData);
+            }
 
+            // CBC 模式沿用 Hutool 对称解密实现
+            IvParameterSpec ivSpec = new IvParameterSpec(iv);
+            SymmetricCrypto crypto = createCbcCrypto(algorithm, keySpec, ivSpec);
             return crypto.decrypt(cipherData);
         } catch (Exception e) {
             throw new RuntimeException("对称解密失败: " + algorithm, e);
@@ -183,7 +197,99 @@ public class CryptoUtil {
         byte[] keyBytes = Base64Utils.decode(key);
         byte[] encryptedData = Base64Utils.decode(encryptedDataStr);
         byte[] decrypted = decrypt(algorithm, keyBytes, encryptedData);
-        return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+        return new String(decrypted, StandardCharsets.UTF_8);
+    }
+
+    /**
+     * 使用 GCM 模式加密数据，返回密文与认证标签的拼接结果
+     *
+     * @param algorithm 加密方式
+     * @param keySpec   密钥
+     * @param iv        初始向量
+     * @param data      明文
+     * @return 密文与认证标签的拼接结果
+     * @throws GeneralSecurityException 加密失败
+     */
+    private static byte[] encryptGcm(SymmetricAlgorithmType algorithm, SecretKeySpec keySpec, byte[] iv, byte[] data)
+            throws GeneralSecurityException {
+        Cipher cipher = createGcmCipher(algorithm);
+
+        // GCM 必须使用 GCMParameterSpec 指定认证标签长度与初始向量
+        cipher.init(Cipher.ENCRYPT_MODE, keySpec, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+        return cipher.doFinal(data);
+    }
+
+    /**
+     * 使用 GCM 模式解密数据，认证标签不匹配时抛出异常
+     *
+     * @param algorithm  解密方式
+     * @param keySpec    密钥
+     * @param iv         初始向量
+     * @param cipherData 密文与认证标签的拼接结果
+     * @return 明文
+     * @throws GeneralSecurityException 解密失败或认证标签不匹配
+     */
+    private static byte[] decryptGcm(SymmetricAlgorithmType algorithm, SecretKeySpec keySpec, byte[] iv,
+                                     byte[] cipherData) throws GeneralSecurityException {
+        Cipher cipher = createGcmCipher(algorithm);
+
+        // GCM 必须使用 GCMParameterSpec 指定认证标签长度与初始向量
+        cipher.init(Cipher.DECRYPT_MODE, keySpec, new GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv));
+        return cipher.doFinal(cipherData);
+    }
+
+    /**
+     * 创建 GCM 模式 Cipher，SM4 算法显式使用 BouncyCastle 提供者
+     *
+     * @param algorithm 加解密方式
+     * @return GCM 模式 Cipher
+     * @throws GeneralSecurityException 当前运行环境不支持对应算法
+     */
+    private static Cipher createGcmCipher(SymmetricAlgorithmType algorithm) throws GeneralSecurityException {
+        if (algorithm == SymmetricAlgorithmType.SM4_GCM) {
+            return Cipher.getInstance(algorithm.getFullAlgorithm(), getSm4GcmProvider());
+        }
+        return Cipher.getInstance(algorithm.getFullAlgorithm());
+    }
+
+    /**
+     * 获取 SM4_GCM 专用的 BouncyCastle 提供者，首次使用时创建并缓存，不依赖全局注册
+     *
+     * @return BouncyCastle 提供者
+     */
+    private static Provider getSm4GcmProvider() {
+        try {
+            return BouncyCastleProviderHolder.PROVIDER;
+        } catch (Throwable e) {
+            throw new IllegalStateException("SM4_GCM 需要 BouncyCastle 提供者，当前运行环境不可用，"
+                    + "请确认 org.bouncycastle:bcprov-jdk15on 依赖已引入", e);
+        }
+    }
+
+    /**
+     * 创建 CBC 模式对称加解密器
+     *
+     * @param algorithm 加解密方式
+     * @param keySpec   密钥
+     * @param ivSpec    初始向量
+     * @return 对称加解密器
+     */
+    private static SymmetricCrypto createCbcCrypto(SymmetricAlgorithmType algorithm, SecretKeySpec keySpec,
+                                                   IvParameterSpec ivSpec) {
+        return switch (algorithm) {
+            case AES_CBC -> new AES(algorithm.getMode(), algorithm.getPadding(), keySpec, ivSpec);
+            case DES_CBC -> new DES(algorithm.getMode(), algorithm.getPadding(), keySpec, ivSpec);
+            case SM4_CBC -> new SymmetricCrypto(algorithm.getFullAlgorithm(), keySpec, ivSpec);
+            default -> throw new IllegalArgumentException("非 CBC 模式不支持该方法: " + algorithm);
+        };
+    }
+
+    /**
+     * BouncyCastle 提供者持有者，避免每次加解密重复创建提供者
+     */
+    private static final class BouncyCastleProviderHolder {
+
+        private static final Provider PROVIDER = new BouncyCastleProvider();
     }
 
     /**
@@ -225,7 +331,7 @@ public class CryptoUtil {
      */
     public static String encryptStr(AsymmetricAlgorithmType algorithm, String publicKeyPem, String data) {
         PublicKey publicKey = getPublicKeyFromPem(publicKeyPem);
-        byte[] dataBytes = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
         byte[] encrypted = encrypt(algorithm, publicKey, dataBytes);
         return Base64Utils.encode(encrypted);
     }
@@ -266,7 +372,7 @@ public class CryptoUtil {
         PrivateKey privateKey = getPrivateKeyFromPem(privateKeyPem);
         byte[] encryptedData = Base64Utils.decode(encryptedDataStr);
         byte[] decrypted = decrypt(algorithm, privateKey, encryptedData);
-        return new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+        return new String(decrypted, StandardCharsets.UTF_8);
     }
 
     /**
@@ -298,7 +404,7 @@ public class CryptoUtil {
      * @return Base64编码的哈希结果字符串
      */
     public static String hashStr(HashAlgorithmType algorithm, String data) {
-        byte[] dataBytes = data.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] dataBytes = data.getBytes(StandardCharsets.UTF_8);
         byte[] hashResult = hash(algorithm, dataBytes);
         return Base64Utils.encode(hashResult);
     }
@@ -418,6 +524,15 @@ public class CryptoUtil {
         // 是否为不安全算法（用于日志警告）
         public boolean isUnsafe() {
             return this == AES_CBC || this == DES_CBC || this == SM4_CBC;
+        }
+
+        /**
+         * 判断是否为 GCM 认证加密模式
+         *
+         * @return 是否为 GCM 认证加密模式
+         */
+        public boolean isGcm() {
+            return this == AES_GCM || this == SM4_GCM;
         }
     }
 

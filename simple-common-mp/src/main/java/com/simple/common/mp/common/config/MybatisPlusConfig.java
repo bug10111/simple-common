@@ -2,11 +2,14 @@ package com.simple.common.mp.common.config;
 
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.toolkit.JdbcUtils;
 import com.simple.common.mp.common.properties.MpProperties;
+import com.simple.common.mp.interceptor.InsertFillInterceptor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
@@ -42,6 +45,20 @@ public class MybatisPlusConfig {
             interceptor.addInnerInterceptor(inner);
         }
         return interceptor;
+    }
+
+    /**
+     * 注册插入固定字段兜底填充拦截器
+     * <p>
+     * 处理器经 {@link ObjectProvider} 延迟获取，多处理器时按容器 {@code @Primary} 语义选择；
+     * 容器无处理器时拦截器安全跳过。
+     *
+     * @param metaObjectHandlerProvider 容器内元对象填充处理器提供者
+     * @return 插入填充拦截器
+     */
+    @Bean
+    public InsertFillInterceptor insertFillInterceptor(ObjectProvider<MetaObjectHandler> metaObjectHandlerProvider) {
+        return new InsertFillInterceptor(metaObjectHandlerProvider);
     }
 
     /**

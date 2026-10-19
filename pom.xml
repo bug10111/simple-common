@@ -5,7 +5,7 @@
 
     <groupId>com.simple.common</groupId>
     <artifactId>simple-common</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <packaging>pom</packaging>
 
     <name>simple-common</name>
@@ -50,7 +50,9 @@
         <spring-boot.version>3.3.4</spring-boot.version>
         <spring-clould-alibaba>2023.0.3.4</spring-clould-alibaba>
         <spring-cloud.version>2023.0.3</spring-cloud.version>
-        <common.simple.version>1.0.0</common.simple.version>
+        <common.simple.version>1.0.2</common.simple.version>
+        <!-- simple-common-ai 源码不在本聚合工程内（独立仓库发版），固定引用其最近发布版本 -->
+        <common.simple.ai.version>1.0.1</common.simple.ai.version>
 
         <hutool.version>5.8.38</hutool.version>
         <aviator.version>5.4.3</aviator.version>
@@ -394,7 +396,7 @@
             <dependency>
                 <groupId>com.simple.common</groupId>
                 <artifactId>simple-common-ai</artifactId>
-                <version>${common.simple.version}</version>
+                <version>${common.simple.ai.version}</version>
             </dependency>
 
             <dependency>

@@ -36,7 +36,8 @@ import java.io.InputStream;
  *             .key(objectKey)
  *             .build();
  *         s3Client.putObject(request, RequestBody.fromInputStream(inputStream, inputStream.available()));
- *         return objectKey;
+ *         // 返回完整对象存储 URL（{服务地址}/{桶名}/{对象键}）
+ *         return buildObjectUrl(bucketName, objectKey);
  *     }
  * }
  * }</pre>
@@ -48,16 +49,16 @@ public interface S3Manager {
     /**
      * 附件上传
      * <p>
-     * 将文件流上传到S3存储服务,返回文件的对象Key(路径)。
-     * 文件名会自动添加时间戳和UUID以避免重名。
+     * 将文件流上传到S3存储服务,返回文件的完整对象存储 URL。
+     * 未指定包名时,对象键会自动生成 UUID 以避免重名。
      * </p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 上传图片
-     * String objectKey = s3Manager.upload("avatar.jpg", "user-service", "avatars", 
+     * String objectUrl = s3Manager.upload("avatar.jpg", "user-service", null,
      *                                     ShareType.PUBLIC, inputStream);
-     * // 返回: user-service/avatars/2024/01/15/avatar_1705312345678_uuid.jpg
+     * // 返回: http://minio.example.com/user-service-public/jpg/{uuid}.jpg
      * }</pre>
      *
      * @param fileName        原始文件名,如 "avatar.jpg"
@@ -65,7 +66,7 @@ public interface S3Manager {
      * @param packageName     业务包名,如 "avatars"、"documents" 等
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
      * @param inputStream     文件输入流,调用方负责关闭
-     * @return 文件的对象Key(完整路径),可用于后续下载或删除操作
+     * @return 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,可作为后续下载、删除与临时链接签发操作的入参
      * @throws RuntimeException 当上传失败时抛出异常
      */
     String upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream);
@@ -79,14 +80,14 @@ public interface S3Manager {
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
-     * @GetMapping("/download/{objectKey}")
-     * public void download(@PathVariable String objectKey, HttpServletResponse response) {
-     *     s3Manager.writeGetObjectResponse(objectKey);
+     * @GetMapping("/download")
+     * public void download(@RequestParam String objectUrl, HttpServletResponse response) {
+     *     s3Manager.writeGetObjectResponse(objectUrl);
      * }
      * }</pre>
      *
-     * @param objectUrl 文件的对象Key或完整URL
-     * @throws RuntimeException 当文件不存在或下载失败时抛出异常
+     * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
+     * @throws RuntimeException 当入参不是完整对象存储 URL、文件不存在或下载失败时抛出异常
      */
     void writeGetObjectResponse(String objectUrl);
 
@@ -100,16 +101,16 @@ public interface S3Manager {
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
-     * try (InputStream inputStream = s3Manager.download(objectKey)) {
+     * try (InputStream inputStream = s3Manager.download(objectUrl)) {
      *     // 处理文件内容
      *     byte[] data = inputStream.readAllBytes();
      *     // 进行业务处理...
      * }
      * }</pre>
      *
-     * @param objectUrl 文件的对象Key或完整URL
+     * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
      * @return 文件输入流,调用方必须手动关闭
-     * @throws RuntimeException 当文件不存在或下载失败时抛出异常
+     * @throws RuntimeException 当入参不是完整对象存储 URL、文件不存在或下载失败时抛出异常
      */
     InputStream download(String objectUrl);
 
@@ -123,11 +124,11 @@ public interface S3Manager {
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 删除用户头像
-     * s3Manager.delete("user-service/avatars/avatar_123.jpg");
+     * s3Manager.delete("http://minio.example.com/user-service-public/avatars/avatar_123.jpg");
      * }</pre>
      *
-     * @param objectUrl 文件的对象Key或完整URL
-     * @throws RuntimeException 当删除失败时抛出异常
+     * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
+     * @throws RuntimeException 当入参不是完整对象存储 URL 或删除失败时抛出异常
      */
     void delete(String objectUrl);
 
@@ -141,14 +142,14 @@ public interface S3Manager {
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 生成有效期为30分钟的访问链接
-     * String url = s3Manager.generateUrl(objectKey, 30);
-     * // 返回: https://minio.example.com/bucket/objectKey?X-Amz-Algorithm=...&X-Amz-Expires=1800
+     * String url = s3Manager.generateUrl(objectUrl, 30);
+     * // 返回: https://minio.example.com/bucket/path/file.pdf?X-Amz-Algorithm=...&X-Amz-Expires=1799
      * }</pre>
      *
-     * @param objectUrl  文件的对象Key或完整URL
+     * @param objectUrl  文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
      * @param expireTime 过期时间,单位:分钟,建议设置为5-60分钟
      * @return 带签名的临时访问URL,过期后无法访问
-     * @throws RuntimeException 当生成URL失败时抛出异常
+     * @throws RuntimeException 当入参不是完整对象存储 URL 或生成URL失败时抛出异常
      */
     String generateUrl(String objectUrl, int expireTime);
 

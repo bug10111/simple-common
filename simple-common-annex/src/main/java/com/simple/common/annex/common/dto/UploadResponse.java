@@ -35,7 +35,7 @@ public class UploadResponse {
     @Schema(description = "文件扩展名（不带.）")
     private String suffix;
 
-    @Schema(description = "文件在完整url")
+    @Schema(description = "文件完整访问 URL")
     private String saveUrl;
 
     @Schema(description = "附件类型")
