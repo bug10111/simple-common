@@ -12,10 +12,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.Provider;
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * CryptoUtil 对称加密测试，覆盖 GCM 认证加密、旧格式兼容与 CBC 回归

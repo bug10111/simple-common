@@ -2,10 +2,10 @@ package com.simple.common.auth.server.service.permission;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.enums.PermissionChangeTypeEnum;
-import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
-import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
 import com.simple.common.auth.server.common.service.permission.PermissionManageService;
 import com.simple.common.auth.server.exchange.sync.producer.SyncDeliveryProducer;
 import com.simple.common.core.utils.AssertUtils;

@@ -1,7 +1,6 @@
 package com.simple.common.auth.server.manager;
 
 import com.simple.common.auth.client.common.constant.TokenConstant;
-import com.simple.common.auth.client.common.entity.login.DataPermission;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.manager.permission.PermissionAutoLoader;
 import com.simple.common.auth.client.common.manager.user.LoginInfoManager;

@@ -1,7 +1,7 @@
 package com.simple.common.logs.server.common.tcp;
 
-import com.simple.common.logs.proto.common.event.LogDataEvent;
 import com.simple.common.logs.proto.LogBatch;
+import com.simple.common.logs.proto.common.event.LogDataEvent;
 import com.simple.common.logs.server.common.manager.LogsSaveManager;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;

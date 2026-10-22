@@ -1,6 +1,5 @@
 package com.simple.common.logs.client.common.tcp;
 
-import com.google.protobuf.MessageLite;
 import com.simple.common.logs.proto.LogBatch;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;

@@ -1,12 +1,12 @@
 package com.simple.common.auth.client.exchange.sync.receiver;
 
-import com.simple.common.auth.client.common.constant.TokenConstant;import com.simple.common.auth.client.common.enums.PermissionChangeTypeEnum;
+import com.simple.common.auth.client.common.constant.TokenConstant;
+import com.simple.common.auth.client.common.enums.PermissionChangeTypeEnum;
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
 import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
-import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
 import com.simple.common.auth.client.util.JwtUtils;
 import com.simple.common.core.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;

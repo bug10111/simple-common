@@ -1,7 +1,7 @@
 package com.simple.common.auth.client.exchange.sync.payload;
 
-import lombok.Getter;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 
 /**
  * 同步载荷类型

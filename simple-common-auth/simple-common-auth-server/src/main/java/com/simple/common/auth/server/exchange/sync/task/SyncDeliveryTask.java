@@ -1,9 +1,9 @@
 package com.simple.common.auth.server.exchange.sync.task;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
 import com.simple.common.eventbus.common.annotation.Event;
 import com.simple.common.eventbus.common.constants.EventConstant;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
