@@ -1,8 +1,6 @@
 package com.simple.common.auth.server.common.service.login;
 
 import com.simple.common.auth.server.common.adapter.LoginTypeAdapter;
-import com.simple.common.auth.server.common.entity.ClientDetails;
-import com.simple.common.auth.server.common.entity.TokenData;
 
 import java.util.Map;
 
@@ -21,9 +19,7 @@ import java.util.Map;
  *
  * public TokenData login(String username, String password) {
  *     PwdLoginRequest request = new PwdLoginRequest(username, password);
- *     ClientDetails client = clientDetailsService.getClientDetails(header);
- *     return loginService.login(request, LoginTypeAdapter.PASSWORD, client);
- * }
+ *     return loginService.login(request, LoginTypeAdapter.PASSWORD);
  * }</pre>
  *
  * @author qty
@@ -34,9 +30,9 @@ public interface LoginService {
      * 用户登录
      *
      * @param adapter   登录请求对象(如 PwdLoginRequest、SmsLoginRequest 等)
-     * @param loginType 登录类型枚举,用于路由到对应的 LoginManager
-     * @return Token 数据Map,包含 accessToken、refreshToken、expiresIn 等信息
-     * @throws RuntimeException 当登录失败时抛出异常(如密码错误、账号锁定等)
+     * @param loginType 登录类型,用于路由到对应的 LoginManager
+     * @return Token 数据Map，包含 type（Bearer）、accessToken、refreshToken、exp、scopes 等键（键名见 TokenConstant）
+     * @throws com.simple.common.core.exception.DefaultException 登录失败时抛出（业务码由 LoginException 等枚举承载，如密码错误、账号锁定等）
      */
     Map<String, String> login(Object adapter, LoginTypeAdapter loginType);
 
@@ -44,8 +40,8 @@ public interface LoginService {
      * 刷新 Access Token
      *
      * @param refreshTokenStr 刷新 Token 字符串
-     * @return 新的 Token 数据Map,包含新的 accessToken、refreshToken、expiresIn 等
-     * @throws RuntimeException 当 Refresh Token 无效或已过期时抛出异常
+     * @return 新的 Token 数据Map，键同 {@link #login(Object, LoginTypeAdapter)}
+     * @throws com.simple.common.core.exception.DefaultException Refresh Token 无效/过期/已被消费（重放）时抛出
      */
     Map<String, String> refresh(String refreshTokenStr);
 

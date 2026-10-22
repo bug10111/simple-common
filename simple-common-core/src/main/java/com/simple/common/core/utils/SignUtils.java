@@ -6,6 +6,7 @@ import cn.hutool.crypto.asymmetric.Sign;
 import lombok.extern.slf4j.Slf4j;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -17,6 +18,8 @@ import java.util.stream.Collectors;
 /**
  * Created with IntelliJ IDEA
  * Description: 签名工具类
+ * <p>签名串契约：仅收集实例业务字段（排除 static/合成字段），null 值字段不参与签名，
+ * 数组字段按 Arrays.deepToString 规范化；收发双方必须使用同一版本语义，否则验签不通过。</p>
  *
  * @author qty
  */
@@ -26,7 +29,7 @@ public class SignUtils {
     /**
      * 生成API签名字符串（安全实现）
      *
-     * @param t          目标对象（仅包含业务参数）
+     * @param t             目标对象（仅包含业务参数）
      * @param excludeFields 需要排除的字段名（如secret、password等）
      * @return 按参数名排序的签名字符串
      */
@@ -47,7 +50,7 @@ public class SignUtils {
      *
      * @param t             对象
      * @param excludeFields 排除字段
-     * @return 可参与签名的字段键值对（字段名 -> 字段值字符串）
+     * @return 可参与签名的字段键值对（字段名 -> 字段值字符串；null值字段不参与签名）
      */
     private static <T> Map<String, String> getSignableFields(T t, String[] excludeFields) {
         Set<String> excludeSet = excludeFields == null ? Collections.emptySet() : new HashSet<>(Arrays.asList(excludeFields));
@@ -58,24 +61,48 @@ public class SignUtils {
         Class<?> clazz = t.getClass();
         while (clazz != null) {
             for (Field field : clazz.getDeclaredFields()) {
-                if (excludeSet.contains(field.getName())) {
+                // static与编译器合成字段（this$0、$assertionsDisabled等）不属于业务参数，禁止进入签名
+                if (Modifier.isStatic(field.getModifiers()) || field.isSynthetic() || excludeSet.contains(field.getName())) {
                     continue;
                 }
 
-                field.setAccessible(true);
                 try {
+                    field.setAccessible(true);
                     Object value = field.get(t);
-                    // 仅处理非空值（空值转为空字符串）
-                    String strValue = value != null ? value.toString() : "";
-                    params.put(field.getName(), strValue);
-                } catch (Exception e) {
-                    // 反射异常的字段跳过签名，记录告警供排查缺失签名参数
-                    log.warn("读取签名字段失败，跳过字段: {}，原因: {}", field.getName(), e.getMessage());
+                    // null值字段不参与签名（与""显式区分，防参数替换/签名碰撞）；数组按深度字符串规范化，避免identity hashCode导致对端无法复现
+                    if (value != null) {
+                        String strValue = value.getClass().isArray() ? arrayToString(value) : value.toString();
+                        // 子类与父类同名字段时保留最派生值（先遍历到先占位）
+                        params.putIfAbsent(field.getName(), strValue);
+                    }
+                } catch (ReflectiveOperationException e) {
+                    // 签名字段不可读属于签名完整性问题：跳过会让收发双方签不同参数集，必须快速失败
+                    throw new IllegalStateException("读取签名字段失败: " + field.getName(), e);
                 }
             }
             clazz = clazz.getSuperclass();
         }
         return params;
+    }
+
+    /**
+     * 数组规范化字符串（支持嵌套数组），保证签名可复现
+     */
+    private static String arrayToString(Object array) {
+        // 深度遍历数组内容（含多维数组），替代默认toString的 [I@hash 形式
+        if (array instanceof Object[]) {
+            return Arrays.deepToString((Object[]) array);
+        }
+        // 基本类型数组逐元素转字符串（deepToString不适用于基本类型数组）
+        int length = java.lang.reflect.Array.getLength(array);
+        StringBuilder builder = new StringBuilder("[");
+        for (int i = 0; i < length; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append(java.lang.reflect.Array.get(array, i));
+        }
+        return builder.append(']').toString();
     }
 
     /**
@@ -118,19 +145,22 @@ public class SignUtils {
      * @return 验证结果
      */
     public static boolean verify(CryptoUtil.AsymmetricAlgorithmType algorithm, PublicKey publicKey, byte[] data, byte[] signData) {
+        // 算法合法性在try外预检，避免被下方catch重新包装成"验签失败"混淆根因
+        if (algorithm == null || (!algorithm.isRsa() && algorithm != CryptoUtil.AsymmetricAlgorithmType.SM2)) {
+            throw new RuntimeException("不支持的验签算法: " + algorithm);
+        }
         try {
             if (algorithm.isRsa()) {
                 Sign sign = new Sign(algorithm.getSignAlgorithm());
                 sign.setPublicKey(publicKey);
                 return sign.verify(data, signData);
-            } else if (algorithm == CryptoUtil.AsymmetricAlgorithmType.SM2) {
-                SM2 sm2 = new SM2(null, publicKey);
-                return sm2.verify(data, signData);
-            } else {
-                throw new RuntimeException("不支持的验签算法: " + algorithm);
             }
+            SM2 sm2 = new SM2(null, publicKey);
+            return sm2.verify(data, signData);
         } catch (Exception e) {
-            throw new RuntimeException("验签失败: " + algorithm, e);
+            // 签名字节损坏等验签失败按false返回（供调用方按"签名无效"处理），算法/配置错误已在上方拦截
+            log.warn("验签失败: {}", algorithm, e);
+            return false;
         }
     }
 
@@ -197,6 +227,7 @@ public class SignUtils {
     private static String urlEncode(String value) {
         try {
             return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20") // 保持与API服务端一致
+                                      .replace("*", "%2A") // RFC 3986: * 属非保留字符的百分号编码口径，与对端规范化保持一致
                                       .replace("%21", "!").replace("%27", "'").replace("%28", "(").replace("%29", ")").replace("%7E", "~");
         } catch (Exception e) {
             throw new RuntimeException("URL编码失败", e);

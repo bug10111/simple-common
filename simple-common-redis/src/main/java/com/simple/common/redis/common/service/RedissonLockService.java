@@ -50,10 +50,15 @@ public abstract class RedissonLockService extends AbsLockService {
      * 闭锁-上锁
      * <p>
      * 初始化一个计数器并设置初始值,设置完成后<b>当前线程阻塞等待</b>,直到其他调用方通过
-     * {@link #decreaseCountDownLatch(String)} 将计数减至0才继续执行,计数未归零前一直阻塞。
-     * 适用于需要等待多个并行任务全部完成的场景;不希望无限阻塞时,改用 {@link #tryAwait(String, Long, TimeUnit)}。
+     * {@link #decreaseCountDownLatch(String)} 将计数减至0才继续执行。
+     * <b>注意：</b>计数器只在 Redis 键首次创建时生效（create-only 语义）：键已存在（如上次等待
+     * 超时/参与方崩溃后遗留）时沿用旧计数,本次传入的初始值不会生效;复用同一 key 前必须确保
+     * 旧闭锁已完成或显式清理。
+     * <p>
+     * 阻塞带有内部兜底超时（默认实现为 {@code 300} 秒）：参与方异常退出未减计数时,
+     * 等待线程不会永久悬挂,超时抛出业务异常;需要非阻塞或自定义时长等待时,改用
+     * {@link #tryAwait(String, Long, TimeUnit)}。
      * </p>
-     *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 场景：等待20个学生全部离开教室后才能关门
@@ -67,7 +72,7 @@ public abstract class RedissonLockService extends AbsLockService {
      * }</pre>
      *
      * @param key     加锁的key,建议使用业务前缀避免冲突
-     * @param lockSum 计数器初始值,表示需要等待完成的任务数量
+     * @param lockSum 计数器初始值,表示需要等待完成的任务数量,必须为正整数
      */
     public abstract void countDownLatch(String key, Integer lockSum);
 
@@ -76,7 +81,6 @@ public abstract class RedissonLockService extends AbsLockService {
      * <p>
      * 将闭锁计数器减1。当计数器减至0时,所有阻塞在 {@link #countDownLatch(String, Integer)} 上的线程将被唤醒。
      * </p>
-     *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 学生离开教室时调用
@@ -96,7 +100,6 @@ public abstract class RedissonLockService extends AbsLockService {
      * 在指定时长内等待闭锁计数器归零:计数器归零立即返回true,超时仍未归零返回false,不会无限阻塞。
      * 闭锁计数器由 {@link #countDownLatch(String, Integer)} 或其他方式初始化。
      * </p>
-     *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 场景：最多等待20个学生离开30秒,超时不再等待
@@ -110,7 +113,7 @@ public abstract class RedissonLockService extends AbsLockService {
      * }</pre>
      *
      * @param key     加锁的key,必须与countDownLatch中使用的key一致
-     * @param timeout 最长等待时长
+     * @param timeout 最长等待时长,必须为正数（null 或非正数快速失败,避免 NPE 深埋在 Redisson 内部）
      * @param unit    等待时长的单位
      * @return true表示计数器已归零;false表示超时仍未归零
      */
@@ -123,7 +126,7 @@ public abstract class RedissonLockService extends AbsLockService {
      * </p>
      *
      * @param key     加锁的key,必须与countDownLatch中使用的key一致
-     * @param timeout 最长等待秒数
+     * @param timeout 最长等待秒数,必须为正数
      * @return true表示计数器已归零;false表示超时仍未归零
      */
     public boolean tryAwait(String key, Long timeout) {
@@ -133,33 +136,35 @@ public abstract class RedissonLockService extends AbsLockService {
     /**
      * 信号量-上锁
      * <p>
-     * 初始化一个信号量,设置最大许可数量。只有当信号量值大于0时,才能获取许可继续执行。
+     * 初始化一个信号量,设置最大许可数量。<b>注意：</b>许可只在 Redis 键首次创建时生效
+     * （create-only 语义）：键已存在（复用/残留 key）时沿用既有许可数,本次传入数量不会生效;
+     * 复用同一 key 前必须删除旧键或显式重置。
+     * <p>
      * 适用于控制同时访问共享资源的线程数量,实现限流和资源配额管理。
      * </p>
-     *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 场景：停车场有3个车位
      * String semaphoreKey = "parking:semaphore:" + parkingLotId;
      * redissonLockService.semaphoreLock(semaphoreKey, 3);  // 设置3个许可
      *
-     * // 车辆进入停车场时获取许可（许可不足阻塞等待,超时抛业务异常）
+     * // 车辆进入停车场时获取许可（许可不足阻塞等待,超过实现内置的最长等待秒数抛业务异常）
      * redissonLockService.decreaseSemaphoreLock(semaphoreKey, 1);
      * parkVehicle(vehicle);
      * }</pre>
      *
      * @param key     信号量的key,建议使用业务前缀避免冲突
-     * @param lockSum 最大许可数量,表示允许同时访问的资源数量
+     * @param lockSum 最大许可数量,表示允许同时访问的资源数量,必须为正整数
      */
     public abstract void semaphoreLock(String key, Integer lockSum);
 
     /**
      * 信号量-获取许可（值减少）
      * <p>
-     * 获取指定数量的许可,信号量值相应减少。当前可用许可不足时阻塞等待,超过等待时长仍未获取到
-     * 许可则抛出业务异常,不会无限阻塞。通常在进入受控资源前调用。
+     * 获取指定数量的许可,信号量值相应减少。当前可用许可不足时阻塞等待,
+     * 超过实现内置的最长等待时长（默认实现为 {@code 5} 秒,以常量写死）仍未获取到许可
+     * 则抛出业务异常,不会无限阻塞。通常在进入受控资源前调用。
      * </p>
-     *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 车辆进入停车场时获取许可
@@ -170,17 +175,21 @@ public abstract class RedissonLockService extends AbsLockService {
      * }</pre>
      *
      * @param key     信号量的key
-     * @param lockNum 需要获取的许可数量,通常为1
+     * @param lockNum 需要获取的许可数量,通常为1,必须为正整数
      */
     public abstract void decreaseSemaphoreLock(String key, Integer lockNum);
 
     /**
      * 信号量-释放许可（值增加）
      * <p>
-     * 释放指定数量的许可,信号量值相应增加。通常在资源使用完毕后调用,与
-     * {@link #decreaseSemaphoreLock(String, Integer)} 配对使用。
+     * 释放指定数量的许可,信号量值相应增加。必须与 {@link #decreaseSemaphoreLock(String, Integer)}
+     * <b>一一配对</b>使用,且满足以下契约,否则许可数会被推高到初始上限之上,彻底破坏限流/配额语义：
      * </p>
-     *
+     * <ul>
+     *   <li>只释放「本次已成功获取」的许可,禁止凭空释放或超额释放</li>
+     *   <li>释放必须放在 finally 中执行,与成功获取配对,防止异常路径泄漏许可</li>
+     *   <li>Redisson 的 release 不校验许可来源,误释放/重复释放无法被框架兜底,由调用方保证</li>
+     * </ul>
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 车辆离开停车场时释放许可
@@ -191,7 +200,7 @@ public abstract class RedissonLockService extends AbsLockService {
      * }</pre>
      *
      * @param key     信号量的key
-     * @param lockNum 释放的许可数量,通常为1
+     * @param lockNum 释放的许可数量,必须为正整数
      */
     public abstract void increaseSemaphoreLock(String key, Integer lockNum);
 }

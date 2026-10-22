@@ -46,12 +46,14 @@ public class PermissionExportController {
     private RequestMappingHandlerMapping requestMappingHandlerMapping;
 
     @GetMapping("sql")
+    @HasAuthority("system:permission-export:sql")
     @Operation(summary = "导出当前服务完整菜单 SQL（含一级/二级菜单 + 功能权限）",
             description = "扫描所有 Controller 中的 @Tag、@RequestMapping、@HasAuthority 注解，" +
                     "自动生成三级菜单结构的 INSERT SQL 语句。" +
                     "client_id 来自配置项 simple.auth.project-code。" +
                     "生成的 SQL 包含一级菜单（@Tag）、二级菜单（@RequestMapping）、功能权限（@HasAuthority）三层结构。" +
-                    "component 和 icon 字段设为 NULL，需手动补充。")
+                    "component 和 icon 字段设为 NULL，需手动补充。" +
+                    "注意：ID 每次导出均新生成（雪花ID），脚本为一次性初始化脚本，重复执行将产生重复数据。")
     public R<Map<String, Object>> exportSql() {
         String clientId = authProperties.getProjectCode();
         String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSSSSS"));
@@ -66,8 +68,8 @@ public class PermissionExportController {
 
         StringBuilder sqlBuilder = new StringBuilder();
         sqlBuilder.append("-- ========================================\n");
-        sqlBuilder.append("-- 完整菜单权限初始化 SQL（自动生成）\n");
-        sqlBuilder.append("-- 客户端ID: ").append(clientId).append("\n");
+        sqlBuilder.append("-- 完整菜单权限初始化 SQL（自动生成，一次性脚本：重复执行将产生重复数据）\n");
+        sqlBuilder.append("-- 客户端ID: ").append(escapeSql(clientId)).append("\n");
         sqlBuilder.append("-- 生成时间: ").append(now).append("\n");
         sqlBuilder.append("-- 一级菜单数: ").append(tagGroupMap.size()).append("\n");
         sqlBuilder.append("-- 二级菜单数: ").append(controllerMap.size()).append("\n");
@@ -76,6 +78,9 @@ public class PermissionExportController {
 
         int tagSort = 0;
         int globalSort = 0;
+
+        // level1Code 去重集合：中文 Tag 名归一化后可能冲突（重复 code 破坏 sys_menu 唯一性）
+        Map<String, Integer> level1CodeUsed = new java.util.HashMap<>();
 
         // 用于收集返回的结构化数据
         List<Map<String, Object>> menuTree = new ArrayList<>();
@@ -87,7 +92,8 @@ public class PermissionExportController {
 
             // 生成一级菜单 ID
             String level1Id = IdUtils.getSnowflakeNextIdStr();
-            String level1Code = "menu_" + tagName.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+            // 中文名归一化为纯下划线时回退 hash 形态，并按占用序号去重，避免无意义/重复 code
+            String level1Code = normalizeMenuCode(tagName, level1CodeUsed);
 
             String level1Sql = String.format(
                     "INSERT INTO \"public\".\"sys_menu\" VALUES ('%s', '%s', '%s', '%s', '0', %d, NULL, NULL, NULL, 0, NULL, 'M', NULL, NULL, NULL, NULL, '', '%s', '', '%s');",
@@ -106,7 +112,9 @@ public class PermissionExportController {
             level1Node.put("menuName", tagName);
             level1Node.put("menuType", "M");
             level1Node.put("sort", tagSort);
-            level1Node.put("children", new ArrayList<>());
+            // 类型化局部引用：避免 Object 强转（编译器无法校验 children 元素类型）
+            List<Map<String, Object>> level1Children = new ArrayList<>();
+            level1Node.put("children", level1Children);
 
             int controllerSort = 0;
             for (ControllerMenuInfo controller : controllers) {
@@ -174,7 +182,7 @@ public class PermissionExportController {
                     funcList.add(funcNode);
                 }
 
-                ((List<Map<String, Object>>) level1Node.get("children")).add(level2Node);
+                level1Children.add(level2Node);
             }
 
             menuTree.add(level1Node);
@@ -194,15 +202,32 @@ public class PermissionExportController {
 
     /**
      * 扫描所有 Controller，按类分组收集菜单和权限信息。
+     * <p>
+     * 遍历前对 handler 按「类名 + 路径」排序：底層 Map 为 HashMap，迭代序随运行漂移，
+     * 不排序则生成的 SQL/tagSort/controllerSort 每次导出都不一致（diff 噪音且不可复现）。
+     * 无 @HasAuthority 的类不注册菜单分组（避免空菜单与框架控制器混入）。
+     * </p>
      */
     private Map<Class<?>, ControllerMenuInfo> scanControllerMenus() {
-        Map<Class<?>, ControllerMenuInfo> controllerMap = new LinkedHashMap<>();
+        Map<Class<?>, ControllerMenuInfo> controllerMap = new java.util.TreeMap<>(java.util.Comparator.comparing(Class::getName));
 
         Map<RequestMappingInfo, HandlerMethod> handlerMethods = requestMappingHandlerMapping.getHandlerMethods();
 
-        for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : handlerMethods.entrySet()) {
+        // 预排序保证确定性（TreeMap 仅保证分组键有序，注册顺序仍依赖遍历序）
+        List<Map.Entry<RequestMappingInfo, HandlerMethod>> entries = new ArrayList<>(handlerMethods.entrySet());
+        entries.sort(java.util.Comparator
+                .comparing((Map.Entry<RequestMappingInfo, HandlerMethod> e) -> e.getValue().getBeanType().getName())
+                .thenComparing(e -> String.valueOf(e.getKey().toString())));
+
+        for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : entries) {
             HandlerMethod handlerMethod = entry.getValue();
             Class<?> controllerClass = handlerMethod.getBeanType();
+
+            // 先判权限注解：无任何 @HasAuthority 的类不生成菜单分组（跳过 BasicErrorController 等框架控制器）
+            HasAuthority hasAuthority = handlerMethod.getMethodAnnotation(HasAuthority.class);
+            if (hasAuthority == null) {
+                continue;
+            }
 
             // 获取或创建 Controller 菜单信息
             ControllerMenuInfo controllerInfo = controllerMap.computeIfAbsent(controllerClass, clazz -> {
@@ -220,7 +245,12 @@ public class PermissionExportController {
                     info.setPath(path);
                     // 从路径推断模块名：取最后一段
                     String[] parts = path.split("/");
-                    info.setModuleName(parts[parts.length - 1].replace("-", "_"));
+                    String moduleName = parts[parts.length - 1].replace("-", "_");
+                    // 根路径/空段会产生空 code：回退类简名（空 permission_code 会破坏唯一性约束）
+                    if (moduleName == null || moduleName.isEmpty()) {
+                        moduleName = clazz.getSimpleName().replace("Controller", "").toLowerCase();
+                    }
+                    info.setModuleName(moduleName);
                     // 菜单显示名：从路径最后一段的驼峰转中文（或直接用路径）
                     info.setMenuDisplayName(path);
                 } else {
@@ -231,12 +261,6 @@ public class PermissionExportController {
 
                 return info;
             });
-
-            // 处理方法上的 @HasAuthority
-            HasAuthority hasAuthority = handlerMethod.getMethodAnnotation(HasAuthority.class);
-            if (hasAuthority == null) {
-                continue;
-            }
 
             // 获取 @Operation 注解的 summary 作为菜单名称
             Operation operation = handlerMethod.getMethodAnnotation(Operation.class);
@@ -262,6 +286,20 @@ public class PermissionExportController {
         }
 
         return controllerMap;
+    }
+
+    /**
+     * 菜单 code 归一化：非 ASCII（中文 Tag）归一后无有效字符时回退 hash 形态；
+     * 重复 code 按占用序号追加后缀，保证 sys_menu.permission_code 唯一。
+     */
+    private String normalizeMenuCode(String tagName, Map<String, Integer> used) {
+        String base = tagName == null ? "" : tagName.toLowerCase().replaceAll("[^a-z0-9_]", "_");
+        // 全部为下划线/空（中文标签的常见结果）时回退 hash 形态，避免产出空/全下划线的无意义 code
+        if (base.isEmpty() || base.chars().allMatch(c -> c == '_')) {
+            base = "menu_" + Integer.toHexString(tagName == null ? 0 : tagName.hashCode());
+        }
+        int count = used.merge(base, 1, Integer::sum);
+        return count == 1 ? base : base + "_" + count;
     }
 
     /**

@@ -54,9 +54,22 @@ public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
     @Override
     public boolean checkErrorNum(ClientDetails clientDetails, Object adapter, String ip) {
         String key = getKeyPrefix() + getLoginKey(clientDetails, adapter, ip);
+        // 登录键为 null 表示该处理器对此请求不参与计数（如 IP 未知时跳过 IP 维度计数）
+        if (key == null) {
+            return true;
+        }
         String num = cacheManager.get(key);
-        if (num != null && Integer.parseInt(num) >= authProperties.getLoginErrorNumber()) {
-            log.warn("登录失败次数超限，key: {}, 次数: {}", key, num);
+        // 缓存值防御性解析：脏数据/异构写入导致非数字时按 0 处理并告警，不让解析异常伪装成登录失败
+        int errorNum = 0;
+        if (num != null && !num.isEmpty()) {
+            try {
+                errorNum = Integer.parseInt(num);
+            } catch (NumberFormatException e) {
+                log.warn("登录失败次数缓存值非法，按 0 处理，key: {}, value: {}", key, num);
+            }
+        }
+        if (errorNum >= authProperties.getLoginErrorNumber()) {
+            log.warn("登录失败次数超限，key: {}, 次数: {}", key, errorNum);
             return false;
         }
         return true;
@@ -64,6 +77,11 @@ public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
 
     /**
      * 记录登录失败。
+     * <p>
+     * 仅在计数器首次创建（increment == 1）时设置过期时间：每次失败都顺延 TTL 会让持续
+     * 暴力尝试的客户端把锁定窗口无限拉长；INCR 与 EXPIRE 为两条独立命令，极端情况下
+     * （两步之间进程中断）计数器可能无 TTL 存活，由 clearError（登录成功）或人工介入兜底。
+     * </p>
      *
      * @param clientDetails 客户端信息
      * @param adapter       登录参数
@@ -72,8 +90,16 @@ public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
     @Override
     public void recordError(ClientDetails clientDetails, Object adapter, String ip) {
         String key = getKeyPrefix() + getLoginKey(clientDetails, adapter, ip);
+        if (key == null) {
+            return;
+        }
         Long increment = cacheManager.increment(key, 1L);
-        if (increment != null && increment >= 1) {
+        // 仅首次计数设置过期，避免每次失败顺延锁定窗口
+        if (increment != null && increment == 1) {
+            cacheManager.expire(key, authProperties.getLoginErrorTime());
+        } else if (increment != null && cacheManager.getExpire(key) < 0) {
+            // 自愈：INCR 与 EXPIRE 为两条独立命令，历史脏数据/极端中断会留下无 TTL 的计数器，
+            // 按原始契约补设过期，杜绝计数器永久存活把账号/IP 永久锁死
             cacheManager.expire(key, authProperties.getLoginErrorTime());
         }
         log.debug("登录失败记录已更新，key: {}, 次数: {}", key, increment);
@@ -89,6 +115,9 @@ public abstract class AbsLoginErrorProcess implements LoginErrorProcess {
     @Override
     public void clearError(ClientDetails clientDetails, Object adapter, String ip) {
         String key = getKeyPrefix() + getLoginKey(clientDetails, adapter, ip);
+        if (key == null) {
+            return;
+        }
         cacheManager.delete(key);
         log.debug("登录失败记录已清除，key: {}", key);
     }

@@ -48,6 +48,11 @@ public class DefaultPermissionManageService implements PermissionManageService {
     private AuthProperties authProperties;
 
     /**
+     * 权限缓存 TTL 缺省值（秒）：配置项被显式置空时的兜底（与客户端侧 DefaultSyncPayloadApplier 口径一致），避免 Integer 装箱拆箱 NPE
+     */
+    private static final int DEFAULT_PERMISSION_CACHE_EXPIRE_SECONDS = 60 * 60 * 24;
+
+    /**
      * 新增权限（按项目维度）
      *
      * @param projectCode 项目编码
@@ -71,6 +76,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
     public void addPermissions(String projectCode, String tenantId, String roleKey, Map<String, String> permissions, boolean publishEvent) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
+        AssertUtils.notEmpty(tenantId, "租户ID不能为空（权限缓存键的租户段，管理端必须显式传入；无租户归属的历史角色不经过本管理入口）");
         AssertUtils.notNull(permissions, "权限配置不能为空");
         AssertUtils.isTrue(!permissions.isEmpty(), "权限配置不能为空Map");
 
@@ -80,7 +86,8 @@ public class DefaultPermissionManageService implements PermissionManageService {
         cacheManager.hashPutAll(authKey, new HashMap<>(permissions));
 
         // 2. 设置过期时间（从配置文件读取，默认24小时）
-        cacheManager.expire(authKey, authProperties.getPermissionCacheExpire());
+        Integer expireSeconds = authProperties.getPermissionCacheExpire();
+        cacheManager.expire(authKey, expireSeconds != null ? expireSeconds : DEFAULT_PERMISSION_CACHE_EXPIRE_SECONDS);
 
         // 3. 根据参数决定是否发布事件
         if (publishEvent) {
@@ -102,8 +109,16 @@ public class DefaultPermissionManageService implements PermissionManageService {
     public void updateRolePermission(String projectCode, String tenantId, String roleKey, Map<String, String> permissions) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
+        AssertUtils.notEmpty(tenantId, "租户ID不能为空（权限缓存键的租户段，管理端必须显式传入；无租户归属的历史角色不经过本管理入口）");
         AssertUtils.notNull(permissions, "权限配置不能为空");
 
+        // 空权限等价于清空语义：显式转 clearPermissions（删键并发布 CLEAR 事件）。
+        // 若沿用“先删后写”，空 Map 时 hashPutAll 为 no-op，键被删除后不再重建，expire 落在已删除键上，
+        // 角色权限被静默清空且永不恢复
+        if (permissions.isEmpty()) {
+            clearPermissions(projectCode, tenantId, roleKey);
+            return;
+        }
         String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
 
         // 1. 先删除所有旧权限
@@ -113,7 +128,8 @@ public class DefaultPermissionManageService implements PermissionManageService {
         cacheManager.hashPutAll(authKey, new HashMap<>(permissions));
 
         // 3. 设置过期时间（从配置文件读取，默认24小时）
-        cacheManager.expire(authKey, authProperties.getPermissionCacheExpire());
+        Integer expireSeconds = authProperties.getPermissionCacheExpire();
+        cacheManager.expire(authKey, expireSeconds != null ? expireSeconds : DEFAULT_PERMISSION_CACHE_EXPIRE_SECONDS);
 
         // 4. 发布权限变更事件
         publishPermissionChange(projectCode, tenantId, roleKey, permissions, PermissionChangeTypeEnum.UPDATE);
@@ -132,6 +148,7 @@ public class DefaultPermissionManageService implements PermissionManageService {
     public void deletePermission(String projectCode, String tenantId, String roleKey, String permissionKey) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
+        AssertUtils.notEmpty(tenantId, "租户ID不能为空（权限缓存键的租户段，管理端必须显式传入；无租户归属的历史角色不经过本管理入口）");
         AssertUtils.notEmpty(permissionKey, "权限标识不能为空");
 
         String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
@@ -156,21 +173,29 @@ public class DefaultPermissionManageService implements PermissionManageService {
     public void deletePermissions(String projectCode, String tenantId, String roleKey, List<String> permissionKeys) {
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
+        AssertUtils.notEmpty(tenantId, "租户ID不能为空（权限缓存键的租户段，管理端必须显式传入；无租户归属的历史角色不经过本管理入口）");
         AssertUtils.notEmpty(permissionKeys, "权限标识列表不能为空");
 
         String authKey = TokenConstant.getAuthKey(roleKey, projectCode, tenantId);
 
-        // 批量删除指定权限（使用可变参数一次删除，消除多次网络IO）
-        cacheManager.hashDelete(authKey, permissionKeys.toArray(new String[0]));
+        // 过滤非法权限标识（null/空白）：HDEL 传入 null/空字段会使整批删除失败，而 DELETE 事件仍会发布，造成客户端与服务端状态错位
+        List<String> validKeys = permissionKeys.stream()
+                .filter(key -> key != null && !key.isBlank())
+                .toList();
+        if (validKeys.isEmpty()) {
+            log.warn("项目 [{}] 角色 [{}] 待删除的权限标识均为空白，忽略本次处理", projectCode, roleKey);
+            return;
+        }
+        cacheManager.hashDelete(authKey, validKeys.toArray(new String[0]));
 
         // 发布事件（只发送被删除的权限列表）
         Map<String, String> deletedPerms = new HashMap<>();
-        for (String key : permissionKeys) {
+        for (String key : validKeys) {
             deletedPerms.put(key, "");
         }
         publishPermissionChange(projectCode, tenantId, roleKey, deletedPerms, PermissionChangeTypeEnum.DELETE);
 
-        log.info("项目 [{}] 角色 [{}] 批量删除了 {} 个权限，事件已发布", projectCode, roleKey, permissionKeys.size());
+        log.info("项目 [{}] 角色 [{}] 批量删除了 {} 个权限，事件已发布", projectCode, roleKey, validKeys.size());
     }
 
     /**
@@ -208,6 +233,12 @@ public class DefaultPermissionManageService implements PermissionManageService {
         payload.setPermissions(permissions);
         payload.setChangeType(changeType);
         payload.setTimestamp(System.currentTimeMillis());
-        syncDeliveryProducer.dispatchToClient(payload, projectCode);
+        try {
+            syncDeliveryProducer.dispatchToClient(payload, projectCode);
+        } catch (Exception e) {
+            // 本地缓存已变更、投递入队失败：仅记告警留痕（客户端在 TTL 过期或下次变更时收敛）；
+            // 不把投递异常抛回调用方——本地权威数据已落定，抛出只会让调用方误判整体失败
+            log.error("权限变更投递入队失败: projectCode={} roleKey={} changeType={}", projectCode, roleKey, changeType, e);
+        }
     }
 }

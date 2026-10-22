@@ -2,20 +2,25 @@ package com.simple.common.auth.client.manager.sign;
 
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.ObjUtil;
-import com.github.benmanes.caffeine.cache.Cache;
 import com.simple.common.auth.client.common.manager.sign.SignManager;
+import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.auth.client.common.properties.SignProperties;
 import com.simple.common.auth.client.util.SignSecretUtils;
-import com.simple.common.cache.common.factory.LocalCacheFactory;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.SignUtils;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
  * 默认签名管理器实现。
+ * <p>
+ * nonce 防重放走 CacheManager（signCacheManager，受 simple.sign.cache-type 控制）：
+ * REDIS 形态下集群共享 nonce 记录，杜绝多实例间重放；LOCAL 形态仅本实例防重放（部署多实例时必须用 REDIS）。
+ * nonce 记录 TTL 取 max(cacheTime, 时间窗口+60s)，保证 nonce 记录存活期严格覆盖时间戳窗口。
+ * </p>
  *
  * @author qty
  */
@@ -23,22 +28,47 @@ import org.springframework.stereotype.Component;
 @Component
 public class DefaultSignManager implements SignManager {
 
+    /**
+     * nonce 防重放记录 TTL 的时间戳窗口冗余（秒）：确保 nonce 存活期 > 时间戳窗口
+     */
+    private static final long NONCE_TTL_SKEW_SECONDS = 60L;
+
     @Autowired
     private SignProperties signProperties;
 
     /**
-     * 专门用于 nonce 防重放的本地缓存（与业务缓存分离，确保高性能）。
+     * nonce 防重放缓存（与业务缓存隔离；由 simple.sign.cache-type 决定 Redis/Local 形态）
      */
-    private Cache<String, String> nonceCache;
+    private CacheManager nonceCache;
 
     /**
      * 依赖注入完成后初始化 nonce 缓存。
      */
     @PostConstruct
     public void init() {
-        // 初始化 nonce 缓存，容量和过期时间从配置读取
-        this.nonceCache = LocalCacheFactory.getInstance().createCache("sign:nonce", spec -> spec.maximumSize(10000).expireAfterWrite(signProperties.getCacheTime()));
-        log.info("签名管理器初始化完成，nonce 缓存过期时间: {}s", signProperties.getCacheTime());
+        this.nonceCache = nonceCacheManager;
+        long ttl = effectiveNonceTtlSeconds();
+        log.info("签名管理器初始化完成，nonce 缓存形态: {}，nonce TTL: {}s，时间戳窗口: {}ms",
+                signProperties.getCacheType(), ttl, signProperties.getDefaultTimeWindowMs());
+        if (signProperties.getCacheTime() * 1000L < signProperties.getDefaultTimeWindowMs()) {
+            log.warn("simple.sign.cache-time({}s) 小于时间戳窗口({}ms)：已按 窗口+60s 兜底延长 nonce TTL，防重放窗口不会被提前收缩",
+                    signProperties.getCacheTime(), signProperties.getDefaultTimeWindowMs());
+        }
+    }
+
+    @Autowired
+    public void setNonceCacheManager(@Qualifier("signCacheManager") CacheManager nonceCacheManager) {
+        this.nonceCacheManager = nonceCacheManager;
+    }
+
+    private CacheManager nonceCacheManager;
+
+    /**
+     * nonce 记录有效 TTL（秒）：必须严格覆盖时间戳窗口，否则 nonce 过期后窗口内的请求仍可重放。
+     */
+    private long effectiveNonceTtlSeconds() {
+        long byWindow = signProperties.getDefaultTimeWindowMs() / 1000L + NONCE_TTL_SKEW_SECONDS;
+        return Math.max(signProperties.getCacheTime(), byWindow);
     }
 
     /**
@@ -55,6 +85,10 @@ public class DefaultSignManager implements SignManager {
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("时间戳格式错误");
         }
+        // 拒绝非正数时间戳：now - Long.MIN_VALUE 会溢出使 Math.abs 为负，绕过窗口校验
+        if (ts <= 0) {
+            throw new IllegalArgumentException("时间戳格式错误");
+        }
         long now = System.currentTimeMillis();
         long diff = Math.abs(now - ts);
         AssertUtils.isTrue(diff <= signProperties.getDefaultTimeWindowMs(), "请求已过期，时间差: " + diff + "ms");
@@ -64,16 +98,18 @@ public class DefaultSignManager implements SignManager {
     /**
      * 防重放校验：检查 nonce 是否已被使用。
      * <p>
-     * 使用 Caffeine 缓存记录已使用的 nonce，过期时间与配置一致。
+     * 通过 CacheManager#setIfAbsent 原子性地「检查+记录」：并发携带相同 nonce 的请求
+     * 有且仅有一个通过（check-then-act 竞态已消除）；REDIS 形态下集群共享记录。
+     * </p>
      *
      * @param nonce 随机数字符串
      */
     @Override
     public void checkNonce(String nonce) {
         AssertUtils.notEmpty(nonce, "随机数不能为空");
-        String existing = nonceCache.getIfPresent(nonce);
-        AssertUtils.isTrue(existing == null, "非法请求");
-        nonceCache.put(nonce, "1");
+        String nonceKey = signProperties.getSignKey() + "nonce:" + nonce;
+        boolean firstUse = nonceCache.setIfAbsent(nonceKey, "1", effectiveNonceTtlSeconds());
+        AssertUtils.isTrue(firstUse, "非法请求");
     }
 
     /**

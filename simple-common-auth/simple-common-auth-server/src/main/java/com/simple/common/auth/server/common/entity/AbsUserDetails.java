@@ -8,10 +8,13 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.util.Map;
+import java.util.Collections;
 import java.util.Set;
 
 /**
  * Created with IntelliJ IDEA
+ * <p>账户状态标志（是否过期/锁定/凭证过期/可用）缺省为 0（fail-closed）：
+ * 登录实现方必须显式设置四个标志，未设置的账户一律拒绝登录，防止缺省放行。</p>
  * 用户登录需要构建的基类数据
  *
  * @author qty
@@ -35,6 +38,7 @@ public class AbsUserDetails {
     private String loginKey;
 
     //扩展信息,登录后服务端可以全局获取到，后续会自动转化json
+    @JsonIgnore
     private Object extension;
 
     //扩展信息,登录后直接返回给前端
@@ -45,18 +49,25 @@ public class AbsUserDetails {
 
     //帐户是否过期：1-未过期，0-已过期
     @JsonIgnore
-    private int isAccountNonExpired = 1;
+    private int isAccountNonExpired = 0;
 
     //帐户是否被锁定：1-未锁定，0-已锁定
     @JsonIgnore
-    private int isAccountNonLocked = 1;
+    private int isAccountNonLocked = 0;
 
     //密码是否过期：1-未过期，0-已过期
     @JsonIgnore
-    private int isCredentialsNonExpired = 1;
+    private int isCredentialsNonExpired = 0;
 
     //帐户是否可用：1-可用，0-删除用户
     @JsonIgnore
-    private int isEnabled = 1;
+    private int isEnabled = 0;
+
+    /**
+     * 获取登录角色（不可变视图，防止认证通过后被外部篡改）
+     */
+    public Set<String> getLoginRole() {
+        return loginRole == null ? null : java.util.Collections.unmodifiableSet(loginRole);
+    }
 
 }

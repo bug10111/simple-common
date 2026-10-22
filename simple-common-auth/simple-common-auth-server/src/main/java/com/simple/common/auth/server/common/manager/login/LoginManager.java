@@ -9,7 +9,8 @@ import com.simple.common.auth.server.common.entity.TokenData;
  * <p>
  * 用于处理特定登录类型的用户认证逻辑。
  * 不同登录方式(如密码登录、微信登录、短信登录等)通过实现此接口来定义各自的认证流程。
- * 默认抽象实现 {@link AbsLoginManager} 提供了通用的登录流程框架,包括参数校验、用户查询、Token生成等。
+ * 默认抽象实现 {@link AbsLoginManager} 提供通用的登录流程模板，包括登录失败次数校验、登录成功/失败处理等；
+ * 具体的用户查询与 Token 生成由子类或调用方完成。
  * </p>
  *
  * <h3>使用场景：</h3>
@@ -22,10 +23,10 @@ import com.simple.common.auth.server.common.entity.TokenData;
  *
  * <h3>扩展示例：</h3>
  * <pre>{@code
- * @Component
- * public class PwdLoginManager extends AbsLoginManager<PwdLoginRequest> {
+ * public class PwdLoginManager extends AbsLoginManager {
  *     @Override
- *     protected AbsUserDetails doLogin(PwdLoginRequest request, ClientDetails clientDetails) {
+ *     protected AbsUserDetails doLogin(ClientDetails clientDetails, Object adapter) {
+ *         PwdLoginRequest request = (PwdLoginRequest) adapter;
  *         // 1. 验证账号是否存在
  *         SysUser user = userService.findByUsername(request.getUsername());
  *         AssertUtils.isTrue(user != null, LoginException.USER_NOT_FOUND);
@@ -90,9 +91,9 @@ public interface LoginManager {
      * }</pre>
      *
      * @param clientDetails 客户端详情信息,包含 clientId、scopes 等配置
-     * @param adapter       登录参数对象,需转换为具体的登录请求类型
-     * @return 认证通过的用户详细信息,包含 userId、username、roles、permissions 等
-     * @throws RuntimeException 当认证失败时抛出异常(如密码错误、账号锁定等)
+     * @param adapter       登录参数对象（支持性判定见 {@link #support(Object)}；null 视为不支持）
+     * @return 认证通过的用户详细信息(非 null)，包含 userId、username、roles、permissions 等
+ * @throws com.simple.common.core.exception.DefaultException 业务认证失败时抛出（业务码由 LoginException 等枚举承载：密码错误、账号锁定等）；其他运行时异常视为系统内部错误，不计入登录失败次数
      */
     AbsUserDetails login(ClientDetails clientDetails, Object adapter);
 }

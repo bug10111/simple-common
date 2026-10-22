@@ -93,6 +93,25 @@ class InsertFillInterceptorIntegrationTest {
     }
 
     @Test
+    void keepsNullableNameColumnBoundary() {
+        // name 是探针表唯一可空列：留空时应整列省略（MP NOT_NULL 插入策略）、不参与固定字段填充，
+        // 显式覆盖该可空边界，防止可空列处理回归后测试仍假绿
+        FillProbeEntity entity = new FillProbeEntity();
+
+        int rows = fillProbeMapper.insert(entity);
+
+        assertThat(rows).isEqualTo(1);
+        assertThat(entity.getId()).isNotBlank();
+        assertThat(entity.getName()).isNull();
+
+        FillProbeEntity stored = fillProbeMapper.selectById(entity.getId());
+        assertThat(stored).isNotNull();
+        assertThat(stored.getName()).isNull();
+        assertThat(stored.getCreateTime()).isNotNull();
+        assertThat(stored.getStatus()).isEqualTo(Status.ON);
+    }
+
+    @Test
     void keepsExplicitValuesWhenPresent() {
         Date explicitCreateTime = Date.from(Instant.parse("2026-01-02T03:04:05Z"));
         FillProbeEntity entity = new FillProbeEntity();

@@ -73,9 +73,11 @@ public interface CsrfService {
      * model.addAttribute("csrfToken", token);
      * }</pre>
      *
-     * @param userId 用户ID,用于标识Token归属
-     * @param path   请求路径,用于区分不同接口的Token
-     * @param token  CSRF Token字符串,建议使用UUID或随机字符串
+     * @param userId 用户ID,用于标识Token归属,不允许为 null/空白；
+     *               存储键必须对 userId 与 path 做无歧义拼接（禁止朴素拼接，如 "a:b"+"c" 与 "a"+"b:c" 键冲突）
+     * @param path   请求路径,用于区分不同接口的Token,不允许为 null/空白
+     * @param token  CSRF Token字符串,必须为密码学安全随机值（建议UUID/至少128位熵）；
+     *               实现必须为其设置有效期（如30分钟），过期后 saveToken/getToken 视为无效
      */
     void saveToken(String userId, String path, String token);
 
@@ -149,9 +151,11 @@ public interface CsrfService {
      *
      * @param userId  用户ID
      * @param path    请求路径
-     * @param token   待校验的Token字符串
+     * @param token   待校验的Token字符串,不允许为 null/空白；为 null/空白时必须拒绝校验（抛出业务异常），
+     *                不得跳过校验；参数校验不得依赖比较操作数顺序
      * @param consume 是否在校验后立即删除Token
-     *                - true: 一次性Token,校验通过后删除,防止重放攻击
+     *                - true: 一次性Token,校验通过后<b>原子性</b>删除（必须保证 get+delete 的原子性，
+     *                如 Redis GETDEL/Lua），防止并发重复请求双双通过校验和被重放
      *                - false: 可重复使用,直到过期或被手动删除
      * @throws SecurityException 当Token无效、过期或不匹配时抛出异常
      */

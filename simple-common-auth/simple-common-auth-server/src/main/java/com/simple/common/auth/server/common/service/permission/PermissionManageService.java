@@ -25,7 +25,7 @@ import java.util.Map;
  * // 按项目新增权限
  * Map<String, String> newPerms = new HashMap<>();
  * newPerms.put("user:create", "创建用户");
- * permissionManageService.addPermissions("xiaoyue-web", "admin", newPerms);
+ * permissionManageService.addPermissions("xiaoyue-web", "tenant-a", "admin", newPerms);
  * }</pre>
  *
  * @author qty
@@ -41,8 +41,9 @@ public interface PermissionManageService {
      * </p>
      *
      * @param projectCode 项目编码（clientName），如 "xiaoyue-web"
-     * @param roleKey     角色标识，如 "admin"、"editor"
-     * @param permissions 要添加的权限配置，key 为权限标识，value 为权限描述
+     * @param tenantId    租户ID，与 projectCode、roleKey 共同构成权限缓存键的租户段，管理端必须显式传入（空值将被实现方拒绝；无租户归属的历史角色不经过本管理入口）
+     * @param permissions 要添加的权限配置，key 为权限标识，value 为权限描述，不能为 null 或空 Map
+     * @throws IllegalArgumentException projectCode、tenantId、roleKey 为空或 permissions 为 null/空 Map 时抛出
      */
     void addPermissions(String projectCode, String tenantId, String roleKey, Map<String, String> permissions);
 
@@ -50,7 +51,7 @@ public interface PermissionManageService {
      * 新增权限（按项目维度，支持控制是否发布事件）
      * <p>
      * 与 {@link #addPermissions(String, String, Map)} 功能相同，但可通过 publishEvent
-     * 参数控制是否发布权限变更事件。登录时预缓存权限应设为 false，避免不必要的网络开销；
+     * 与 {@link #addPermissions(String, String, String, Map)} 功能相同，但可通过 publishEvent
      * 管理员真正修改角色-菜单关联时应设为 true。
      * </p>
      *

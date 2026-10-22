@@ -1,5 +1,6 @@
 package com.simple.common.eventbus.service;
 
+import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.ThreadUtils;
 import com.simple.common.eventbus.common.entity.EventData;
 import com.simple.common.eventbus.common.manager.EventHandlerManager;
@@ -49,8 +50,18 @@ public class SyncEventBusService extends AbsEventBusService {
         }
 
         if (time > 0) {
-            ThreadUtils.schedule(() -> eventHandlerManager.handler(eventData), time, timeUnit);
-            log.debug("同步事件执行器处理了延迟事件，延迟时间: {} {}", time, timeUnit);
+            // 调度线程池对 null 时间单位直接抛 NPE 且异常挂在无人取回的 Future 上，此处先快速失败给出可读信息
+            AssertUtils.notNull(timeUnit, "延迟事件的 timeUnit 不能为空");
+            ThreadUtils.schedule(() -> {
+                try {
+                    eventHandlerManager.handler(eventData);
+                } catch (Throwable e) {
+                    // 延迟任务在调度线程执行，异常只会挂到未取回的 ScheduledFuture 上，必须就地记录，
+                    // 否则延迟事件被静默丢弃，与立即执行路径的失败可见性不一致
+                    log.error("同步事件执行器执行延迟事件失败, 事件名称: {}", eventData.getEventName(), e);
+                }
+            }, time, timeUnit);
+            log.debug("同步事件执行器已调度延迟事件，延迟时间: {} {}", time, timeUnit);
         } else {
             // 延迟时间非正时立即执行，符合延迟调度语义预期
             eventHandlerManager.handler(eventData);

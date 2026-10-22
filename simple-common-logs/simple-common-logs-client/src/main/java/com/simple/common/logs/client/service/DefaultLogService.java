@@ -53,16 +53,16 @@ public class DefaultLogService implements LogService {
 
         try {
             Long startTime = (Long) request.getAttribute(LogConstant.START_TIME);
-            long duration = System.currentTimeMillis() - startTime;
+            long duration = startTime != null ? System.currentTimeMillis() - startTime : 0L;
 
             // 设置 TraceId（从请求属性中获取，由拦截器/过滤器设置）
-            Object traceId = request.getAttribute(LogConstant.TRACE_ID_HEADER);
+            Object traceId = request.getAttribute(LogConstant.TRACE_ID_ATTR);
             if (traceId != null) {
                 logDataEvent.setTraceId(traceId.toString());
             }
 
             // 获取请求参数
-            logDataEvent.setOperParam(getAllParameters(request));
+            logDataEvent.setOperParam(maskSensitiveParams(getAllParameters(request)));
 
             logDataEvent.setMethod(request.getMethod());
             logDataEvent.setOperUrl(request.getRequestURI());
@@ -94,7 +94,8 @@ public class DefaultLogService implements LogService {
 
             // 请求状态处理：记录真实 HTTP 状态码，非 200 响应不再统一压成 500
             logDataEvent.setStatus(response.getStatus());
-            if (response.getStatus() == HttpServletResponse.SC_OK) {
+            boolean success = ex == null && response.getStatus() < HttpServletResponse.SC_BAD_REQUEST;
+            if (success) {
                 logDataEvent.setErrorMsg("请求成功");
             } else {
                 // 优先使用传入的异常参数 ex，若为 null 再从 request 属性中获取
@@ -218,4 +219,79 @@ public class DefaultLogService implements LogService {
         }
         return JSONUtil.toJsonStr(parameterMap);
     }
+
+    /**
+     * 敏感键集合（小写）：密码/令牌/密钥类字段
+     */
+    private static final String[] SENSITIVE_KEYS = {"password", "passwd", "pwd", "token", "secret", "credential", "authorization"};
+
+    /**
+     * 敏感值统一掩码
+     */
+    private static final String MASKED = "******";
+
+    /**
+     * 参数敏感字段脱敏（无正则的顺序扫描实现）。
+     * <p>
+     * 覆盖两种形态：{"password":"x"} → {"password":"******"}；
+     * {"token":["a","b"]} → {"token":["******"]}。
+     * 请求参数常含密码/令牌等敏感信息，明文落日志会造成泄露。
+     * 极端非标 JSON 可能遗漏，有更高要求的使用方可覆写本方法定制规则。
+     * </p>
+     *
+     * @param params 待脱敏参数字符串（JSON）
+     * @return 脱敏后的参数字符串
+     */
+    protected String maskSensitiveParams(String params) {
+        if (params == null || params.isEmpty()) {
+            return params;
+        }
+        char quote = '"';
+        StringBuilder out = new StringBuilder(params.length());
+        int i = 0;
+        while (i < params.length()) {
+            if (params.charAt(i) != quote) {
+                out.append(params.charAt(i));
+                i++;
+                continue;
+            }
+            int nameEnd = params.indexOf(quote, i + 1);
+            if (nameEnd < 0) {
+                out.append(params.substring(i));
+                break;
+            }
+            String name = params.substring(i + 1, nameEnd).toLowerCase(java.util.Locale.ROOT);
+            int valueStart = nameEnd + 1;
+            while (valueStart < params.length()
+                    && (params.charAt(valueStart) == ':' || params.charAt(valueStart) == ' ')) {
+                valueStart++;
+            }
+            boolean hit = false;
+            for (String key : SENSITIVE_KEYS) {
+                if (key.equals(name)) {
+                    hit = true;
+                    break;
+                }
+            }
+            if (hit && valueStart < params.length() && params.charAt(valueStart) == '[') {
+                int arrayEnd = params.indexOf(']', valueStart);
+                if (arrayEnd > 0) {
+                    out.append(params, i, valueStart + 1).append(quote).append(MASKED).append(quote).append(']');
+                    i = arrayEnd + 1;
+                    continue;
+                }
+            }
+            if (hit && valueStart < params.length() && params.charAt(valueStart) == quote) {
+                int valueEnd = params.indexOf(quote, valueStart + 1);
+                if (valueEnd > 0) {
+                    out.append(params, i, valueStart + 1).append(MASKED).append(params.substring(valueEnd));
+                    i = valueEnd;
+                    continue;
+                }
+            }
+            out.append(params, i, valueStart);
+            i = valueStart;
+        }
+        return out.toString();
+}
 }

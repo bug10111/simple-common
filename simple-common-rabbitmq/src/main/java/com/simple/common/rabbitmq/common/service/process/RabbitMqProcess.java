@@ -18,7 +18,7 @@ import org.springframework.amqp.core.Message;
  * RabbitMQ 消息处理责任链采用枚举驱动的责任链模式，通过 {@link com.simple.common.rabbitmq.common.enums.RMQKindProcess}
  * 枚举定义处理节点的顺序和类型。框架默认提供以下处理节点：
  * <ul>
- *     <li>{@link com.simple.common.rabbitmq.service.process.DefaultRMQProcess}：默认消息处理，执行业务逻辑并确认消息</li>
+ *     <li>{@link com.simple.common.rabbitmq.service.process.DefaultRMQProcess}：默认占位处理节点（枚举 execute=false，默认不参与执行）</li>
  * </ul>
  * </p>
  *
@@ -39,16 +39,17 @@ import org.springframework.amqp.core.Message;
  *         // 执行业务处理
  *         orderService.process(order);
  *
- *         // 手动确认消息
- *         try {
- *             channel.basicAck(message.getMessageProperties().getDeliveryTag(), false);
- *         } catch (IOException e) {
- *             throw new DefaultException("消息确认失败", e);
- *         }
+         * 执行业务处理
+         *         orderService.process(order);
+         *
+         * 注意：消息确认（basicAck/basicNack）由框架切面统一结算，
+         * 处理器内禁止调用 channel 的任何应答方法，重复应答会导致通道级错误
  *     }
  * }
  *
- * // 2. 在枚举中添加新的处理节点
+     * // 2. 覆写 getProcess() 返回本处理器绑定的枚举节点（BasProcessService 抽象方法，缺省未实现，漏写无法编译）
+     * //    所需 import：org.springframework.amqp.core.Message、com.rabbitmq.client.Channel、
+     * //    com.simple.common.rabbitmq.annotation.RabbitMqConsumption、RMQKindProcess 枚举类
  * public enum RMQKindProcess implements DefaultKindProcess {
  *     DEFAULT_PROCESS(1, "默认处理", DefaultRMQProcess.class),
  *     CUSTOM_PROCESS(2, "自定义处理", CustomRMQProcess.class); // 新增节点
@@ -57,12 +58,9 @@ import org.springframework.amqp.core.Message;
  *
  * <h3>消息确认机制：</h3>
  * <p>
- * RabbitMQ 消息消费支持手动确认和自动确认两种模式：
- * <ul>
- *     <li>手动确认：消费成功后调用 channel.basicAck()，消费失败调用 channel.basicNack()</li>
- *     <li>自动确认：消息到达消费者后自动确认，不保证消息可靠性</li>
- * </ul>
- * 推荐使用手动确认模式，确保消息可靠性。
+ * 消息确认由框架统一管理：切面在责任链与业务方法执行后按执行结果统一结算 basicAck/basicNack，
+ * 业务监听方法与处理器均不得自行调用 channel.basicAck()/basicNack()（重复应答会使通道报错）。
+ * 监听容器需由使用方配置为手动确认模式，该前提见注解类说明。
  * </p>
  *
  * <h3>消息重试机制：</h3>
@@ -88,7 +86,7 @@ public interface RabbitMqProcess extends BasProcessService {
      * @param message             消息载体，包含消息体和消息属性
      * @param channel             RabbitMQ 通道，用于消息确认
      * @param rabbitMqConsumption 消费注解，包含队列名称、重试次数等配置
-     * @throws com.simple.common.core.exception.DefaultException 如果消息处理失败
+     * 注意：处理器抛出的异常会被切面捕获并仅记录日志（不中断消费链、不触发 nack），不应依赖异常中止消费
      */
     void execution(Message message, Channel channel, RabbitMqConsumption rabbitMqConsumption);
 

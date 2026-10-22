@@ -74,19 +74,47 @@ public class ThreadProperties {
     private long shutdownNowAwaitTerminationSeconds = 5L;
 
     /**
-     * 在 Spring 属性注入完成后执行，用于修正依赖字段的动态计算。
+     * 在Spring属性注入完成后执行，统一做参数规范化：先校准核心线程数，再基于合法值派生最大线程数。
      * <p>
-     * 解决用户仅配置 asyncCorePoolSize 时，asyncMaxPoolSize 仍保持字段初始化时计算值的隐蔽问题。
+     * 解决两个隐蔽缺陷：(1) 派生先于校验时，非法core值（如负数）会先算出错误的max再被覆盖，
+     * 丢失"max=2*core"的派生关系；(2) core极大时 {@code core * 2} int乘法溢出为负/0。
+     * 其余入池参数（队列容量、保活秒数、调度核心数、停机等待秒数）在此一并规范化，
+     * 避免非法值到 ThreadPoolExecutor 构造期才以模糊的IllegalArgumentException暴露。
      * </p>
      */
     @PostConstruct
     public void init() {
-        if (asyncMaxPoolSize == 0) {
-            asyncMaxPoolSize = asyncCorePoolSize * 2;
+        // 1. 先规范核心线程数
+        if (asyncCorePoolSize <= 0) {
+            asyncCorePoolSize = 1;
         }
 
-        // 添加校验逻辑
-        if (asyncCorePoolSize <= 0) asyncCorePoolSize = 1;
-        if (asyncMaxPoolSize < asyncCorePoolSize) asyncMaxPoolSize = asyncCorePoolSize;
+        // 2. 再基于合法core派生max：long运算避免大core下int溢出为负
+        if (asyncMaxPoolSize == 0) {
+            asyncMaxPoolSize = (int) Math.min(Integer.MAX_VALUE, (long) asyncCorePoolSize * 2);
+        }
+
+        // 3. 兜底关系校验与其余入池参数规范化（非法值收敛到安全默认，避免构造期异常）
+        if (asyncMaxPoolSize < asyncCorePoolSize) {
+            asyncMaxPoolSize = asyncCorePoolSize;
+        }
+        if (asyncQueueCapacity <= 0) {
+            asyncQueueCapacity = 2000;
+        }
+        if (asyncKeepAliveSeconds < 0) {
+            asyncKeepAliveSeconds = 60L;
+        }
+        if (scheduledCorePoolSize <= 0) {
+            scheduledCorePoolSize = 1;
+        }
+        if (scheduledKeepAliveSeconds < 0) {
+            scheduledKeepAliveSeconds = 60L;
+        }
+        if (shutdownAwaitTerminationSeconds < 0) {
+            shutdownAwaitTerminationSeconds = 120L;
+        }
+        if (shutdownNowAwaitTerminationSeconds < 0) {
+            shutdownNowAwaitTerminationSeconds = 5L;
+        }
     }
 }

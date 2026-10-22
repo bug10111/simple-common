@@ -11,10 +11,20 @@ option java_outer_classname = "WebSocketFrameProto";
 // 客户端使用 codec=proto 握手后，消息以本信封承载：
 //   - type/cliKey 通道标识（客户端 → 服务端时服务端以 Channel 属性为准）
 //   - requestId 非空表示同步请求，回复需携带相同 requestId
-//   - data 业务负载：JSON bytes（过渡）或嵌套 Protobuf（纯二进制）
+//   - data 业务负载：JSON bytes（过渡）或嵌套 Protobuf（纯二进制）。
+//     过渡期编码方式由监听方法注册的泛型决定（服务端 convertData），
+//     信封暂不携带编码判别字段；引入 data_encoding 判别属于协议演进事项，需与客户端同步发布
+//
+// 兼容性说明：
+//   1. 本 message 名与 Netty 的 io.netty.handler.codec.http.websocketx.WebSocketFrame 同名，
+//      服务端代码需以全限定名引用（见 WebSocketServerHandler）；
+//      重命名（如 WsFrameEnvelope）属于破坏性协议变更，仅协议版本升级时考虑；
+//   2. 帧载荷上限由服务端 Netty 层强制（maxFramePayloadLength，缺省 1MB，
+//      对应 simple.websocket.max-web-socket-frame-size），超限帧由 Netty 拒绝并断开连接，
+//      客户端实现应遵循同一上限，超限属于契约违规而非"静默掉线"。
 message WebSocketFrame {
-  string type = 1;       // 通道类型，对应 @WebSocketListening type
-  string cliKey = 2;     // 客户端标识
-  string requestId = 3;  // 同步请求ID
-  bytes data = 4;        // 业务负载
+  string type = 1;               // 通道类型，对应 @WebSocketListening type
+  string cliKey = 2;             // 客户端标识
+  optional string requestId = 3; // 同步请求ID（optional 显式区分"未设置"与空串，wire 兼容）
+  bytes data = 4;                // 业务负载
 }

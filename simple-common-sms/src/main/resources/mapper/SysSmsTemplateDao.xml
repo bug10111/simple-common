@@ -2,28 +2,26 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.simple.common.sms.view.sysSmsTemplate.SysSmsTemplateRepository">
 
-    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
-        insert into sys_sms_template(id, sign_name, template_code, deleted, create_time, update_time)
+    <insert id="insertBatch">
+        insert into sys_sms_template(id, sign_name, template_code, send_type, deleted, create_time, update_time)
         values
         <foreach collection="entities" item="entity" separator=",">
-            (#{entity.id}, #{entity.signName}, #{entity.templateCode}, #{entity.deleted}, #{entity.createTime}, #{entity.updateTime})
+            (#{entity.id}, #{entity.signName}, #{entity.templateCode}, #{entity.sendType}, #{entity.deleted}, #{entity.createTime}, #{entity.updateTime})
         </foreach>
     </insert>
 
-    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
-        insert into sys_sms_template(id, sign_name, template_code, deleted, create_time, update_time)
+    <insert id="insertOrUpdateBatch">
+        insert into sys_sms_template(id, sign_name, template_code, send_type, deleted, create_time, update_time)
         values
         <foreach collection="entities" item="entity" separator=",">
-            (#{entity.id}, #{entity.signName}, #{entity.templateCode}, #{entity.deleted}, #{entity.createTime}, #{entity.updateTime})
+            (#{entity.id}, #{entity.signName}, #{entity.templateCode}, #{entity.sendType}, #{entity.deleted}, #{entity.createTime}, #{entity.updateTime})
         </foreach>
+        <!-- 唯一键冲突时只覆盖业务列:不改写主键 id,不覆盖 create_time(保留原创建时间),不覆盖 deleted(禁止把逻辑删除数据复活) -->
         on duplicate key update
-        id = values(id),
         sign_name = values(sign_name),
         template_code = values(template_code),
-        deleted = values(deleted),
-        create_time = values(create_time),
+        send_type = values(send_type),
         update_time = values(update_time)
     </insert>
 
 </mapper>
-

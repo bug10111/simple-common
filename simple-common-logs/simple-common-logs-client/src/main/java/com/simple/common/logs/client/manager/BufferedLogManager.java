@@ -53,6 +53,11 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
      */
     private static final int FALLBACK_MAGIC = 0xCAFEBABE;
 
+    /**
+     * 重发等待写入确认的超时秒数
+     */
+    private static final long RESEND_ACK_TIMEOUT_SECONDS = 30;
+
     private final LogProtobufTcpClient tcpClient;
 
     private final LogTcpClientProperties properties;
@@ -94,13 +99,15 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
     private volatile DataOutputStream fallbackOutputStream;
 
     /**
-     * 异步降级写入线程池（单线程保证顺序，避免竞争）
+     * 异步降级写入线程池（单线程保证写入顺序，避免竞争）。
+     * 有界队列 + 饱和告警拒绝：磁盘慢/文件竞争时无界队列会持续堆积耗尽堆内存
      */
-    private final ExecutorService fallbackExecutor = Executors.newSingleThreadExecutor(r -> {
-        Thread t = new Thread(r, "log-fallback-writer");
-        t.setDaemon(true);
-        return t;
-    });
+    private final ExecutorService fallbackExecutor = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS,
+            new LinkedBlockingQueue<>(1000), task -> {
+        Thread worker = new Thread(task, "log-fallback-writer");
+        worker.setDaemon(true);
+        return worker;
+    }, (task, pool) -> log.error("降级写入线程池已饱和，拒绝 1 个降级写入任务"));
 
     @Autowired
     public BufferedLogManager(LogProtobufTcpClient tcpClient, LogTcpClientProperties properties) {
@@ -264,10 +271,12 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
     }
 
     /**
-     * 发送失败回调（实现自 SendFailureListener）
+    /**
+     * 发送失败回调（实现自 SendFailureListener）。
      * <p>
-     * 当 Netty 写操作失败时触发，将批次内的所有日志降级写入本地文件。
-     * 注意：该方法可能在 Netty I/O 线程中执行，为避免阻塞，将反序列化和写文件提交到异步线程池。
+     * 可能在 Netty IO 线程执行：反序列化与文件写入提交至异步线程池；
+     * 线程池已停机时禁止提交（RejectedExecutionException 会以未捕获异常出现在 IO 线程），
+     * 此时显式告警丢弃，保证丢弃可观测。
      * </p>
      *
      * @param batch 发送失败的批量日志
@@ -277,17 +286,24 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
         if (!properties.isFallbackEnabled()) {
             return;
         }
-        log.warn("批量日志发送失败，触发降级，数量: {}", batch.getLogsCount());
-        // 提交到异步线程池，避免阻塞 Netty I/O 线程
-        fallbackExecutor.submit(() -> {
-            List<LogDataEvent> events = LogDataEvent.fromBatchProto(batch);
-            for (LogDataEvent event : events) {
-                writeToFallback(event);
-                event.recycle();
-            }
-        });
+        int count = batch.getLogsCount();
+        log.warn("批量日志发送失败，触发降级，数量: {}", count);
+        if (!running.get() || fallbackExecutor.isShutdown()) {
+            log.error("降级线程池已关闭，无法写入降级日志，丢弃 {} 条日志", count);
+            return;
+        }
+        try {
+            fallbackExecutor.submit(() -> {
+                List<LogDataEvent> events = LogDataEvent.fromBatchProto(batch);
+                for (LogDataEvent event : events) {
+                    writeToFallback(event);
+                    event.recycle();
+                }
+            });
+        } catch (RejectedExecutionException e) {
+            log.error("降级线程池拒绝任务，丢失 {} 条日志", count);
+        }
     }
-
     /**
      * 降级写入本地文件（使用 Protobuf 二进制格式 + 魔数校验）
      * <p>
@@ -429,6 +445,7 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
             List<LogDataEvent> batch = new ArrayList<>(properties.getBatchSize());
             int successCount = 0;
             int totalCount = 0;
+            long committedPointer = 0;
             long filePointer = 0;
 
             while (filePointer < raf.length()) {
@@ -469,6 +486,7 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
                             return false;
                         }
                         batch.clear();
+                        committedPointer = filePointer;
                     }
                 } catch (EOFException e) {
                     break;
@@ -483,30 +501,123 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
                 successCount += sent;
                 if (sent < batch.size()) {
                     log.warn("最后批次部分发送失败，保留文件 {}", file.getFileName());
-                    return false;
+                    return finishPartialResend(file, committedPointer);
                 }
+                committedPointer = filePointer;
             }
 
-            // 所有日志发送成功，移动文件到 sent/ 目录
-            if (successCount == totalCount && totalCount > 0) {
+            boolean readToEnd = filePointer >= Files.size(file);
+            if (totalCount == 0) {
+                // 文件内无任何可解析记录（空文件/全部损坏）：
+                // 空文件直接删除；非空则隔离归档，避免每轮重复扫描与死信重复放大
+                if (Files.size(file) == 0) {
+                    Files.deleteIfExists(file);
+                } else {
+                    Path corrupt = file.resolveSibling(file.getFileName() + ".corrupt");
+                    Files.move(file, corrupt, StandardCopyOption.ATOMIC_MOVE);
+                    log.warn("降级文件无有效记录，已隔离: {}", corrupt.getFileName());
+                }
+                return true;
+            }
+            if (successCount == totalCount) {
+                if (!readToEnd) {
+                    // 存在未读取的损坏尾部（崩溃截断产物）：先归档尾部字节再归档文件，
+                    // 避免已发送成功却静默丢弃尾部数据
+                    quarantineTail(file, filePointer);
+                }
                 Path sentDir = Paths.get(properties.getFallbackDir(), "sent");
                 Files.createDirectories(sentDir);
                 Path target = sentDir.resolve(file.getFileName());
                 Files.move(file, target, StandardCopyOption.ATOMIC_MOVE);
                 log.info("降级文件恢复发送完成，已移动到: {}, 成功条数: {}/{}", target.getFileName(), successCount, totalCount);
                 return true;
-            } else {
-                log.warn("降级文件发送不完整，保留文件: {}, 成功: {}, 总数: {}", file.getFileName(), successCount, totalCount);
-                return false;
             }
+            log.warn("降级文件发送不完整，保留文件: {}, 成功: {}, 总数: {}", file.getFileName(), successCount, totalCount);
+            return false;
         } catch (IOException e) {
             log.error("处理降级文件失败: {}", file, e);
             return false;
         }
     }
+    /**
+     * 部分发送失败后的收尾处理。
+     * <p>
+     * 已有完整批次发送成功（committedPointer > 0）时：将剩余未发送字节重写为新的
+     * 降级文件、已发送前缀归档至 sent/，修复下轮从文件头重放导致前缀重复发送的问题；
+     * 尚无成功批次时保留原文件，等待下轮整体重试。
+     * </p>
+     *
+     * @param file 降级文件
+     * @param committedPointer 已成功发送批次的最高文件偏移
+     * @return 是否已归档（计入本轮处理限额）
+     */
+    private boolean finishPartialResend(Path file, long committedPointer) {
+        try {
+            if (committedPointer <= 0) {
+                return false;
+            }
+            long fileLength = Files.size(file);
+            if (committedPointer < fileLength) {
+                rewriteRemaining(file, committedPointer);
+            }
+            Path sentDir = Paths.get(properties.getFallbackDir(), "sent");
+            Files.createDirectories(sentDir);
+            Path target = sentDir.resolve(file.getFileName());
+            Files.move(file, target, StandardCopyOption.ATOMIC_MOVE);
+            log.info("已发送前缀归档至: {}, 剩余部分已重写为新降级文件", target.getFileName());
+            return true;
+        } catch (IOException e) {
+            log.error("归档已发送前缀失败，保留原文件下轮整体重发: {}", file, e);
+            return false;
+        }
+    }
+    /**
+     * 将文件内 fromPointer 起的剩余字节重写为新的降级文件，参与下轮重发
+     */
+    private void rewriteRemaining(Path file, long fromPointer) throws IOException {
+        Path target = file.getParent().resolve("fallback-" + System.currentTimeMillis() + ".log");
+        try (RandomAccessFile source = new RandomAccessFile(file.toFile(), "r")) {
+            source.seek(fromPointer);
+            try (java.io.OutputStream out = Files.newOutputStream(target,
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = source.read(buffer)) > 0) {
+                    out.write(buffer, 0, read);
+                }
+            }
+        }
+        log.warn("未发送剩余部分已重写为新降级文件: {}, 起始偏移: {}", target.getFileName(), fromPointer);
+    }
 
     /**
-     * 重发一个批次
+     * 将文件尾部（fromPointer 起）未读取/未解析的字节归档为 .corrupt 文件，
+     * 避免静默丢弃（崩溃截断产生的半条记录保留待人工排查）
+     */
+    private void quarantineTail(Path file, long fromPointer) {
+        try (RandomAccessFile source = new RandomAccessFile(file.toFile(), "r")) {
+            source.seek(fromPointer);
+            Path corrupt = file.resolveSibling(file.getFileName() + ".corrupt");
+            try (java.io.OutputStream out = Files.newOutputStream(corrupt,
+                    java.nio.file.StandardOpenOption.CREATE, java.nio.file.StandardOpenOption.APPEND)) {
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = source.read(buffer)) > 0) {
+                    out.write(buffer, 0, read);
+                }
+            }
+            log.warn("未读取尾部已归档: {}", corrupt.getFileName());
+        } catch (IOException e) {
+            log.error("归档降级文件尾部失败: {}", file, e);
+        }
+    }
+    /**
+     * 重发一个批次。
+     * <p>
+     * 通过监听器回调等待真实送达结果：sendBatch 返回 true 仅代表写操作已提交，
+     * 直接按成功处理会把降级文件过早移入 sent/ 并被清理，造成已提交未送达的日志静默丢失。
+     * 以有界超时等待，超时按失败处理（文件保留，等待下轮重发）。
+     * </p>
      *
      * @param batch 批次列表
      * @return 成功发送的条数
@@ -514,9 +625,36 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
     private int resendBatch(List<LogDataEvent> batch) {
         try {
             LogBatch logBatch = LogDataEvent.toBatchProto(batch);
-            // 重发时使用无回调方法，失败则返回0（不再进行二次降级，避免死循环）
-            boolean success = tcpClient.sendBatch(logBatch);
-            return success ? batch.size() : 0;
+            if (!tcpClient.isActive()) {
+                // 通道不可用直接按失败返回（保留文件），不做二次降级避免死循环
+                return 0;
+            }
+            CountDownLatch latch = new CountDownLatch(1);
+            AtomicBoolean delivered = new AtomicBoolean(false);
+            boolean submitted = tcpClient.sendBatch(logBatch, new LogProtobufTcpClient.SendFailureListener() {
+                @Override
+                public void onSendFailure(LogBatch b) {
+                    latch.countDown();
+                }
+
+                @Override
+                public void onSendSuccess(LogBatch b) {
+                    delivered.set(true);
+                    latch.countDown();
+                }
+            });
+            if (!submitted) {
+                return 0;
+            }
+            boolean finished = latch.await(RESEND_ACK_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (!finished) {
+                log.warn("等待重发结果超时（{}s），按失败处理，保留降级文件, 批次条数: {}", RESEND_ACK_TIMEOUT_SECONDS, batch.size());
+                return 0;
+            }
+            return delivered.get() ? batch.size() : 0;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return 0;
         } catch (Exception e) {
             log.error("重发降级批次失败", e);
             return 0;
@@ -526,7 +664,6 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
             }
         }
     }
-
     /**
      * 清理已成功发送的过期文件（仅清理 sent/ 目录下的文件）
      */
@@ -558,14 +695,18 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
     }
 
     /**
-     * 停止日志客户端，优雅关闭
+     * 停止日志客户端，优雅关闭。
+     * <p>
+     * 顺序：停发送线程 → 按 batchSize 分批排空队列 → 停重发线程 → 关线程池 →
+     * 持锁关闭降级输出流（防止与在途写入竞争产生半条记录）→
+     * 轮转活跃降级文件（本次运行写入活跃文件的残留数据下次启动可被恢复重发）。
+     * </p>
      */
     @PreDestroy
     @Override
     public void stop() {
         running.set(false);
 
-        // 中断发送线程，使其尽快退出阻塞的 poll
         if (senderThread != null) {
             senderThread.interrupt();
             try {
@@ -575,15 +716,22 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
             }
         }
 
-        // 排空队列中剩余的所有日志并尝试最后一次发送
-        List<LogDataEvent> remaining = new ArrayList<>();
-        bufferQueue.drainTo(remaining);
-        if (!remaining.isEmpty()) {
-            log.info("停机前处理队列中剩余的 {} 条日志", remaining.size());
-            sendBatch(remaining);
-        }
+        // 排空队列剩余日志并按 batchSize 分批发送：修复一次性 drainTo 产生超大批次的问题
+        List<LogDataEvent> remaining = new ArrayList<>(properties.getBatchSize());
+        int drained;
+        boolean firstDrain = true;
+        do {
+            remaining.clear();
+            drained = bufferQueue.drainTo(remaining, properties.getBatchSize());
+            if (!remaining.isEmpty()) {
+                if (firstDrain) {
+                    log.info("停机前处理队列中剩余 {} 条日志", bufferQueue.size() + remaining.size());
+                    firstDrain = false;
+                }
+                sendBatch(remaining);
+            }
+        } while (drained > 0);
 
-        // 等待降级恢复线程结束
         if (fallbackResendThread != null) {
             fallbackResendThread.interrupt();
             try {
@@ -593,7 +741,6 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
             }
         }
 
-        // 关闭异步降级线程池
         fallbackExecutor.shutdown();
         try {
             if (!fallbackExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -604,22 +751,57 @@ public class BufferedLogManager implements LogManager, LogProtobufTcpClient.Send
             Thread.currentThread().interrupt();
         }
 
-        // 关闭降级文件输出流
-        if (fallbackOutputStream != null) {
-            try {
-                fallbackOutputStream.close();
-            } catch (IOException e) {
-                log.warn("关闭降级输出流失败", e);
+        // 关闭降级文件输出流：必须持有 fallbackLock，防止与在途写入竞争产生半条记录
+        fallbackLock.lock();
+        try {
+            if (fallbackOutputStream != null) {
+                try {
+                    fallbackOutputStream.close();
+                } catch (IOException e) {
+                    log.warn("关闭降级输出流失败", e);
+                }
+                fallbackOutputStream = null;
             }
+        } finally {
+            fallbackLock.unlock();
         }
+
+        // 轮转活跃降级文件：停机期间写入活跃文件的残留数据下次启动可被恢复重发
+        rotateStaleFallbackFile();
 
         log.info("BufferedLogManager 已停止");
     }
 
     /**
      * 获取当前队列大小
+     *
+     * @return 队列大小
      */
     public int getQueueSize() {
         return bufferQueue.size();
+    }
+
+    /**
+     * 轮转上次进程遗留的活跃降级文件 fallback.log。
+     * <p>
+     * 崩溃/停机时写入活跃文件的记录只有等新一轮写入触发按大小轮转后才会被
+     * 恢复线程扫描，应用空闲时这些记录将永久滞留（使用方视角即数据丢失）。
+     * 启动时将非空活跃文件改名，使其进入恢复重发扫描范围。
+     * </p>
+     */
+    private void rotateStaleFallbackFile() {
+        fallbackLock.lock();
+        try {
+            Path active = Paths.get(properties.getFallbackDir(), "fallback.log");
+            if (Files.exists(active) && Files.size(active) > 0) {
+                Path target = active.getParent().resolve("fallback-" + System.currentTimeMillis() + ".log");
+                Files.move(active, target, StandardCopyOption.ATOMIC_MOVE);
+                log.info("活跃降级文件已轮转: {}", target.getFileName());
+            }
+        } catch (IOException e) {
+            log.error("轮转活跃降级文件失败", e);
+        } finally {
+            fallbackLock.unlock();
+        }
     }
 }

@@ -201,12 +201,20 @@ public class HttpUtils {
      * @param rClass  返回目标对象class
      */
     private static <T> Optional<T> response(String url, HttpResponse execute, Class<T> rClass, HttpErrorRecord record) throws RuntimeException {
-        if (execute.isOk()) {
-            return Optional.ofNullable(JsonUtils.toJsonObj(execute.body(), rClass));
-        } else {
-            log.error("请求[{}]失败！==>{}", url, execute.body());
-            record.setExecute(execute);
-            return Optional.empty();
+        try {
+            if (execute.isOk()) {
+                return Optional.ofNullable(JsonUtils.toJsonObj(execute.body(), rClass));
+            } else {
+                log.error("请求[{}]失败！==>{}", url, execute.body());
+                // record为null时不再NPE；响应体已在setExecute中提取，finally统一关闭底层连接
+                if (record != null) {
+                    record.setExecute(execute);
+                }
+                return Optional.empty();
+            }
+        } finally {
+            // 无论成败都释放连接，防止高并发下连接池/文件句柄耗尽
+            execute.close();
         }
     }
 
@@ -478,11 +486,16 @@ public class HttpUtils {
      */
     @Deprecated
     private static <T> Optional<T> response(String url, HttpResponse execute, Class<T> rClass) throws RuntimeException {
-        if (execute.isOk()) {
-            return Optional.ofNullable(JsonUtils.toJsonObj(execute.body(), rClass));
-        } else {
-            log.error("请求[{}]失败！==>{}", url, execute.body());
-            throw new DefaultException(DefaultExceptionEnum.ERROR, execute.body());
+        try {
+            if (execute.isOk()) {
+                return Optional.ofNullable(JsonUtils.toJsonObj(execute.body(), rClass));
+            } else {
+                log.error("请求[{}]失败！==>{}", url, execute.body());
+                throw new DefaultException(DefaultExceptionEnum.ERROR, execute.body());
+            }
+        } finally {
+            // 无论成败都释放连接
+            execute.close();
         }
     }
 
@@ -493,9 +506,15 @@ public class HttpUtils {
      * @param execute HttpResponse返回对象
      */
     private static void response(String url, HttpResponse execute) throws RuntimeException {
-        if (!execute.isOk()) {
-            log.error("请求[{}]失败！==>{}", url, execute.body());
-            throw new RuntimeException("请求失败！");
+        try {
+            if (!execute.isOk()) {
+                log.error("请求[{}]失败！==>{}", url, execute.body());
+                // 抛业务异常并携带状态码，替代无信息RuntimeException，便于调用方统一按DefaultException处理
+                throw new DefaultException(DefaultExceptionEnum.ERROR, "请求失败: HTTP " + execute.getStatus());
+            }
+        } finally {
+            // 无论成败都释放连接
+            execute.close();
         }
     }
 }

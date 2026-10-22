@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 /**
@@ -32,10 +33,15 @@ public class ClientAuthConfig {
 
     /**
      * 创建认证缓存管理器（用于用户信息、权限等）。
+     * <p>
+     * 标记 @Primary：使用方按类型直接注入 CacheManager 时默认获得认证缓存；
+     * 需要其他实例时用 @Qualifier("signCacheManager")/@Qualifier("csrfCacheManager") 区分。
+     * </p>
      *
      * @param authProperties 认证配置
      * @return 认证专用 CacheManager
      */
+    @Primary
     @Bean
     @Qualifier("authCacheManager")
     public CacheManager authCacheManager(AuthProperties authProperties) {
@@ -44,6 +50,10 @@ public class ClientAuthConfig {
 
     /**
      * 创建签名缓存管理器（用于防重放 nonce 等）。
+     * <p>
+     * 已接入 {@link com.simple.common.auth.client.manager.sign.DefaultSignManager}，
+     * simple.sign.cache-type 由此生效；REDIS 类型要求已装配 StringRedisTemplate。
+     * </p>
      *
      * @param signProperties 签名配置
      * @return 签名专用 CacheManager

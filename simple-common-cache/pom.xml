@@ -18,14 +18,34 @@
             <artifactId>simple-common-core</artifactId>
         </dependency>
 
+        <!-- 仅本地缓存（Caffeine）场景无需 Redis：optional 避免把 Redisson/Redis 栈透传给所有使用方 -->
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-redis</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- CacheUtils 直接使用的工具库（原先经 core 传递引入），显式声明编译依赖 -->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
         </dependency>
 
     </dependencies>

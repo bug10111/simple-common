@@ -1,8 +1,8 @@
 package com.simple.common.doc.common.service;
 
+import com.simple.common.core.exception.DefaultException;
 import com.simple.common.core.utils.FileUtils;
 import com.simple.common.core.utils.ResponseUtils;
-import lombok.SneakyThrows;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -58,8 +58,9 @@ public interface DocReplaceService {
      * 替换Word文档模板参数(基础方法)
      * <p>
      * 读取模板文件流,将占位符替换为实际值,并将结果写入输出流。
-     * 该方法会自动关闭输入流和输出流。
      * </p>
+     * <p>流所有权：调用方负责关闭传入的输入流与输出流(建议 try-with-resources);
+     * 默认实现只负责关闭其内部打开的模板资源,不会关闭调用方传入的流。</p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
@@ -70,10 +71,10 @@ public interface DocReplaceService {
      * }
      * }</pre>
      *
-     * @param inputStream  Word文档模板输入流
-     * @param outputStream 替换后的文档输出流
+     * @param inputStream  Word文档模板输入流,不能为null
+     * @param outputStream 替换后的文档输出流,不能为null
      * @param values       参数Map,key为占位符名称,value为替换值
-     * @throws RuntimeException 当模板解析或替换失败时抛出异常
+     * @throws RuntimeException 当模板解析或替换失败时抛出异常(统一包装为 DefaultException,保留原始异常链)
      */
     void replace(InputStream inputStream, OutputStream outputStream, Map<String, Object> values);
 
@@ -105,11 +106,10 @@ public interface DocReplaceService {
      * }</pre>
      *
      * @param name        下载文件名(不含扩展名),会自动添加.docx后缀,已带.docx后缀时不重复拼接
-     * @param inputStream 模板文件输入流
+     * @param inputStream 模板文件输入流,由调用方关闭
      * @param values      参数Map,key为占位符名称,value为替换值
      * @throws RuntimeException 当模板解析、替换或响应写入失败时抛出异常
      */
-    @SneakyThrows
     default void replaceResponse(String name, InputStream inputStream, Map<String, Object> values) {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         replace(inputStream, byteArrayOutputStream, values);
@@ -143,9 +143,9 @@ public interface DocReplaceService {
      * @param name         下载文件名(不含扩展名),已带.docx后缀时不重复拼接
      * @param templatePath 模板文件路径(相对于resources目录),如 "/templates/contract.docx"
      * @param values       参数Map,key为占位符名称,value为替换值
-     * @throws RuntimeException 当模板加载、解析、替换或响应写入失败时抛出异常
+     * @throws IllegalArgumentException 当模板资源不存在时抛出
+     * @throws RuntimeException         当模板加载、解析、替换或响应写入失败时抛出异常
      */
-    @SneakyThrows
     default void replaceResponse(String name, String templatePath, Map<String, Object> values) {
         ByteArrayOutputStream byteArrayOutputStream = replaceAndGetOutputStream(templatePath, values);
         ResponseUtils.writeResponse(buildDocxName(name), byteArrayOutputStream);
@@ -155,7 +155,7 @@ public interface DocReplaceService {
      * 替换文档并返回输入流(从resources加载模板)
      * <p>
      * 适用于需要对生成的文档进行进一步处理的场景,如上传到OSS、发送邮件附件等。
-     * 注意：返回的流已关闭,调用方不应再次关闭。
+     * 底层基于字节数组,返回的流数据完整可读;调用方可自行决定是否关闭(ByteArrayInputStream 的 close 为空操作)。
      * </p>
      *
      * <h3>使用示例：</h3>
@@ -172,15 +172,14 @@ public interface DocReplaceService {
      *
      * @param templatePath 模板文件路径(相对于resources目录)
      * @param values       参数Map,key为占位符名称,value为替换值
-     * @return 替换后的文档输入流,已关闭状态
-     * @throws RuntimeException 当模板加载、解析或替换失败时抛出异常
+     * @return 替换后的文档输入流(内容完整可读)
+     * @throws IllegalArgumentException 当模板资源不存在时抛出
+     * @throws RuntimeException         当模板加载、解析或替换失败时抛出异常
      */
-    @SneakyThrows
     default ByteArrayInputStream replaceAndGetInputStream(String templatePath, Map<String, Object> values) {
         ByteArrayOutputStream byteArrayOutputStream = replaceAndGetOutputStream(templatePath, values);
-        ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
-        byteArrayInputStream.close();
-        return byteArrayInputStream;
+        // 基于内存字节数组构造流,无需也不应调用 close(其 close 为空操作,调用反而违背流契约)
+        return new ByteArrayInputStream(byteArrayOutputStream.toByteArray());
     }
 
     /**
@@ -207,13 +206,26 @@ public interface DocReplaceService {
      * @param templatePath 模板文件路径(相对于resources目录)
      * @param values       参数Map,key为占位符名称,value为替换值
      * @return 替换后的文档输出流,包含完整的文档字节数据
-     * @throws RuntimeException 当模板加载、解析或替换失败时抛出异常
+     * @throws IllegalArgumentException 当模板资源不存在时抛出
+     * @throws RuntimeException         当模板加载、解析或替换失败时抛出异常
      */
     default ByteArrayOutputStream replaceAndGetOutputStream(String templatePath, Map<String, Object> values) {
-        InputStream inputStream = FileUtils.getResourcesFileInputStream(templatePath);
-        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-        replace(inputStream, byteArrayOutputStream, values);
-        return byteArrayOutputStream;
+        // try-with-resources 保证类路径流在任何路径(含替换失败)下都被关闭,不再依赖实现方代为关闭
+        try (InputStream inputStream = FileUtils.getResourcesFileInputStream(templatePath)) {
+            if (inputStream == null) {
+                throw new DefaultException("模板文件不存在：" + templatePath);
+            }
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            replace(inputStream, byteArrayOutputStream, values);
+            return byteArrayOutputStream;
+        } catch (DefaultException e) {
+            throw e;
+        } catch (Exception e) {
+            // 资源加载/关闭等受检异常统一转换为业务运行时异常并保留原因
+            DefaultException exception = new DefaultException("加载或替换模板失败：" + templatePath + "，原因：" + e.getMessage());
+            exception.initCause(e);
+            throw exception;
+        }
     }
 
     /**
@@ -221,17 +233,19 @@ public interface DocReplaceService {
      * <p>
      * 统一为下载文件名补全.docx扩展名；调用方传入的名称已带.docx后缀
      * (忽略大小写)时直接返回原名称，避免出现 xx.docx.docx 重复扩展名。
+     * 入参为空时回退为 document,避免 NPE。
      * </p>
      *
      * @param name 下载文件名(不含扩展名)
      * @return 补全扩展名后的下载文件名
      */
     private String buildDocxName(String name) {
-        // 已带.docx后缀(忽略大小写)时直接使用原名称,避免重复拼接出现 xx.docx.docx
-        if (name.toLowerCase().endsWith(".docx")) {
-            return name;
+        String fileName = (name == null || name.isBlank()) ? "document" : name;
+        // regionMatches 忽略大小写比较后缀,不额外分配新字符串
+        if (fileName.regionMatches(true, fileName.length() - ".docx".length(), ".docx", 0, ".docx".length())) {
+            return fileName;
         }
-        return name + ".docx";
+        return fileName + ".docx";
     }
 
 }

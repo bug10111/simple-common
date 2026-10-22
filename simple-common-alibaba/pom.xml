@@ -20,16 +20,21 @@
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
         </dependency>
 
-        <!-- Spring Cloud Bootstrap 支持（Spring Cloud 2020+ 版本需要此依赖才能加载 bootstrap.yaml） -->
+        <!-- Spring Cloud Bootstrap 支持（Spring Cloud 2020+ 版本需要此依赖才能加载 bootstrap.yaml）
+             optional：仅在业务工程确需 bootstrap.yaml 时由使用方显式引入，避免给所有下游
+             强制开启 bootstrap 上下文（与 spring.config.import 双通道并存时配置可能双份加载） -->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-bootstrap</artifactId>
+            <optional>true</optional>
         </dependency>
 
-        <!-- Nacos 服务发现（如果使用 lb:// 路由需要此依赖） -->
+        <!-- Nacos 服务发现（如果使用 lb:// 路由需要此依赖）
+             optional：本模块自动装配不依赖发现客户端，仅需要服务间 lb:// 路由的工程自行引入 -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!--sentinel-->
@@ -56,15 +61,26 @@
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
         </dependency>
 
-        <!-- Actuator（优雅关机时健康检查） -->
+        <!-- Actuator（优雅关机时健康检查）
+             optional：仅为健康检查端点暴露的运维组件，不强制透传给只取鉴权头透传/限流能力的下游 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-auth-client</artifactId>
+        </dependency>
+
+        <!-- FeignConfig 从 RequestAttributes 取 HttpServletRequest 做请求头透传，编译期需要 servlet API；
+             上游 auth-client 的 web 栈为 provided 不传递，与 simple-common-core 同口径
+             provided（由宿主 web 环境提供，不透传给消费方） -->
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 </project>

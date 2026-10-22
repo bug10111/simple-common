@@ -2,6 +2,7 @@ package com.simple.common.sms.common.entity.sysSmsCode;
 
 import com.baomidou.mybatisplus.annotation.*;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.simple.common.mp.common.enums.DeleteState;
 import com.simple.common.mp.common.enums.Status;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -12,14 +13,14 @@ import java.util.Date;
 
 /**
  * 短信验证码(sys_sms_code)实体类
- * 注解@JSONField(serialize = false)，表示不返回这个字段
+ * 注解@JsonProperty(WRITE_ONLY)，表示该字段只入参绑定、不输出到响应，避免验证码经列表/日志外泄
  * 注解@TableField，用于标志属性
  * value = "数据库字段"，用于标志数据库对应字段
  * exist = false，表示数据库没有这个字段
- * typeHandler = JacksonTypeHandler.class，表示对象JSON转化为实例，需要类上开启@TableName(autoResultMap = true)
+ * typeHandler = JacksonTypeHandler.class，表示对象JSON转化实例时需要类上开启@TableName(autoResultMap = true)
  * fill = FieldFill.INSERT，表示添加操作时要做的事情
  * 注解@TableLogic添加在属性上，结合配置文件，可设置逻辑删除
- * 注解@EqualsAndHashCode是为类生成Equals和HashCode方法
+ * 注解@EqualsAndHashCode为类生成Equals和HashCode方法(来自@Data)
  * callSuper = false 代表方法不调用父类继承的属性，只匹配子类本身是否相同
  * callSuper = true 代表方法需要调用父类继承的属性，同时匹配本身和父类的属性
  *
@@ -57,8 +58,9 @@ public class SysSmsCode {
     private String phone;
 
     /**
-     * 参数
+     * 短信验证码(敏感字段:仅入参绑定不输出,禁止直接日志打印或透出到列表响应)
      */
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     @TableField(value = "code")
     private String code;
 
@@ -84,14 +86,14 @@ public class SysSmsCode {
      * 使用状态
      */
     @TableField(value = "status")
-    private Status status;
+    private Status status = Status.NOT_USED;
 
     /**
      * 删除
      */
     @TableLogic
     @TableField(value = "deleted")
-    private DeleteState deleted;
+    private DeleteState deleted = DeleteState.OK;
 
     /**
      * 创建时间
@@ -106,4 +108,3 @@ public class SysSmsCode {
     private Date updateTime;
 
 }
-

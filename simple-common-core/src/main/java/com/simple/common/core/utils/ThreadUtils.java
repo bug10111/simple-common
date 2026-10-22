@@ -73,7 +73,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 定期以固定速率执行任务
+     * 定期以固定延迟执行任务
      *
      * @param runnable    任务
      * @param initialTime 初始延迟时间
@@ -85,7 +85,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 定期以固定速率执行任务，并返回 ScheduledFuture 用于取消或检查状态
+     * 定期以固定延迟执行任务，并返回 ScheduledFuture 用于取消或检查状态
      *
      * @param runnable     任务
      * @param initialDelay 初始延迟时间
@@ -98,7 +98,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 定期以固定速率执行任务
+     * 定期以固定延迟执行任务
      *
      * @param runnable  任务
      * @param delay 任务完成后每delay时间执行一次
@@ -109,7 +109,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 定期以固定速率执行任务，并返回 ScheduledFuture 用于取消或检查状态
+     * 定期以固定延迟执行任务，并返回 ScheduledFuture 用于取消或检查状态
      *
      * @param runnable 任务
      * @param delay    任务完成后每delay时间执行一次
@@ -121,7 +121,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 定期以固定速率执行任务，并自动捕获任务内部异常，保证单次失败后周期性调度继续。
+     * 定期以固定延迟执行任务，并自动捕获任务内部异常，保证单次失败后周期性调度继续。
      * <p>
      * 注意：此方法内部已包含 try-catch，使用者无需再自行处理异常，
      * 但业务异常将被记录日志，不会向上抛出。
@@ -138,7 +138,7 @@ public class ThreadUtils {
     }
 
     /**
-     * 定期以固定速率执行任务（无初始延迟），并自动捕获任务内部异常，保证单次失败后周期性调度继续。
+     * 定期以固定延迟执行任务（无初始延迟），并自动捕获任务内部异常，保证单次失败后周期性调度继续。
      *
      * @param runnable 原始任务
      * @param delay    任务完成后每delay时间执行一次
@@ -150,7 +150,9 @@ public class ThreadUtils {
     }
 
     /**
-     * 获取线程池对象,可以结合CompletableFuture使用，一般用于少量并发和延迟任务
+     * 获取定时调度线程池对象(全局共享,可以结合CompletableFuture使用,一般用于少量并发和延迟任务)。
+     * <p><b>契约：禁止调用方执行 shutdown()/setCorePoolSize() 等生命周期/参数操作</b>——该池被全部定时与延迟任务共用，
+     * 私自关闭或改参会影响整个应用的任务调度。</p>
      */
     public static ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
         return getThreadService().getExecutor();

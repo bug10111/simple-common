@@ -24,9 +24,13 @@ public interface EventBusService {
     /**
      * 发布事件(自动识别事件类型)
      * <p>
-     * 根据事件对象的类名自动识别事件类型,并分发给对应的处理器。
+     * 事件类型取 @Event 注解的 value()，未指定时取事件类的短类名。
      * 事件对象必须添加 @Event 注解。
      * </p>
+     * <p>失败语义按实现区分：
+     * 同步实现（SyncEventBusService）在发布方线程执行处理器，处理器异常向发布方抛出；
+     * MQ 实现（MqEventBusService）为尽力而为投递，单个目标发送失败仅记录日志并继续其余目标，
+     * 不向上抛出，发布方不能依赖本方法感知 MQ 侧的投递失败（无投递保证）。</p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
@@ -36,7 +40,8 @@ public interface EventBusService {
      * }</pre>
      *
      * @param event 事件对象,必须带有@Event注解
-     * @throws RuntimeException 当事件处理失败时抛出异常
+     * @throws IllegalArgumentException 事件对象为空或未标注@Event时抛出（两个实现行为一致）
+     * @throws RuntimeException         同步模式下处理器执行失败时抛出；MQ 模式下不会因投递失败抛出
      */
     void push(Object event);
 
@@ -45,6 +50,10 @@ public interface EventBusService {
      * <p>
      * 显式指定事件类型,适用于需要将对象转换为特定事件类型的场景。
      * </p>
+     * <p>前置条件与失败语义：
+     * eventClass 本身必须带有 @Event 注解（转换后走 {@link #push(Object)}，缺注解会抛出 IllegalArgumentException）；
+     * obj/eventClass 为空时抛出 IllegalArgumentException；
+     * 字段名与类型不匹配的属性不会拷贝（保持目标类型默认值），不做额外校验。</p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
@@ -55,9 +64,9 @@ public interface EventBusService {
      * eventBusService.push(data, UserCreatedEvent.class);
      * }</pre>
      *
-     * @param obj        要发送的数据对象
-     * @param eventClass 事件类型Class,用于确定目标处理器
-     * @throws RuntimeException 当事件处理失败时抛出异常
+     * @param obj        要发送的数据对象,不能为空
+     * @param eventClass 事件类型Class,必须带有@Event注解,不能为空
+     * @throws IllegalArgumentException obj/eventClass 为空，或 eventClass 未标注 @Event 时抛出
      */
     void push(Object obj, Class<?> eventClass);
 
@@ -76,9 +85,10 @@ public interface EventBusService {
      * }</pre>
      *
      * @param event    事件对象,必须带有@Event注解
-     * @param time     延迟时间
-     * @param timeUnit 时间单位
-     * @throws RuntimeException 当延迟事件发布失败时抛出异常
+     * @param time     延迟时间,必须大于 0；<= 0 时按实现立即执行/立即发送（不会丢弃事件）
+     * @param timeUnit 时间单位,不能为空（同步模式延迟分支与 MQ 延迟交换机都依赖它）
+     * @throws IllegalArgumentException 延迟分支下 timeUnit 为空时抛出
+     * @throws RuntimeException         同步模式下延迟执行失败仅记录调度日志；MQ 模式下不会因投递失败抛出
      */
     void push(Object event, int time, TimeUnit timeUnit);
 

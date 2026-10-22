@@ -36,11 +36,13 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 /**
  * Created with IntelliJ IDEA
@@ -50,6 +52,18 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 @Service
 public class DefaultS3Handler implements S3Manager, InitializingBean {
+
+    /**
+     * 对象键片段(应用名/包名)允许的字符:字母、数字、'-'、'_'、'.';
+     * 用于防止 .. / \ 等字符越出预期对象键前缀,或与其他业务模块对象键冲突
+     */
+    private static final Pattern SAFE_KEY_SEGMENT = Pattern.compile("^[A-Za-z0-9._-]+$");
+
+    /**
+     * 桶创建互斥锁:桶存在性检查必须与创建动作在同一个临界区内完成,
+     * 否则并发上传会在 check-then-act 竞态下重复创建桶
+     */
+    private final Object bucketCreateLock = new Object();
 
     @Autowired
     private AnnexProperties annexProperties;
@@ -62,13 +76,16 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
 
     @Override
     public String upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream) {
+        validateKeySegment(applicationName, "applicationName");
         var bucketName = buildBucketName(applicationName, shareType);
         if (annexProperties.getType() == AnnexType.MINIO) {
             createMinioBucket(bucketName, shareType);
         } else {
             createOssBucket(bucketName, shareType);
         }
-        var key = StrUtil.isEmpty(packageName) ? buildKey(fileName) : packageName;
+        // packageName 作为业务前缀目录,避免同包名下的不同文件相互覆盖丢失生成的 UUID 文件名
+        var key = StrUtil.isEmpty(packageName) ? buildKey(fileName) : packageName + "/" + buildKey(fileName);
+
         CannedAccessControlList acl = ShareType.PRIVATE.equals(shareType) ? CannedAccessControlList.Private : CannedAccessControlList.PublicRead;
 
         uploadToS3(bucketName, inputStream, key, fileName, acl);
@@ -85,15 +102,21 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
         S3Object object = amazonS3.getObject(objectLocation.bucketName(), objectLocation.objectKey());
         @Cleanup S3ObjectInputStream objectContent = object.getObjectContent();
 
+        // 依赖当前线程的 Servlet 请求上下文取响应对象(方法须在处理 HTTP 请求的线程中调用),
+        // 写出的响应由本方法负责提交,调用方无需再处理输出流
         HttpServletResponse response = HttpServletUtils.getResponse();
         String[] fileUrl = object.getKey().split("/");
         var key = fileUrl[fileUrl.length - 1];
         key = URLEncoder.encode(key, StandardCharsets.UTF_8).replaceAll("\\+", "%20");
         response.setHeader("Content-disposition", "attachment;filename*=UTF-8''" + key);
 
-        //写入输出流，并关闭输出流
+        //写入输出流，并关闭输出流。
+        //边读边写代替 readAllBytes 全量入堆,大文件下载不再受堆内存限制;
+        //显式下发 Content-Length 便于客户端显示进度。
+        response.setContentLengthLong(object.getObjectMetadata().getContentLength());
         ServletOutputStream outputStream = response.getOutputStream();
-        IoUtil.write(outputStream, true, objectContent.readAllBytes());
+        IoUtil.copy(objectContent, outputStream);
+        outputStream.flush();
     }
 
     @Override
@@ -102,9 +125,9 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
         var objectLocation = parseObjectLocation(objectUrl);
 
         GetObjectRequest getObjectRequest = new GetObjectRequest(objectLocation.bucketName(), objectLocation.objectKey());
-        //        getObjectRequest.setRange(0,5000);
         S3Object object = amazonS3.getObject(getObjectRequest);
-        return object.getObjectContent().getDelegateStream();
+        // 返回 S3ObjectInputStream(其 close 会释放底层 HTTP 连接),只返回裸委托流会导致连接无法归还连接池
+        return object.getObjectContent();
     }
 
     @Override
@@ -126,7 +149,7 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
         //通过桶和文件位置，获取请求对象
         var urlRequest = new GeneratePresignedUrlRequest(objectLocation.bucketName(), objectLocation.objectKey());
 
-        //计算过期时间
+        //计算过期时间(与配置契约一致,expireTime 单位为分钟)
         var expireDate = DateUtil.offset(new Date(), DateField.MINUTE, expireTime);
         urlRequest.setExpiration(expireDate);
         return amazonS3.generatePresignedUrl(urlRequest).toString();
@@ -135,16 +158,24 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
     @SneakyThrows
     private void uploadToS3(String bucketName, InputStream inputStream, String key, String originalFilename, CannedAccessControlList cannedAcl) {
 
-        //获取过期时间
-        var expireDate = new Date(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(annexProperties.getExpireTime()));
+        //获取过期时间(与配置契约一致,expireTime 单位为分钟,不再按天换算)
+        var expireDate = new Date(System.currentTimeMillis() + TimeUnit.MINUTES.toMillis(annexProperties.getExpireTime()));
 
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setHttpExpiresDate(expireDate);
-        metadata.setContentLength(inputStream.available());
         metadata.setContentDisposition("attachment;filename=" + URLEncoder.encode(originalFilename, StandardCharsets.UTF_8));
 
-        //上传minio
-        amazonS3.putObject(new PutObjectRequest(bucketName, key, inputStream, metadata).withCannedAcl(cannedAcl));
+        if (inputStream instanceof ByteArrayInputStream byteArrayInputStream) {
+            // ByteArrayInputStream 的 available() 即精确剩余长度,可直接作为 Content-Length
+            metadata.setContentLength(byteArrayInputStream.available());
+            amazonS3.putObject(new PutObjectRequest(bucketName, key, byteArrayInputStream, metadata).withCannedAcl(cannedAcl));
+        } else {
+            // available() 只是阻塞可读字节数的估计值,不能作为 Content-Length;
+            // 按本模块上传契约(调用方已将流全量读入内存),此处读入字节数组后以精确长度上传
+            byte[] bytes = inputStream.readAllBytes();
+            metadata.setContentLength(bytes.length);
+            amazonS3.putObject(new PutObjectRequest(bucketName, key, new ByteArrayInputStream(bytes), metadata).withCannedAcl(cannedAcl));
+        }
     }
 
     /**
@@ -158,39 +189,46 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
     }
 
     /**
-     * 创建桶
+     * 创建OSS桶
+     * 桶存在性检查与创建动作在同一个临界区内完成,避免并发上传时重复创建桶(BucketAlreadyExists/AlreadyOwnedByYou);
+     * OSS 的 S3 兼容端点不识别 x-amz-acl 请求头,公共读桶必须显式设置桶 ACL,
+     * 否则 PUBLIC 附件只能靠 putObject 的 canned ACL,在 OSS 上会得到私有对象导致读取 403。
      *
      * @param bucketName 桶名称
      * @param shareType  附件类型
      */
     public void createOssBucket(String bucketName, ShareType shareType) {
+        synchronized (bucketCreateLock) {
+            // 1. 检查桶是否存在（阿里云要求全局唯一）
+            if (!ossClient.doesBucketExist(bucketName)) {
+                // 2. 创建桶（默认私有）
+                CreateBucketRequest createBucketRequest = new CreateBucketRequest(bucketName);
 
-        // 1. 检查桶是否存在（阿里云要求全局唯一）
-//        if (ossClient.doesBucketExist(bucketName)) {
-//            return;
-//        }
+                // 3.设置存储类型
+                createBucketRequest.setStorageClass(StorageClass.Standard);
 
-        // 2. 创建桶（默认私有）
-        CreateBucketRequest createBucketRequest = new CreateBucketRequest(bucketName);
+                // 4. 创建 Bucket
+                ossClient.createBucket(createBucketRequest);
+            }
 
-        // 3.设置存储类型
-        createBucketRequest.setStorageClass(StorageClass.Standard);
-
-        // 6. 创建 Bucket
-        ossClient.createBucket(createBucketRequest);
+            // 公共附件需要显式设置桶级公共读 ACL
+            if (ShareType.PUBLIC == shareType) {
+                ossClient.setBucketAcl(bucketName, com.aliyun.oss.model.CannedAccessControlList.PublicRead);
+            }
+        }
     }
 
     /**
      * 创建minio桶,minio 不支持s3创建公共桶，这里是单独的minio接口服务
+     * 存在性检查与创建动作在同一个临界区内完成,避免并发上传时 check-then-act 竞态重复建桶
      *
      * @param bucketName 桶名称
      * @param shareType  附件类型
      */
     @SneakyThrows
     protected void createMinioBucket(String bucketName, ShareType shareType) {
-        var exists = amazonS3.doesBucketExistV2(bucketName);
-        synchronized (this) {
-            if (!exists) {
+        synchronized (bucketCreateLock) {
+            if (!amazonS3.doesBucketExistV2(bucketName)) {
                 minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).region(annexProperties.getRegion()).build());
                 String sb;
                 if (ShareType.PUBLIC == shareType) {
@@ -212,9 +250,21 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
      * @param fileName 文件名称
      */
     protected String buildKey(String fileName) {
-        //文件后缀作为文件夹名称
-        var suffix = FileUtil.getSuffix(fileName);
+        //文件后缀作为文件夹名称;无后缀时回退为 file,避免产生 null/uuid.null 的畸形对象键
+        var suffix = StrUtil.emptyIfNull(FileUtil.getSuffix(fileName));
         return suffix + "/" + IdUtils.getFastSimpleUUID() + "." + suffix;
+    }
+
+    /**
+     * 校验对象键片段(应用名/包名):仅允许字母、数字、'-'、'_'、'.',
+     * 拒绝 '/'、'\\'、'..' 与空值,防止越出预期对象键前缀或与其他业务模块冲突
+     *
+     * @param segment   待校验片段
+     * @param fieldName 片段名称(用于异常提示)
+     */
+    private void validateKeySegment(String segment, String fieldName) {
+        AssertUtils.isTrue(StrUtil.isNotBlank(segment) && SAFE_KEY_SEGMENT.matcher(segment).matches() && !segment.contains(".."),
+                           "非法的对象键片段，{} 仅允许字母、数字、'-'、'_'、'.'，当前值：{}", fieldName, abbreviate(segment));
     }
 
     /**
@@ -222,6 +272,11 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
      * <p>
      * 仅接受形如 {@code {服务地址}/{桶名}/{对象键}} 的完整对象存储 URL，
      * 路径必须包含桶名与对象键两段且均非空；仅传对象键或文件标识将被拒绝。
+     * </p>
+     * <p>
+     * 安全约束：URL 的主机必须与当前实例配置的存储端点一致，桶名必须符合本模块
+     * {@code {applicationName}-{public|private}} 命名契约，
+     * 否则直接拒绝，防止跨桶读取、删除无关桶对象或为外部端点签名。
      * </p>
      *
      * @param objectUrl 完整对象存储 URL
@@ -238,6 +293,14 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
 
         // 校验完整对象存储 URL 形态，非法输入抛出清晰业务异常
         assertObjectLocation(objectUrl, urlBuilder, split);
+
+        // 校验主机属于本实例配置的存储端点,拒绝跨端点/跨桶访问
+        AssertUtils.isTrue(isTrustedEndpoint(urlBuilder),
+                           "输入的对象存储 URL 不属于当前配置的存储端点，已拒绝：{}", abbreviate(objectUrl));
+
+        // 校验桶名符合本模块命名契约(且该桶属于本实例可管理的应用命名空间)
+        AssertUtils.isTrue(split[1].endsWith("-public") || split[1].endsWith("-private"),
+                           "输入的对象存储 URL 桶名不符合 {applicationName}-{public|private} 命名契约，已拒绝：{}", abbreviate(objectUrl));
 
         return new ObjectLocation(split[1], split[2]);
     }
@@ -259,6 +322,21 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
     }
 
     /**
+     * 判断对象存储 URL 的主机是否与本实例配置的存储端点一致(忽略大小写)
+     *
+     * @param urlBuilder 解析后的对象存储 URL
+     * @return 主机属于配置端点时返回 true
+     */
+    private boolean isTrustedEndpoint(UrlBuilder urlBuilder) {
+        var serverUrl = annexProperties.getServerUrl();
+        if (StrUtil.isBlank(serverUrl)) {
+            return false;
+        }
+        var serverHost = UrlBuilder.ofHttp(serverUrl, CharsetUtil.CHARSET_UTF_8).getHost();
+        return StrUtil.isNotEmpty(serverHost) && serverHost.equalsIgnoreCase(urlBuilder.getHost());
+    }
+
+    /**
      * 截断异常上下文中的输入值，避免超长内容进入异常消息。
      *
      * @param text 原始输入
@@ -266,7 +344,8 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
      */
     private String abbreviate(String text) {
         final int maxLength = 200;
-        return text.length() <= maxLength ? text : text.substring(0, maxLength) + "...";
+        var safeText = StrUtil.nullToEmpty(text);
+        return safeText.length() <= maxLength ? safeText : safeText.substring(0, maxLength) + "...";
     }
 
     /**
@@ -283,8 +362,12 @@ public class DefaultS3Handler implements S3Manager, InitializingBean {
         var credential = new AWSStaticCredentialsProvider(new BasicAWSCredentials(annexProperties.getAccessKey(), annexProperties.getAccessSecret()));
         var endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(annexProperties.getServerUrl(), annexProperties.getRegion());
 
-        //初始化s3
-        amazonS3 = AmazonS3ClientBuilder.standard().withCredentials(credential).withEndpointConfiguration(endpointConfiguration).enablePathStyleAccess().withPathStyleAccessEnabled(annexProperties.getType() == AnnexType.MINIO) .build();
+        //初始化s3(路径风格仅在 MINIO 下启用;enablePathStyleAccess 与本调用写同一构建器字段,保留条件调用即可)
+        amazonS3 = AmazonS3ClientBuilder.standard()
+                                        .withCredentials(credential)
+                                        .withEndpointConfiguration(endpointConfiguration)
+                                        .withPathStyleAccessEnabled(annexProperties.getType() == AnnexType.MINIO)
+                                        .build();
 
         //初始化minio原生，支持公共读桶的创建
         minioClient = MinioClient.builder().endpoint(annexProperties.getServerUrl()).credentials(annexProperties.getAccessKey(), annexProperties.getAccessSecret()).build();

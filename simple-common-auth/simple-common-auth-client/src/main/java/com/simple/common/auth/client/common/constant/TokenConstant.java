@@ -176,9 +176,10 @@ public class TokenConstant {
     /**
      * 获取内省登录的用户信息key
      *
-     * @param key key
+     * @param key jti（Token 唯一标识），不能为空
      */
     public static String getUserInfoKey(String key) {
+        AssertUtils.notEmpty(key, "获取用户信息缓存key失败：jti不能为空");
         return TokenConstant.loginInfoKey + ":" + key;
     }
 
@@ -199,6 +200,10 @@ public class TokenConstant {
     public static String getAuthKey(String roleKey, String projectCode, String tenantId) {
         AssertUtils.notEmpty(roleKey, "角色标识不能为空");
         AssertUtils.notEmpty(projectCode, "项目编码不能为空");
+        // 键分隔符为 ':'，各维度取值含 ':' 会造成键歧义（跨租户/跨项目权限别名），直接拒绝
+        AssertUtils.isTrue(roleKey.indexOf(':') < 0, "角色标识不能包含分隔符':'");
+        AssertUtils.isTrue(projectCode.indexOf(':') < 0, "项目编码不能包含分隔符':'");
+        AssertUtils.isTrue(tenantId == null || tenantId.indexOf(':') < 0, "租户ID不能包含分隔符':'");
         String base = TokenConstant.userAuthKey + ":" + roleKey + ":" + projectCode;
         return (tenantId == null || tenantId.isEmpty()) ? base : base + ":" + tenantId;
     }
@@ -217,9 +222,10 @@ public class TokenConstant {
     /**
      * 获取登录用户和权限关联的key
      *
-     * @param userId key
+     * @param userId 用户ID，不能为空（为空会退化为共享键 login:id:null，造成跨用户令牌集合串写）
      */
     public static String getUserTokenKey(String userId) {
+        AssertUtils.notEmpty(userId, "获取用户Token关联key失败：用户ID不能为空");
         return TokenConstant.userKey + ":" + userId;
     }
 

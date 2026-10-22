@@ -18,6 +18,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 重试消息管理器默认实现
+ * <p>
+ * 重试副本投递到延迟交换机做指数退避重投；本实现不操作 channel、不抛出异常：
+ * 重试副本发送失败时转入死信兜底并保证计数清理（try/finally）。
+ * </p>
  *
  * @author qty
  */
@@ -32,15 +36,10 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
     private final DeadLetterService deadLetterService;
 
     /**
-     * 处理业务失败的重试逻辑
-     *
-     * @param retryKey      重试计数Key
-     * @param message       原始消息
-     * @param channel       信道（未使用）
-     * @param maxRetryCount 最大重试次数
-     * @param cause         异常原因
-     * @param defaultMessage 消息体
+     * 位移上限：指数退避指数封顶为 30（2^30），避免 long 位移取低 6 位回绕与乘法溢出
      */
+    private static final int MAX_BACKOFF_EXPONENT = 30;
+
     @Override
     public void handleBusinessFailureRetry(String retryKey, Message message, Channel channel,
                                            int maxRetryCount, Exception cause, DefaultMessage defaultMessage) {
@@ -48,16 +47,6 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
         doRetry(retryKey, message, maxRetryCount, cause, defaultMessage, currentCount, false);
     }
 
-    /**
-     * 处理校验失败的重试逻辑
-     *
-     * @param verifyRetryKey 校验重试计数Key
-     * @param message        原始消息
-     * @param channel        信道（未使用）
-     * @param maxRetryCount  最大重试次数
-     * @param cause          异常原因
-     * @param defaultMessage 消息体
-     */
     @Override
     public void handleVerificationFailureRetry(String verifyRetryKey, Message message, Channel channel,
                                                int maxRetryCount, Exception cause, DefaultMessage defaultMessage) {
@@ -71,7 +60,7 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
      * @param retryKey           重试计数Key
      * @param message            原始消息
      * @param maxRetryCount      最大重试次数
-     * @param cause              异常原因
+     * @param cause              异常原因（可为 null）
      * @param defaultMessage     消息体
      * @param currentCount       当前重试次数
      * @param isVerificationRetry 是否为校验失败重试
@@ -85,30 +74,53 @@ public class DefaultRetryMessageManager implements RetryMessageManager {
 
         // 若路由键为空，则使用队列名作为路由键（延迟交换机需正确绑定）
         if (!StringUtils.hasText(routingKey)) {
+            if (!StringUtils.hasText(consumerQueue)) {
+                // 路由键与队列名均缺失时无法投递重试副本，直接进入死信，避免以空路由键投递后被静默丢弃
+                log.error("消息路由键与消费队列均为空，无法重试，直接进入死信，id[{}]", correlationId);
+                saveDeadLetterWithCountCleanup(retryKey, message, cause);
+                return;
+            }
             routingKey = consumerQueue;
             log.debug("消息无路由键，使用队列名[{}]作为重试路由键", consumerQueue);
         }
 
         if (currentCount <= maxRetryCount) {
-            long delayMs = Math.min(
-                    properties.getRetryDelayBaseMs() * (1L << (currentCount - 1)),
-                    properties.getRetryDelayMaxMs());
-            long delaySeconds = TimeUnit.MILLISECONDS.toSeconds(delayMs);
+            // 指数封顶，防止位移回绕与溢出为负
+            long exponent = Math.min(Math.max(currentCount - 1, 0), MAX_BACKOFF_EXPONENT);
+            long base = properties.getRetryDelayBaseMs();
+            long backoff = base <= (Long.MAX_VALUE >> exponent) ? base << exponent : Long.MAX_VALUE;
+            long delayMs = Math.min(backoff, properties.getRetryDelayMaxMs());
+            // 向上取整且至少 1 秒，避免亚秒级延迟被截断为 0 造成立即重投热循环
+            long delaySeconds = Math.max(1L, (delayMs + 999L) / 1000L);
 
             try {
-                defaultMessage.setId(correlationId);
+                // 仅在关联ID有效时覆盖消息id，保持重试副本与重试计数Key的一致性
+                if (StringUtils.hasText(correlationId)) {
+                    defaultMessage.setId(correlationId);
+                }
                 rabbitMqService.sendMsg(defaultMessage, properties.getDelayedExchange(),
                         routingKey, (int) delaySeconds, TimeUnit.SECONDS);
                 log.debug("队列[{}] id[{}] {}第{}次重试，延迟{}秒",
                         consumerQueue, correlationId, isVerificationRetry ? "校验失败" : "业务失败", currentCount, delaySeconds);
             } catch (Exception sendEx) {
-                log.error("发送延迟重试消息失败，进入死信", sendEx);
-                deadLetterService.save(message, cause);
-                retryCountManager.delete(retryKey);
+                // 发送重试副本失败：死信记录发送异常本身（而非业务cause），并用 try/finally 保证计数清理
+                log.error("队列[{}] id[{}] 发送延迟重试消息失败，进入死信", consumerQueue, correlationId, sendEx);
+                saveDeadLetterWithCountCleanup(retryKey, message, sendEx);
             }
         } else {
-            log.debug("队列[{}] id[{}] 重试次数已达上限（{}次），进入死信", consumerQueue, correlationId, maxRetryCount);
+            log.warn("队列[{}] id[{}] 重试次数已达上限（{}次），进入死信", consumerQueue, correlationId, maxRetryCount);
+            saveDeadLetterWithCountCleanup(retryKey, message, cause);
+        }
+    }
+
+    /**
+     * 死信兜底 + 计数清理：无论死信持久化是否抛出异常，都保证重试计数被清理（try/finally），
+     * 避免脏计数干扰同一 correlationId 的后续消息判定
+     */
+    private void saveDeadLetterWithCountCleanup(String retryKey, Message message, Exception cause) {
+        try {
             deadLetterService.save(message, cause);
+        } finally {
             retryCountManager.delete(retryKey);
         }
     }

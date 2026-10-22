@@ -4,6 +4,7 @@ import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.server.common.entity.AbsUserDetails;
 import com.simple.common.auth.server.common.entity.ClientDetails;
 import com.simple.common.auth.server.common.process.LoginErrorProcess;
+import com.simple.common.core.exception.DefaultException;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.IPUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -65,6 +66,10 @@ public abstract class AbsLoginManager implements LoginManager {
 
     /**
      * 登录失败处理（责任链模式）
+     * <p>
+     * 失败日志只记凭证类型，不落凭证内容（adapter.toString 可能携带明文密码/验证码）；
+     * 单个处理器记录失败不影响其余处理器，也绝不掩盖本次认证失败异常。
+     * </p>
      *
      * @param clientDetails 客户端信息
      * @param adapter       登录参数
@@ -72,20 +77,26 @@ public abstract class AbsLoginManager implements LoginManager {
     protected void loginError(ClientDetails clientDetails, Object adapter) {
         String ip = getIp();
 
-        // 记录失败日志，区分不同情况
+        // 记录失败日志，区分不同情况（仅记凭证类型，防止凭证泄入日志）
         if (adapter != null) {
-            log.warn("登录失败，账号凭证：[{}]，IP：[{}]", adapter.toString(), ip);
+            log.warn("登录失败，账号凭证类型：[{}]，IP：[{}]", adapter.getClass().getSimpleName(), ip);
         } else {
             log.warn("登录失败，未提供账号凭证，IP：[{}]", ip);
         }
 
         if (loginErrorProcesses != null && !loginErrorProcesses.isEmpty()) {
-            loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> process.recordError(clientDetails, adapter, ip));
+            loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> {
+                try {
+                    process.recordError(clientDetails, adapter, ip);
+                } catch (Exception e) {
+                    log.error("记录登录失败次数异常，process: {}", process.getProcess().getMsg(), e);
+                }
+            });
         }
     }
 
     /**
-     * 登录成功，清除失败记录
+     * 登录成功，清除失败记录（尽力而为：单个处理器清理失败不中断登录成功流程）
      *
      * @param clientDetails 客户端信息
      * @param adapter       登录参数
@@ -94,7 +105,13 @@ public abstract class AbsLoginManager implements LoginManager {
         String ip = getIp();
 
         if (loginErrorProcesses != null && !loginErrorProcesses.isEmpty()) {
-            loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> process.clearError(clientDetails, adapter, ip));
+            loginErrorProcesses.stream().filter(p -> p.getProcess().isExecute()).forEach(process -> {
+                try {
+                    process.clearError(clientDetails, adapter, ip);
+                } catch (Exception e) {
+                    log.error("清除登录失败记录异常，process: {}", process.getProcess().getMsg(), e);
+                }
+            });
         }
     }
 
@@ -116,10 +133,11 @@ public abstract class AbsLoginManager implements LoginManager {
      * 模板方法：执行完整的登录流程
      * <p>
      * 此方法由框架调用，按顺序执行：
-     * 1. 校验登录失败次数
+     * 1. 校验登录失败次数（置于 try 外：锁定拒绝不作为一次新的失败计次，避免锁定窗口被无限顺延）
      * 2. 执行具体登录逻辑（子类实现）
-     * 3. 登录成功，清除失败记录
-     * 4. 登录失败，记录失败次数并抛出异常
+     * 3. 业务认证失败（{@link DefaultException}，业务码由 LoginException 等枚举承载）记录失败次数并原样抛出
+     * 4. 系统内部异常（缓存/DB 等基础设施故障、NPE 等）不计入登录失败次数，原样上抛
+     * 5. 登录成功，清除失败记录
      * </p>
      *
      * @param clientDetails 客户端信息
@@ -127,23 +145,29 @@ public abstract class AbsLoginManager implements LoginManager {
      * @return 用户详情
      */
     public final AbsUserDetails login(ClientDetails clientDetails, Object adapter) {
+        // 1. 校验登录失败次数（锁定拒绝直接抛出，不重复计次）
+        checkErrorNum(clientDetails, adapter);
+
+        AbsUserDetails userDetails;
         try {
-            // 1. 校验登录失败次数
-            checkErrorNum(clientDetails, adapter);
-
             // 2. 执行具体登录逻辑（子类实现）
-            AbsUserDetails userDetails = doLogin(clientDetails, adapter);
-
-            // 3. 登录成功，清除失败记录
-            loginSuccess(clientDetails, adapter);
-
-            return userDetails;
-        } catch (Exception e) {
-            // 4. 登录失败，记录失败次数
+            userDetails = doLogin(clientDetails, adapter);
+        } catch (DefaultException e) {
+            // 3. 业务认证失败（框架断言统一抛出 DefaultException，业务码由 LoginException 等枚举承载）：
+            //    记录失败次数并原样抛出
+            //   （loginError 内部已对记录动作自身的异常兜底，不会掩盖本次认证失败）
             loginError(clientDetails, adapter);
-            // 5. 重新抛出异常（保持原有异常信息）
+            throw e;
+        } catch (Exception e) {
+            // 4. 系统内部异常：不计入登录失败次数（防止基础设施故障把凭证正确的用户推向锁定），
+            //    原样上抛由全局异常处理兜底
+            log.error("登录流程发生系统异常，IP：[{}]", getIp(), e);
             throw e;
         }
+
+        // 5. 登录成功，清除失败记录
+        loginSuccess(clientDetails, adapter);
+        return userDetails;
     }
 
     /**
@@ -159,8 +183,9 @@ public abstract class AbsLoginManager implements LoginManager {
      * <p>
      * 注意：
      * 1. 此方法不需要调用 checkErrorNum、loginSuccess 和 loginError
-     * 2. 所有异常都会由模板方法统一捕获并调用 loginError
-     * 3. 子类只需抛出异常即可，框架会自动处理失败记录
+     * 2. 业务认证失败请通过 AssertUtils 断言抛出 {@link DefaultException}（业务码用 LoginException 等枚举承载），
+     *    框架会统一捕获并记录失败次数；其他运行时异常视为系统内部异常，不计入失败次数
+     * 3. 返回的用户详情不能为 null
      * </p>
      *
      * @param clientDetails 客户端信息

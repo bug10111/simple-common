@@ -2,17 +2,21 @@ package com.simple.common.websocket.common.channel;
 
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * 通道存储Map，支持key-key(多)-value(多)的映射关系
+ * 通道存储Map，支持key-key2(多)-value(多)的映射关系。
  * <p>
- * 线程安全实现，使用读写锁保证复合操作的原子性
+ * 线程安全实现：主键到子键采用嵌套 Map 结构（{@code Map<K, Map<V, T>>}），
+ * 复合操作经读写锁保证原子性；键与值均不允许 null（null 复合键无法区分归属，
+ * 静默合成占位键会让不同键的通道互相覆盖）。
+ * </p>
  *
  * @author qty
  */
@@ -20,14 +24,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public class ChannelMap<K, V, T> {
 
     /**
-     * 主键到子键集合的映射
+     * 主键到子键值映射的嵌套结构
      */
-    private final Map<K, Set<V>> keyMap = new ConcurrentHashMap<>();
-
-    /**
-     * 复合键到值的映射
-     */
-    private final Map<String, T> valueMap = new ConcurrentHashMap<>();
+    private final Map<K, Map<V, T>> keyMap = new ConcurrentHashMap<>();
 
     /**
      * 读写锁，用于保护复合操作
@@ -42,11 +41,27 @@ public class ChannelMap<K, V, T> {
      * @param value 值
      */
     public void add(K key, V key2, T value) {
+        put(key, key2, value);
+    }
+
+    /**
+     * 原子放入并返回该复合键的旧值。
+     * <p>
+     * 校验在触碰任何 Map 之前完成，失败不会留下半写状态；
+     * 返回旧值供调用方在同一把写锁内完成"替换并关闭旧通道"等复合逻辑，
+     * 避免 check-then-act 竞态。
+     * </p>
+     *
+     * @param key   主键（不可为 null）
+     * @param key2  子键（不可为 null）
+     * @param value 值（不可为 null）
+     * @return 该复合键此前映射的值；不存在时返回 null
+     */
+    public T put(K key, V key2, T value) {
+        validate(key, key2, value);
         lock.writeLock().lock();
         try {
-            String keyStr = getKey(key, key2);
-            valueMap.put(keyStr, value);
-            keyMap.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(key2);
+            return keyMap.computeIfAbsent(key, k -> new ConcurrentHashMap<>()).put(key2, value);
         } finally {
             lock.writeLock().unlock();
         }
@@ -59,20 +74,16 @@ public class ChannelMap<K, V, T> {
      * @return 值列表，如果不存在返回null
      */
     public List<T> get(K key) {
+        if (key == null) {
+            return null;
+        }
         lock.readLock().lock();
         try {
-            Set<V> vs = keyMap.get(key);
-            if (vs == null || vs.isEmpty()) {
+            Map<V, T> subMap = keyMap.get(key);
+            if (subMap == null || subMap.isEmpty()) {
                 return null;
             }
-            List<T> list = new ArrayList<>(vs.size());
-            for (V v : vs) {
-                T value = valueMap.get(getKey(key, v));
-                if (value != null) {
-                    list.add(value);
-                }
-            }
-            return list.isEmpty() ? null : list;
+            return new ArrayList<>(subMap.values());
         } finally {
             lock.readLock().unlock();
         }
@@ -83,10 +94,14 @@ public class ChannelMap<K, V, T> {
      *
      * @param key  主键
      * @param key2 子键
-     * @return 值
+     * @return 值，不存在时返回 null
      */
     public T get(K key, V key2) {
-        return valueMap.get(getKey(key, key2));
+        if (key == null || key2 == null) {
+            return null;
+        }
+        Map<V, T> subMap = keyMap.get(key);
+        return subMap == null ? null : subMap.get(key2);
     }
 
     /**
@@ -96,14 +111,15 @@ public class ChannelMap<K, V, T> {
      * @param key2 子键
      */
     public void del(K key, V key2) {
+        if (key == null || key2 == null) {
+            return;
+        }
         lock.writeLock().lock();
         try {
-            String keyStr = getKey(key, key2);
-            valueMap.remove(keyStr);
-            Set<V> vs = keyMap.get(key);
-            if (vs != null) {
-                vs.remove(key2);
-                if (vs.isEmpty()) {
+            Map<V, T> subMap = keyMap.get(key);
+            if (subMap != null) {
+                subMap.remove(key2);
+                if (subMap.isEmpty()) {
                     keyMap.remove(key);
                 }
             }
@@ -118,14 +134,12 @@ public class ChannelMap<K, V, T> {
      * @param key 主键
      */
     public void del(K key) {
+        if (key == null) {
+            return;
+        }
         lock.writeLock().lock();
         try {
-            Set<V> vs = keyMap.remove(key);
-            if (vs != null) {
-                for (V v : vs) {
-                    valueMap.remove(getKey(key, v));
-                }
-            }
+            keyMap.remove(key);
         } finally {
             lock.writeLock().unlock();
         }
@@ -137,7 +151,6 @@ public class ChannelMap<K, V, T> {
     public void clear() {
         lock.writeLock().lock();
         try {
-            valueMap.clear();
             keyMap.clear();
         } finally {
             lock.writeLock().unlock();
@@ -150,7 +163,16 @@ public class ChannelMap<K, V, T> {
      * @return 通道数量
      */
     public int size() {
-        return valueMap.size();
+        lock.readLock().lock();
+        try {
+            int total = 0;
+            for (Map<V, T> subMap : keyMap.values()) {
+                total += subMap.size();
+            }
+            return total;
+        } finally {
+            lock.readLock().unlock();
+        }
     }
 
     /**
@@ -170,60 +192,39 @@ public class ChannelMap<K, V, T> {
      * @return 是否存在
      */
     public boolean contains(K key, V key2) {
-        return valueMap.containsKey(getKey(key, key2));
+        return get(key, key2) != null;
     }
 
     /**
-     * 获取所有条目（用于遍历清理）
+     * 获取所有条目快照（用于遍历清理）。
+     * <p>
+     * 返回不可变条目副本：调用方无法通过 Entry 引用穿透写共享结构，
+     * 避免绕过写锁破坏不变式；返回结构携带原始主键/子键，
+     * 调用方无需再做字符串键反解。
+     * </p>
      *
-     * @return 条目列表
+     * @return 主键 → (子键 → 值) 的条目快照列表
      */
-    public List<Map.Entry<String, T>> entries() {
+    public List<Map.Entry<K, Map.Entry<V, T>>> entries() {
         lock.readLock().lock();
         try {
-            return new ArrayList<>(valueMap.entrySet());
+            List<Map.Entry<K, Map.Entry<V, T>>> result = new ArrayList<>();
+            keyMap.forEach((k, subMap) -> subMap.forEach((v, t) ->
+                    result.add(new AbstractMap.SimpleImmutableEntry<>(k,
+                            new AbstractMap.SimpleImmutableEntry<>(v, t)))));
+            return result;
         } finally {
             lock.readLock().unlock();
         }
     }
 
     /**
-     * 生成复合键字符串
+     * 键值校验：任一为 null 直接拒绝，防止出现无归属的孤儿条目
      */
-    private String getKey(K key, V key2) {
-        if (key != null && key2 != null) {
-            return key + "&&" + key2;
+    private void validate(K key, V key2, T value) {
+        if (key == null || key2 == null) {
+            throw new IllegalArgumentException("ChannelMap 复合键的 key 与 key2 均不可为 null");
         }
-        return "";
-    }
-
-    /**
-     * 解析复合键获取主键
-     *
-     * @param keyStr 复合键字符串
-     * @return 主键
-     */
-    public K parseKey1(String keyStr) {
-        if (keyStr == null || !keyStr.contains("&&")) {
-            return null;
-        }
-        @SuppressWarnings("unchecked")
-        K key = (K) keyStr.substring(0, keyStr.indexOf("&&"));
-        return key;
-    }
-
-    /**
-     * 解析复合键获取子键
-     *
-     * @param keyStr 复合键字符串
-     * @return 子键
-     */
-    public V parseKey2(String keyStr) {
-        if (keyStr == null || !keyStr.contains("&&")) {
-            return null;
-        }
-        @SuppressWarnings("unchecked")
-        V key2 = (V) keyStr.substring(keyStr.indexOf("&&") + 2);
-        return key2;
+        Objects.requireNonNull(value, "ChannelMap value 不可为 null");
     }
 }

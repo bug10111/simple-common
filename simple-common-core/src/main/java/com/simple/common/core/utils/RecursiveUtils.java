@@ -3,12 +3,13 @@ package com.simple.common.core.utils;
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.lang.tree.Tree;
 import cn.hutool.core.lang.tree.TreeNodeConfig;
-import cn.hutool.core.lang.tree.TreeUtil;
-import lombok.SneakyThrows;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -34,6 +35,9 @@ public class RecursiveUtils {
 
     // 定义排序字段
     private static final String SERIAL_KEY = "serial";
+
+    // 顶级父节点特殊值：父ID为字符串 "0" 时也视为顶级
+    private static final String ZERO_PARENT_ID = "0";
 
     /**
      * 自动递归（从数据的最高层级开始构建树）
@@ -85,48 +89,37 @@ public class RecursiveUtils {
     }
 
     /**
-     * 从数据的最高层级开始构建树
+     * 从数据的最高层级开始构建树（顶级节点 = 父ID为 null/空串/"0"，或父ID不在现有ID集合中的节点）
      */
     private static <T> List<Tree<String>> buildTreeFromTopLevel(List<T> list, String weightKey) {
         if (CollUtil.isEmpty(list)) {
             return new ArrayList<>();
         }
 
-        // 配置递归参数
-        TreeNodeConfig treeNodeConfig = createTreeNodeConfig(weightKey);
-
-        // 自动识别顶级节点（父ID为null、空字符串、0，或者父ID不在现有ID集合中的节点）
-        Set<String> allIds = list.stream().map(item -> getFieldValue(item, ID_KEY)).filter(Objects::nonNull).map(Object::toString).collect(Collectors.toSet());
-
-        Set<Object> topLevelItems = list.stream().map(t ->  getFieldValue(t, PARENT_ID_KEY)).filter(parentId -> parentId == null || parentId.toString().isEmpty() || "0".equals(parentId.toString()) || !allIds.contains(parentId.toString())).collect(Collectors.toSet());
-
-        // 如果有顶级节点，从顶级节点开始构建
-        if (CollUtil.isNotEmpty(topLevelItems)) {
-            return buildTreeFromMultipleRoots(list, topLevelItems, treeNodeConfig, weightKey);
-        }
-
-        // 如果没有明确的顶级节点，回退到从固定根节点构建
-        return buildTreeFromRoot(list, weightKey, INITIAL_ID);
-    }
-
-    /**
-     * 从多个根节点构建森林（多棵树）
-     */
-    private static <T> List<Tree<String>> buildTreeFromMultipleRoots(List<T> allItems, Set<Object> rootItems, TreeNodeConfig config, String weightKey) {
-        List<Tree<String>> forest = new ArrayList<>();
-
-        for (Object rootItem : rootItems) {
-            if(rootItem != null) {
-                List<Tree<String>> tree = TreeUtil.build(allItems, rootItem.toString(), config, (node, treeNode) -> {
-                    configureTreeNode(treeNode, node, weightKey);
-                });
-                if (CollUtil.isNotEmpty(tree)) {
-                    forest.addAll(tree);
-                }
+        // 一次性把全部节点解析为 Tree 并建立 id -> 节点 索引（O(n)），避免对每个根重复全量解析
+        Map<String, Tree<String>> nodeMap = new LinkedHashMap<>();
+        for (T item : list) {
+            Tree<String> tree = new Tree<>(createTreeNodeConfig(weightKey));
+            configureTreeNode(tree, item, weightKey);
+            if (tree.getId() != null) {
+                nodeMap.putIfAbsent(tree.getId(), tree);
             }
-
         }
 
+        // 按 id/parentId 一次性挂接父子关系；父ID为 null/空串/"0" 或父节点不在集合中的节点作为根
+        List<Tree<String>> forest = new ArrayList<>();
+        for (Tree<String> tree : nodeMap.values()) {
+            String parentId = tree.getParentId();
+            Tree<String> parent = parentId == null ? null : nodeMap.get(parentId);
+            if (isTopLevelParent(parentId, nodeMap.keySet())) {
+                forest.add(tree);
+            } else {
+                parent.addChildren(tree);
+            }
+        }
+
+        // 权重排序（与 TreeUtil.build 的 weightKey 排序语义保持一致），排序失败时保持插入顺序
+        sortSiblings(forest);
         return forest;
     }
 
@@ -140,7 +133,7 @@ public class RecursiveUtils {
 
         TreeNodeConfig treeNodeConfig = createTreeNodeConfig(weightKey);
 
-        return TreeUtil.build(list, rootId, treeNodeConfig, (node, tree) -> {
+        return cn.hutool.core.lang.tree.TreeUtil.build(list, rootId, treeNodeConfig, (node, tree) -> {
             configureTreeNode(tree, node, weightKey);
         });
     }
@@ -152,45 +145,63 @@ public class RecursiveUtils {
         TreeNodeConfig config = new TreeNodeConfig();
         config.setIdKey(ID_KEY);
         config.setParentIdKey(PARENT_ID_KEY);
-        config.setChildrenKey(CHILDREN_KEY); // 建议使用更标准的children
+        config.setChildrenKey(CHILDREN_KEY);
         config.setWeightKey(weightKey);
         return config;
     }
 
     /**
-     * 配置树节点
+     * 配置树节点：从源节点读取真实的 id/parentId/weight 值写入树节点。
+     * <p>注意：这里必须写字段值而不是字段名，id/parentId 由树装配逻辑用于建立父子关系，
+     * weight（保留原始 Comparable 类型）用于兄弟节点排序。</p>
      */
     private static <T> void configureTreeNode(Tree<String> tree, T node, String weightKey) {
-        tree.setId(ID_KEY);
-        tree.setParentId(PARENT_ID_KEY);
-        tree.setWeight(weightKey);
+        tree.setId(toStringOrNull(getFieldValue(node, ID_KEY)));
+        tree.setParentId(toStringOrNull(getFieldValue(node, PARENT_ID_KEY)));
+        tree.putExtra(weightKey, getFieldValue(node, weightKey));
         autoInject(tree, node);
     }
 
     /**
-     * 自动注入方法，接受泛型参数，字段沿继承链逐级向上收集
+     * 自动注入方法，接受泛型参数，字段沿继承链逐级向上收集。
+     * <p>跳过 static 与编译器合成字段（如 this$0、$jacocoData），且父类字段不覆盖子类同名注入值，
+     * 避免内部状态或敏感字段（如密码列）被原样带出。</p>
      */
-    @SneakyThrows
     private static <T> void autoInject(Tree<String> tree, T base) {
-        // 沿继承链逐级向上遍历，保证继承基类实体的字段也能注入
+        if (base == null) {
+            return;
+        }
+        // 沿继承链逐级向上遍历，保证继承基类实体的字段也能注入；子类字段优先（先注入后访问的被覆盖）
+        List<Field> fields = new ArrayList<>();
         Class<?> clazz = base.getClass();
-        while (clazz != null) {
+        while (clazz != null && clazz != Object.class) {
             for (Field field : clazz.getDeclaredFields()) {
+                if (!Modifier.isStatic(field.getModifiers()) && !field.isSynthetic()) {
+                    fields.add(field);
+                }
+            }
+            clazz = clazz.getSuperclass();
+        }
+        for (Field field : fields) {
+            try {
                 field.setAccessible(true);
                 Object value = field.get(base);
                 if (value != null) {
                     tree.putExtra(field.getName(), value);
                 }
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("读取字段失败: " + field.getDeclaringClass().getName() + "." + field.getName(), e);
             }
-            clazz = clazz.getSuperclass();
         }
     }
 
     /**
-     * 获取字段值（辅助方法），字段沿继承链逐级向上查找
+     * 获取字段值（辅助方法），字段沿继承链逐级向上查找，找不到返回 null
      */
-    @SneakyThrows
     private static <T> Object getFieldValue(T obj, String fieldName) {
+        if (obj == null) {
+            return null;
+        }
         // 沿继承链逐级向上查找字段，找到即取值
         Class<?> clazz = obj.getClass();
         while (clazz != null) {
@@ -201,9 +212,65 @@ public class RecursiveUtils {
             } catch (NoSuchFieldException e) {
                 // 当前类未声明该字段，继续向父类查找
                 clazz = clazz.getSuperclass();
+            } catch (IllegalAccessException e) {
+                throw new IllegalStateException("读取字段失败: " + clazz.getName() + "." + fieldName, e);
             }
         }
         return null;
+    }
+
+    /**
+     * 顶级节点判定（供建树与 getTopLevelNodes 共用）：父ID为 null/空串/"0"，或父ID不在现有ID集合中
+     */
+    private static boolean isTopLevelParent(String parentId, Set<String> allIds) {
+        return parentId == null || parentId.isEmpty() || ZERO_PARENT_ID.equals(parentId) || !allIds.contains(parentId);
+    }
+
+    /**
+     * 对每层子节点按 weight 排序；weight 为 null 或不可比较时保持插入顺序
+     */
+    private static void sortSiblings(List<Tree<String>> nodes) {
+        if (CollUtil.isEmpty(nodes)) {
+            return;
+        }
+        try {
+            nodes.sort((a, b) -> {
+                Comparable<?> weightA = weightOf(a);
+                Comparable<?> weightB = weightOf(b);
+                if (weightA == null && weightB == null) {
+                    return 0;
+                }
+                if (weightA == null) {
+                    return 1;
+                }
+                if (weightB == null) {
+                    return -1;
+                }
+                return compareWeight(weightA, weightB);
+            });
+        } catch (ClassCastException ignore) {
+            // weight 类型不可比较时保持插入顺序
+        }
+        for (Tree<String> node : nodes) {
+            sortSiblings(node.getChildren());
+        }
+    }
+
+    private static Comparable<?> weightOf(Tree<String> node) {
+        Object weight = node.get(node.getConfig().getWeightKey());
+        return weight instanceof Comparable ? (Comparable<?>) weight : null;
+    }
+
+    /**
+     * 权重比较（weight 保留原始 Comparable 类型，数值字段按数值序而非字典序）
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static int compareWeight(Comparable<?> a, Comparable<?> b) {
+        return ((Comparable) a).compareTo(b);
+    }
+
+    private static String toStringOrNull(Object value) {
+        return value == null ? null : value.toString();
     }
 
     /**
@@ -218,11 +285,11 @@ public class RecursiveUtils {
             return new ArrayList<>();
         }
 
-        Set<String> allIds = list.stream().map(item -> getFieldValue(item, ID_KEY)).filter(Objects::nonNull).map(Object::toString).collect(Collectors.toSet());
+        Set<String> allIds = list.stream().map(item -> toStringOrNull(getFieldValue(item, ID_KEY))).filter(Objects::nonNull).collect(Collectors.toSet());
 
         return list.stream().filter(item -> {
-            Object parentId = getFieldValue(item, PARENT_ID_KEY);
-            return parentId == null || parentId.toString().isEmpty() || "0".equals(parentId.toString()) || !allIds.contains(parentId.toString());
+            String parentId = toStringOrNull(getFieldValue(item, PARENT_ID_KEY));
+            return isTopLevelParent(parentId, allIds);
         }).collect(Collectors.toList());
     }
 }

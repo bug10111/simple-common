@@ -28,7 +28,14 @@ public enum SyncPayloadType {
     /**
      * 登出通知（载荷字段：projectCode + userId；接收端清除该用户本地令牌缓存）
      */
-    LOGOUT("登出通知");
+    LOGOUT("登出通知"),
+
+    /**
+     * 未知类型兜底：滚动升级/回滚期间，旧实例收到新版本引入的类型时，
+     * 接收端 ObjectMapper 需开启 READ_UNKNOWN_ENUM_VALUES_USING_DEFAULT_VALUE 指向本常量，
+     * 配合 DefaultSyncPayloadApplier 的 default 分支走「记日志+照常ACK」，避免整条投递失败重投风暴
+     */
+    UNKNOWN("未知类型");
 
     /**
      * 中文说明

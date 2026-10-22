@@ -44,9 +44,11 @@
             <artifactId>hutool-all</artifactId>
         </dependency>
 
+        <!-- BouncyCastle 升级至 jdk18on 1.78.1：jdk15on 1.70 存在已披露安全修复缺失（CVE-2023-33202/CVE-2024-29857等）；SM2/SM4 依赖其 Provider -->
         <dependency>
             <groupId>org.bouncycastle</groupId>
-            <artifactId>bcpkix-jdk15on</artifactId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.78.1</version>
         </dependency>
 
         <dependency>
@@ -54,6 +56,9 @@
             <artifactId>fastjson2</artifactId>
         </dependency>
 
+        <!-- lombok/mapstruct(-processor)/configuration-processor 保持 compile：本仓库全部下游模块经由 core
+             传递获取这套工具链（各模块 pom 未自行声明），标记 provided/optional 会切断传导导致下游编译失败。
+             正确治理方向是各模块显式声明，属跨模块结构改造，不在本修复批次写边界内。 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -80,10 +85,8 @@
             </exclusions>
         </dependency>
 
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webmvc</artifactId>
-        </dependency>
+        <!-- spring-webmvc 不再显式声明：spring-boot-starter-web(provided) 已传递提供（随 Boot BOM 统一 6.1.13），
+             原显式声明被父 pom 的 knife4j.spring-webmvc.version(6.1.14) 钉版，与 spring-core 6.1.13 混版有 NoSuchMethodError 风险 -->
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -95,9 +98,11 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- servlet/tomcat API 仅编译期需要，与 starter-web 对齐 provided，不再作为传递依赖打进每个消费方 -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -129,14 +134,9 @@
 
     </dependencies>
 
-    <!-- 模块级覆盖父 pom 的 surefire 2.12.4:旧版不识别 JUnit 5 测试(Tests run 恒为 0),升级至 3.2.5 使 JUnit Platform 生效 -->
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-            </plugin>
-        </plugins>
-    </build>
+    <!-- 模块级覆盖父pom的 surefire 属性(父为2.12.4:旧版不识别 JUnit 5 测试,Tests run 恒为 0):
+         经属性覆盖而非钉插件版本,保留父pom对 surefire 的继承配置(如 forkCount/argLine),各模块口径一致 -->
+    <properties>
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+    </properties>
 </project>

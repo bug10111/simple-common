@@ -6,7 +6,7 @@ import lombok.Getter;
 
 /**
  * 数据权限枚举
- * 权限值按数据权限范围从大到小递增：ALL(1) < DEPT_AND_CHILD(2) < DEPT(3) < SELF(4)
+ * 权限值按数据权限范围从小到大递增：ALL(1) < DEPT_AND_CHILD(2) < DEPT(3) < SELF(4)
  * 取值最小即为最大权限范围
  * <p>
  * 所有权限级别均受租户隔离约束，ALL 权限亦不跳过租户过滤。
@@ -103,20 +103,23 @@ public enum DataScopeEnum {
      * 判断当前权限是否大于等于指定权限
      * 权限值越小，权限越大
      *
-     * @param other 待比较的权限
+     * @param other 待比较的权限；null 视为最小权限（当前权限恒大于等于 null，fail-closed 语义）
      * @return true 表示当前权限范围更大或相等
      */
     public boolean greaterThanOrEqual(DataScopeEnum other) {
-        return this.value <= other.value;
+        return other == null || this.value <= other.value;
     }
 
     /**
      * 获取最大权限（取权限值最小的）
      *
-     * @param permissions 多个权限
+     * @param permissions 多个权限（数组为 null 或元素全为 null 时返回 SELF——最低权限兜底，fail-closed）
      * @return 范围最大的权限
      */
     public static DataScopeEnum getMaxPermission(DataScopeEnum... permissions) {
+        if (permissions == null) {
+            return SELF;
+        }
         DataScopeEnum max = SELF;
         for (DataScopeEnum permission : permissions) {
             if (permission != null && permission.value < max.value) {

@@ -2,6 +2,7 @@ package com.simple.common.annex.service;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
 import com.simple.common.annex.common.dto.UploadResponse;
 import com.simple.common.annex.common.enums.Algorithm;
 import com.simple.common.annex.common.enums.ShareType;
@@ -38,7 +39,9 @@ public class S3AnnexService implements AnnexService {
     @SneakyThrows
     public UploadResponse upload(MultipartFile file, String applicationName, ShareType shareType) {
         @Cleanup var fileInputStream = file.getInputStream();
-        String filename = file.getOriginalFilename();
+        // 浏览器未提交或提交空文件名时 getOriginalFilename 可能返回 null,
+        // 直接透传会在后续 FileUtil.getSuffix / 对象键拼接处产生 NPE 或 null 键,这里回退为安全默认名
+        String filename = StrUtil.blankToDefault(file.getOriginalFilename(), "file");
         return upload(filename, applicationName, null, shareType, fileInputStream);
     }
 
@@ -46,7 +49,7 @@ public class S3AnnexService implements AnnexService {
     @SneakyThrows
     public UploadResponse upload(MultipartFile file, String applicationName, String packageName, ShareType shareType) {
         @Cleanup var fileInputStream = file.getInputStream();
-        String filename = file.getOriginalFilename();
+        String filename = StrUtil.blankToDefault(file.getOriginalFilename(), "file");
         return upload(filename, applicationName, packageName, shareType, fileInputStream);
     }
 
@@ -58,14 +61,18 @@ public class S3AnnexService implements AnnexService {
         @Cleanup var in = new ByteArrayInputStream(bytes);
 
         //组装数据
-        UploadResponse uploadResponse = new UploadResponse().setTotalSize(bytes.length)
+        UploadResponse uploadResponse = new UploadResponse().setTotalSize((long) bytes.length)
                                                             .setName(fileName)
                                                             .setApplicationName(applicationName)
                                                             .setSuffix(FileUtil.getSuffix(fileName))
                                                             .setShareType(shareType);
-        if (ObjUtil.isNotNull(annexProperties.getAlgorithm()) && annexProperties.getAlgorithm().equals(Algorithm.MD5)) {
-            uploadResponse.setAlgorithmType(Algorithm.MD5);
-            uploadResponse.setAlgorithmValue(AlgorithmUtils.md5Hex(bytes));
+
+        //按配置的摘要算法计算文件指纹,供去重回调判断文件是否已上传
+        var algorithm = annexProperties.getAlgorithm();
+        if (algorithm == Algorithm.MD5) {
+            uploadResponse.setAlgorithmType(algorithm).setAlgorithmValue(AlgorithmUtils.md5Hex(bytes));
+        } else if (algorithm == Algorithm.SHA_256) {
+            uploadResponse.setAlgorithmType(algorithm).setAlgorithmValue(AlgorithmUtils.sha256Hex(bytes));
         }
 
         //判断是否已经上传，已经上传则返回

@@ -1,3 +1,5 @@
+package com.simple.common.excel.doc;
+
 import com.alibaba.excel.annotation.ExcelIgnore;
 import com.alibaba.excel.annotation.ExcelProperty;
 import com.alibaba.excel.annotation.format.DateTimeFormat;
@@ -5,7 +7,6 @@ import com.alibaba.excel.annotation.format.NumberFormat;
 import com.alibaba.excel.annotation.write.style.*;
 import com.alibaba.excel.enums.poi.HorizontalAlignmentEnum;
 import com.alibaba.excel.enums.poi.VerticalAlignmentEnum;
-import com.come.on.demo.demo.excel.CustomStringStringConverter;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -32,26 +33,25 @@ import java.util.Date;
 @HeadRowHeight(20)//头高
 @ColumnWidth(30)//列宽
 @ContentRowHeight(20)//内容行高
-@OnceAbsoluteMerge(firstRowIndex = 5, lastRowIndex = 6, firstColumnIndex = 1, lastColumnIndex = 2)// 将第6-7行的2-3列合并成一个单元格
+@OnceAbsoluteMerge(firstRowIndex = 5, lastRowIndex = 6, firstColumnIndex = 0, lastColumnIndex = 1)// 将第6-7行的1-2列(字符串标题、日期列)合并成一个单元格
 @HeadStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER, verticalAlignment = VerticalAlignmentEnum.CENTER)
 @ContentStyle(horizontalAlignment = HorizontalAlignmentEnum.CENTER, verticalAlignment = VerticalAlignmentEnum.CENTER)
 public class DemoData {
 
     /**
      * value：标题
-     * index：导出或者读取的列
-     * converter：列处理方案
+     * index：导出或者读取的列索引(必须连续使用,断档会在导出时产生空白列)
      */
-    @ExcelProperty(value = { "主标题", "字符串标题" }, index = 0, converter = CustomStringStringConverter.class)
+    @ExcelProperty(value = {"主标题", "字符串标题"}, index = 0)
     @ContentLoopMerge(eachRow = 2)// 这一列 每隔2行 合并单元格
     private String string;
 
     @DateTimeFormat("yyyy年MM月dd日HH时mm分ss秒")//格式化时间格式
-    @ExcelProperty(value = { "主标题", "日期" }, index = 1)
+    @ExcelProperty(value = {"主标题", "日期"}, index = 1)
     private Date date;
 
     @NumberFormat("#.##%")//百分比表示
-    @ExcelProperty(value = { "主标题", "数字" }, index = 3)
+    @ExcelProperty(value = {"主标题", "数字"}, index = 2)
     private Double doubleData;
 
     /**
@@ -59,8 +59,7 @@ public class DemoData {
      *
      * @since 2.1.1
      */
-    //    @ColumnWidth(60)
-    @ExcelProperty(value = { "二维码" }, index = 4)
+    @ExcelProperty(value = {"主标题", "二维码"}, index = 3)
     private URL url;
 
     /**

@@ -18,6 +18,21 @@
             <artifactId>simple-common-core</artifactId>
         </dependency>
 
+        <!-- 公共 API 使用 org.springframework.web.multipart.MultipartFile,显式声明避免依赖核心模块的间接传递 -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- S3 上传处理器从 HttpServletRequest 解析文件流，编译期需要 servlet API；
+             与 simple-common-core 同口径 provided（由宿主 web 环境提供，不传递给消费方） -->
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-s3</artifactId>
@@ -28,11 +43,10 @@
             <artifactId>minio</artifactId>
         </dependency>
 
+        <!-- 公共类型 ShareType 使用 MyBatis-Plus @EnumValue 注解,编译期与运行期均需可加载,必须随模块传递 -->
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-mp</artifactId>
-            <!--表示在编译时需要该依赖，但是在运行时不需要它,由其他程序提供-->
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

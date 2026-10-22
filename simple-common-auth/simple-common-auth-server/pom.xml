@@ -13,8 +13,6 @@
     <packaging>jar</packaging>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -32,6 +30,21 @@
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-auth-client</artifactId>
+        </dependency>
+
+        <!-- 服务端直接注入 StringRedisTemplate（spring-data-redis），显式声明依赖避免依赖传递链脆弱 -->
+        <dependency>
+            <groupId>com.simple.common</groupId>
+            <artifactId>simple-common-redis</artifactId>
+        </dependency>
+
+        <!-- 服务端控制器与登录管理器（org.springframework.web.bind.annotation.*/WebApplicationContext/
+             HttpStatus/HttpServletRequest）编译期需要 web 栈；与 simple-common-core 同口径 provided
+             （由宿主 web 环境提供，不传递给消费方） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
         </dependency>
 
     </dependencies>

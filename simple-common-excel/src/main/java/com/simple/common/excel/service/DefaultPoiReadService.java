@@ -17,6 +17,10 @@ import org.xml.sax.InputSource;
 import org.xml.sax.XMLReader;
 
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 /**
  * Created with IntelliJ IDEA
@@ -39,9 +43,17 @@ public class DefaultPoiReadService implements PoiReadService {
     @Override
     @SneakyThrows
     public void read(InputStream inputStream, XSSFSheetXMLHandler.SheetContentsHandler sheetContentsHandler) {
-        // try-with-resources 确保读取结束后(含异常路径)释放文档占用的资源
-        try (OPCPackage pkg = OPCPackage.open(inputStream)) {
-            execution(pkg, sheetContentsHandler);
+        // OPCPackage.open(InputStream) 会把整个压缩包读入内存,大文件场景先落盘临时文件再按文件打开,
+        // 否则内存占用与文件大小成正比,与 PoiReadService 声称的 GB 级低内存读取相悖
+        Path tempFile = Files.createTempFile("simple-common-excel-read-", ".xlsx");
+        try {
+            Files.copy(inputStream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+            // try-with-resources 确保读取结束后(含异常路径)释放文档占用的资源
+            try (OPCPackage pkg = OPCPackage.open(tempFile.toFile(), PackageAccess.READ)) {
+                execution(pkg, sheetContentsHandler);
+            }
+        } finally {
+            Files.deleteIfExists(tempFile);
         }
     }
 
@@ -60,6 +72,9 @@ public class DefaultPoiReadService implements PoiReadService {
         while (iter.hasNext()) {
             // 逐个 sheet 解析,每个 sheet 解析完毕后(含异常路径)立即关闭其流,避免句柄占用
             try (InputStream stream = iter.next()) {
+                // sheet 名称可用于排查定位;当前实现把所有 sheet 的回调合并为同一数据流,
+                // 行号逐 sheet 重新从 0 开始,消费方如需区分 sheet 需自行扩展处理器
+                log.debug("解析sheet:{}", iter.getSheetName());
                 parserSheetXml(styles, strings, sheetContentsHandler, stream);
             }
         }
@@ -78,7 +93,8 @@ public class DefaultPoiReadService implements PoiReadService {
         //        XMLReader sheetParser = SAXHelper.newXMLReader();
         XMLReader sheetParser = XMLHelper.newXMLReader();
 
-        ContentHandler handler = new XSSFSheetXMLHandler(styles, null, strings, sheetHandler, formatter, false);
+        // 使用 5 参构造器(不传 CommentsTable):单元格批注按不支持处理,XSSFComment 回调恒为 null
+        ContentHandler handler = new XSSFSheetXMLHandler(styles, strings, sheetHandler, formatter, false);
         sheetParser.setContentHandler(handler);
         sheetParser.parse(sheetSource);
     }

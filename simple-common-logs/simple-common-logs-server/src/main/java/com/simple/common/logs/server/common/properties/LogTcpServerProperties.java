@@ -2,7 +2,7 @@ package com.simple.common.logs.server.common.properties;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -53,7 +53,7 @@ public class LogTcpServerProperties {
      */
     @Min(value = 2, message = "Worker线程数最小为 2")
     @Max(value = 128, message = "Worker线程数最大为 128")
-    private int workerThreads = Runtime.getRuntime().availableProcessors() * 2;
+    private int workerThreads = Math.min(Runtime.getRuntime().availableProcessors() * 2, 128);
 
     /**
      * 最大连接数
@@ -104,7 +104,7 @@ public class LogTcpServerProperties {
     /**
      * WAL 存储目录
      */
-    @NotNull(message = "WAL 存储目录不能为空")
+    @NotBlank(message = "WAL 存储目录不能为空")
     private String walDir = "./logs_wal";
 
     /**
@@ -136,6 +136,6 @@ public class LogTcpServerProperties {
     /**
      * 死信队列存储目录
      */
-    @NotNull(message = "死信队列存储目录不能为空")
+    @NotBlank(message = "死信队列存储目录不能为空")
     private String deadLetterDir = "./logs_deadletter";
 }

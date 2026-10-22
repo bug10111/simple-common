@@ -1,7 +1,6 @@
 package com.simple.common.core.utils;
 
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.core.util.RandomUtil;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.SmUtil;
 import cn.hutool.crypto.asymmetric.AsymmetricCrypto;
@@ -20,11 +19,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
+import javax.crypto.KeyGenerator;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 
@@ -57,7 +58,14 @@ public class CryptoUtil {
         } else if ("DES".equals(alg)) {
             return SecureUtil.generateKey(SymmetricAlgorithm.DES.getValue()).getEncoded();
         } else if ("SM4".equals(alg)) {
-            return SecureUtil.generateKey("SM4").getEncoded();
+            // 显式使用本地缓存的 BouncyCastle 提供者，与 SM4_GCM 路径保持一致，不依赖全局注册
+            try {
+                KeyGenerator generator = KeyGenerator.getInstance("SM4", getSm4GcmProvider().getName());
+                generator.init(128, new SecureRandom());
+                return generator.generateKey().getEncoded();
+            } catch (GeneralSecurityException e) {
+                throw new IllegalStateException("SM4 密钥生成需要 BouncyCastle 提供者，请确认 bcprov 依赖已引入", e);
+            }
         }
         throw new RuntimeException("不支持的算法: " + algorithm);
     }
@@ -112,8 +120,9 @@ public class CryptoUtil {
         }
 
         try {
-            // 生成随机初始向量
-            byte[] iv = RandomUtil.randomBytes(algorithm.getIvLength());
+            // 生成随机初始向量：必须使用加密安全随机源（java.util.Random 可预测，会导致 GCM 密钥流复用）
+            byte[] iv = new byte[algorithm.getIvLength()];
+            new SecureRandom().nextBytes(iv);
             SecretKeySpec keySpec = new SecretKeySpec(key, algorithm.getAlgorithm());
 
             // GCM 模式使用标准 JCE 与 GCMParameterSpec，密文尾部自带认证标签
@@ -164,8 +173,11 @@ public class CryptoUtil {
         try {
             // 校验密文长度并拆分初始向量与密文体
             int ivLength = algorithm.getIvLength();
-            if (encryptedData.length < ivLength) {
-                throw new IllegalArgumentException("密文过短，无法提取IV");
+            // GCM 密文尾部还带有 128 位认证标签，短于该长度的输入必然无法通过认证，提前给出明确错误
+            int minLength = ivLength + (algorithm.isGcm() ? GCM_TAG_LENGTH_BITS / 8 : 0);
+            if (encryptedData.length < minLength) {
+                throw new IllegalArgumentException("密文过短，无法提取IV"
+                        + (algorithm.isGcm() ? "及认证标签" : ""));
             }
             byte[] iv = ArrayUtil.sub(encryptedData, 0, ivLength);
             byte[] cipherData = ArrayUtil.sub(encryptedData, ivLength, encryptedData.length);
@@ -452,6 +464,8 @@ public class CryptoUtil {
 
     /**
      * 从PEM字符串恢复公钥
+     * <p>优先按 RSA 解析，失败时回退 EC（覆盖 SM2 密钥），保证 {@link #getPublicKeyPem(PublicKey)}
+     * 导出的 SM2 公钥也能恢复。</p>
      */
     public static PublicKey getPublicKeyFromPem(String pem) {
         try {
@@ -461,17 +475,41 @@ public class CryptoUtil {
             // Base64解码
             byte[] keyBytes = Base64Utils.decode(base64);
 
-            // 创建公钥
+            // 创建公钥：先 RSA，失败回退 EC（SM2 公钥为 EC 编码）
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            return keyFactory.generatePublic(keySpec);
+            try {
+                return KeyFactory.getInstance("RSA").generatePublic(keySpec);
+            } catch (InvalidKeySpecException e) {
+                return KeyFactory.getInstance("EC").generatePublic(keySpec);
+            }
         } catch (Exception e) {
             throw new RuntimeException("从PEM恢复公钥失败", e);
         }
     }
 
     /**
+     * 从PEM字符串恢复指定算法的公钥
+     *
+     * @param algorithm 算法枚举，SM2 按 EC 解析，RSA 系列按 RSA 解析
+     */
+    public static PublicKey getPublicKeyFromPem(AsymmetricAlgorithmType algorithm, String pem) {
+        if (algorithm == null || algorithm.isRsa()) {
+            return getPublicKeyFromPem(pem);
+        }
+        String base64 = pem.replace("-----BEGIN PUBLIC KEY-----", "").replace("-----END PUBLIC KEY-----", "").replaceAll("\\s", "");
+        byte[] keyBytes = Base64Utils.decode(base64);
+        try {
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(keyBytes);
+            return KeyFactory.getInstance("EC").generatePublic(keySpec);
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException("从PEM恢复公钥失败: " + algorithm, e);
+        }
+    }
+
+    /**
      * 从PEM字符串恢复私钥
+     * <p>优先按 RSA 解析，失败时回退 EC（覆盖 SM2 密钥），保证 {@link #getPrivateKeyPem(PrivateKey)}
+     * 导出的 SM2 私钥也能恢复。</p>
      */
     public static PrivateKey getPrivateKeyFromPem(String pem) {
         try {
@@ -481,12 +519,34 @@ public class CryptoUtil {
             // Base64解码
             byte[] keyBytes = Base64Utils.decode(base64);
 
-            // 创建私钥
+            // 创建私钥：先 RSA，失败回退 EC（SM2 私钥为 EC 编码）
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-            return keyFactory.generatePrivate(keySpec);
+            try {
+                return KeyFactory.getInstance("RSA").generatePrivate(keySpec);
+            } catch (InvalidKeySpecException e) {
+                return KeyFactory.getInstance("EC").generatePrivate(keySpec);
+            }
         } catch (Exception e) {
             throw new RuntimeException("从PEM恢复私钥失败", e);
+        }
+    }
+
+    /**
+     * 从PEM字符串恢复指定算法的私钥
+     *
+     * @param algorithm 算法枚举，SM2 按 EC 解析，RSA 系列按 RSA 解析
+     */
+    public static PrivateKey getPrivateKeyFromPem(AsymmetricAlgorithmType algorithm, String pem) {
+        if (algorithm == null || algorithm.isRsa()) {
+            return getPrivateKeyFromPem(pem);
+        }
+        String base64 = pem.replace("-----BEGIN PRIVATE KEY-----", "").replace("-----END PRIVATE KEY-----", "").replaceAll("\\s", "");
+        byte[] keyBytes = Base64Utils.decode(base64);
+        try {
+            PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(keyBytes);
+            return KeyFactory.getInstance("EC").generatePrivate(keySpec);
+        } catch (GeneralSecurityException e) {
+            throw new RuntimeException("从PEM恢复私钥失败: " + algorithm, e);
         }
     }
 
@@ -620,61 +680,4 @@ public class CryptoUtil {
         return DigestUtil.bcryptCheck(password, hashedPassword);
     }
 
-    public static void main(String[] args) {
-        // 对称加密测试（AES/GCM - 安全版本）
-        System.out.println("========== 对称加密（AES/GCM） ==========");
-        SymmetricAlgorithmType symAlgo = SymmetricAlgorithmType.AES_GCM;
-        byte[] symKey = generateSymmetricKey(symAlgo);
-        String plain = "Hello, 安全对称加密!";
-        byte[] encrypted = encrypt(symAlgo, symKey, plain.getBytes());
-        byte[] decrypted = decrypt(symAlgo, symKey, encrypted);
-        System.out.println("原始: " + plain);
-        System.out.println("加密后(Base64): " + Base64Utils.encode(encrypted));
-        System.out.println("解密后: " + new String(decrypted));
-
-        // RSA OAEP 非对称加密测试（安全）
-        System.out.println("\n========== RSA OAEP 非对称加密 ==========");
-        AsymmetricAlgorithmType rsaOaep = AsymmetricAlgorithmType.RSA_OAEP;
-        KeyPair rsaOaepPair = generateKeyPair(rsaOaep);
-        String rsaPlain = "RSA OAEP 加密测试";
-        byte[] rsaEnc = encrypt(rsaOaep, rsaOaepPair.getPublic(), rsaPlain.getBytes());
-        byte[] rsaDec = decrypt(rsaOaep, rsaOaepPair.getPrivate(), rsaEnc);
-        System.out.println("原始: " + rsaPlain);
-        System.out.println("加密后(Base64): " + Base64Utils.encode(rsaEnc));
-        System.out.println("解密后: " + new String(rsaDec));
-
-        // SM2 非对称加密测试
-        System.out.println("\n========== SM2 非对称加密 ==========");
-        AsymmetricAlgorithmType sm2Algo = AsymmetricAlgorithmType.SM2;
-        KeyPair sm2KeyPair = generateKeyPair(sm2Algo);
-        String sm2Plain = "SM2 安全加密测试";
-        byte[] sm2Enc = encrypt(sm2Algo, sm2KeyPair.getPublic(), sm2Plain.getBytes());
-        byte[] sm2Dec = decrypt(sm2Algo, sm2KeyPair.getPrivate(), sm2Enc);
-        System.out.println("原始: " + sm2Plain);
-        System.out.println("加密后(Base64): " + Base64Utils.encode(sm2Enc));
-        System.out.println("解密后: " + new String(sm2Dec));
-
-        // 哈希测试（安全算法）
-        System.out.println("\n========== 安全哈希算法 ==========");
-        String hashData = "Hello World";
-        System.out.println("SHA256: " + Base64Utils.encode(hash(HashAlgorithmType.SHA256, hashData.getBytes())));
-        System.out.println("SM3: " + Base64Utils.encode(hash(HashAlgorithmType.SM3, hashData.getBytes())));
-
-        // 演示旧系统兼容（会打印警告日志）
-        System.out.println("\n========== 旧系统兼容示例（会打印警告） ==========");
-        SymmetricAlgorithmType unsafeSym = SymmetricAlgorithmType.AES_CBC;
-        byte[] unsafeKey = generateSymmetricKey(unsafeSym);
-        byte[] unsafeEnc = encrypt(unsafeSym, unsafeKey, "旧数据".getBytes());
-        byte[] unsafeDec = decrypt(unsafeSym, unsafeKey, unsafeEnc);
-        System.out.println("旧系统解密成功: " + new String(unsafeDec));
-
-        AsymmetricAlgorithmType unsafeAsym = AsymmetricAlgorithmType.RSA_PKCS1;
-        KeyPair unsafeKeyPair = generateKeyPair(unsafeAsym);
-        byte[] unsafeAsymEnc = encrypt(unsafeAsym, unsafeKeyPair.getPublic(), "旧RSA数据".getBytes());
-        byte[] unsafeAsymDec = decrypt(unsafeAsym, unsafeKeyPair.getPrivate(), unsafeAsymEnc);
-        System.out.println("旧系统RSA解密成功: " + new String(unsafeAsymDec));
-
-        byte[] md5Hash = hash(HashAlgorithmType.MD5, "旧数据".getBytes());
-        System.out.println("MD5哈希: " + Base64Utils.encode(md5Hash));
-    }
 }

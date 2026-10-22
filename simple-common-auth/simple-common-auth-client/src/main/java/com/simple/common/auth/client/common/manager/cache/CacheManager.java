@@ -29,6 +29,44 @@ public interface CacheManager {
     void set(String key, String value, long seconds);
 
     /**
+     * 原子性 set-if-absent：仅当 key 不存在时写入并设置过期时间。
+     * <p>
+     * 内置实现（Redis: SET NX EX；Local: 并发 Map putIfAbsent）保证「检查+写入」的原子性，
+     * 可用于防重放 nonce 等一次性语义场景。默认实现为 get+set 兜底（非原子），
+     * 仅供第三方自定义实现过渡使用。
+     * </p>
+     *
+     * @param key     缓存键
+     * @param value   缓存值
+     * @param seconds 过期时间（秒）
+     * @return true 表示写入成功（key 原不存在）；false 表示 key 已存在，未写入
+     */
+    default boolean setIfAbsent(String key, String value, long seconds) {
+        if (hasKey(key)) {
+            return false;
+        }
+        set(key, value, seconds);
+        return true;
+    }
+
+    /**
+     * 原子性读取并删除（Redis GETDEL 语义），用于一次性 Token 的消费场景。
+     * <p>
+     * 默认实现为 get+delete 兜底（非原子），内置实现均为原子操作。
+     * </p>
+     *
+     * @param key 缓存键
+     * @return 删除前的缓存值，不存在返回 null
+     */
+    default String getAndDelete(String key) {
+        String value = get(key);
+        if (value != null) {
+            delete(key);
+        }
+        return value;
+    }
+
+    /**
      * 获取缓存。
      *
      * @param key 缓存键
@@ -61,9 +99,14 @@ public interface CacheManager {
 
     /**
      * 获取剩余过期时间（秒）。
+     * <p>
+     * 契约：-2 表示 key 不存在；-1 表示存在但无法获取/无独立过期时间（如 Local 实现）。
+     * 注意：Local 实现的 expire/set(key,value,seconds) 为尽力而为语义（受缓存实例默认过期策略约束），
+     * 依赖精确 TTL 的场景（如登录错误计数）应使用 REDIS 缓存类型。
+     * </p>
      *
      * @param key 缓存键
-     * @return 剩余秒数，-2 表示不存在，-1 表示永不过期
+     * @return 剩余秒数，-2 表示不存在，-1 表示无法获取剩余 TTL
      */
     long getExpire(String key);
 
@@ -80,7 +123,7 @@ public interface CacheManager {
      * 原子自增（默认步长 1）。
      *
      * @param key 缓存键
-     * @return 自增后的值
+     * @return 自增后的值；Redis 实现在管道/异常场景可能返回 null，调用方需判空
      */
     default Long increment(String key) {
         return increment(key, 1L);
@@ -91,7 +134,7 @@ public interface CacheManager {
      *
      * @param key   缓存键
      * @param delta 步长
-     * @return 自增后的值
+     * @return 自增后的值；Redis 实现在管道/异常场景可能返回 null，调用方需判空
      */
     Long increment(String key, long delta);
 
@@ -99,7 +142,7 @@ public interface CacheManager {
      * 原子自减（默认步长 1）。
      *
      * @param key 缓存键
-     * @return 自减后的值
+     * @return 自减后的值；Redis 实现在管道/异常场景可能返回 null，调用方需判空
      */
     default Long decrement(String key) {
         return decrement(key, 1L);

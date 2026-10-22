@@ -7,15 +7,23 @@ import org.springframework.amqp.core.Message;
 /**
  * 消息重试管理器接口。
  * <p>
- * 用于管理RabbitMQ消息消费失败后的重试逻辑,支持业务失败重试和校验失败重试两种场景。
+ * 用于管理RabbitMQ消息消费失败后的重试逻辑，支持业务失败重试和校验失败重试两种场景。
  * 默认实现 {@link com.simple.common.rabbitmq.manager.DefaultRetryMessageManager} 基于Redis计数器
- * 控制重试次数,超过最大重试次数后将消息持久化到失败队列或数据库。
+ * 控制重试次数，超过最大重试次数后将消息持久化到失败兜底存储。
  * </p>
+ *
+ * <h3>职责边界（重要契约）：</h3>
+ * <ul>
+ *   <li>本接口只负责"投递重试副本或持久化死信"，<b>不负责</b>原始投递的 ack/nack；
+ *       channel 参数仅为签名兼容保留，实现方不得使用它做任何确认操作；</li>
+ *   <li>原始消息的确认（ack/nack 及 requeue 决策）由调用方（RabbitMqProcessAspect）在本方法成功返回后统一结算；</li>
+ *   <li>实现不得抛出异常（内部必须自行兜底：重试副本发送失败时转死信并保证计数清理），否则原始消息可能无法结算。</li>
+ * </ul>
  *
  * <h3>使用场景：</h3>
  * <ul>
  *   <li>业务失败重试：数据库连接超时、第三方API调用失败等临时性错误</li>
- *   <li>校验失败重试：数据一致性校验未通过,等待上游系统完成后再重试</li>
+ *   <li>校验失败重试：数据一致性校验未通过，等待上游系统完成后再重试</li>
  *   <li>幂等性保证：通过唯一标识防止重复消费</li>
  * </ul>
  *
@@ -26,7 +34,9 @@ public interface RetryMessageManager {
     /**
      * 处理业务失败重试
      * <p>
-     * 当消息消费过程中抛出业务异常时调用此方法。会根据重试次数决定是重新入队还是持久化失败消息。
+     * 当消息消费过程中抛出业务异常时调用此方法。会根据重试次数决定是发送延迟重试副本还是持久化失败消息。
+     * 计数 Key 必须通过 {@link RetryCountManager#buildRetryKey(String, String)} 构建（业务与校验重试独立计数，
+     * 复用同一 Key 会串用重试预算）。
      * </p>
      *
      * <h3>使用示例：</h3>
@@ -40,27 +50,27 @@ public interface RetryMessageManager {
      * }
      * }</pre>
      *
-     * @param retryKey       重试计数Key,格式为 "queue:correlationId"
-     * @param message        原始消息对象,包含消息体和相关元数据
-     * @param channel        RabbitMQ通道,用于执行ack/nack操作
-     * @param maxRetryCount  最大重试次数,超过此次数后将不再重试
-     * @param cause          导致失败的异常对象
-     * @param defaultMessage 解析后的消息体对象
+     * @param retryKey       重试计数Key，须来自 RetryCountManager#buildRetryKey，不允许为空白
+     * @param message        原始消息对象，包含消息体和相关元数据
+     * @param channel        RabbitMQ通道（仅签名兼容保留，实现方不得用于ack/nack，可为null）
+     * @param maxRetryCount  最大重试次数，必须大于 0；超过此次数后消息不再重试，由实现持久化为死信兜底记录
+     * @param cause          导致失败的异常对象，允许为 null（实现方必须容忍 null）
+     * @param defaultMessage 解析后的消息体对象；实现可能修改其 id 等字段后重新发送，调用方不应在调用后继续复用该对象做判断
      */
     void handleBusinessFailureRetry(String retryKey, Message message, Channel channel, int maxRetryCount, Exception cause, DefaultMessage defaultMessage);
 
     /**
      * 处理校验失败重试
      * <p>
-     * 当消息业务执行成功但后续校验(如数据一致性校验)失败时调用此方法。
-     * 与业务失败重试独立计数,避免相互影响。
+     * 当消息业务执行成功但后续校验（如数据一致性校验）失败时调用此方法。
+     * 与业务失败重试独立计数，避免相互影响。
      * </p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 业务执行成功
      * String businessId = processMessage(message);
-     * 
+     *
      * // 校验是否真正完成
      * if (!verificationStrategy.isCompleted(businessId, defaultMessage, message)) {
      *     String verifyRetryKey = retryCountManager.buildVerifyRetryKey(queueName, correlationId);
@@ -68,12 +78,12 @@ public interface RetryMessageManager {
      * }
      * }</pre>
      *
-     * @param verifyRetryKey 校验重试计数Key,与业务重试Key隔离
+     * @param verifyRetryKey 校验重试计数Key，须来自 RetryCountManager#buildVerifyRetryKey，与业务重试Key隔离
      * @param message        原始消息对象
-     * @param channel        RabbitMQ通道
-     * @param maxRetryCount  最大重试次数
-     * @param cause          导致失败的异常对象(可能为null)
-     * @param defaultMessage 解析后的消息体对象
+     * @param channel        RabbitMQ通道（仅签名兼容保留，实现方不得用于ack/nack，可为null）
+     * @param maxRetryCount  最大重试次数，必须大于 0；超过此次数后消息不再重试，由实现持久化为死信兜底记录
+     * @param cause          导致失败的异常对象，允许为 null（实现方必须容忍 null）
+     * @param defaultMessage 解析后的消息体对象；实现可能修改其 id 等字段后重新发送
      */
     void handleVerificationFailureRetry(String verifyRetryKey, Message message, Channel channel, int maxRetryCount, Exception cause, DefaultMessage defaultMessage);
 }

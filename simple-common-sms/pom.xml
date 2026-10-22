@@ -18,21 +18,16 @@
             <artifactId>simple-common-core</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.aliyun</groupId>
-            <artifactId>aliyun-java-sdk-core</artifactId>
-        </dependency>
-
+        <!-- 公共类型(实体/枚举/分页基类)依赖 MyBatis-Plus,运行期必须可用,须随模块传递 -->
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-mp</artifactId>
-            <scope>provided</scope>
         </dependency>
 
+        <!-- 校验链使用 StringRedisTemplate(经 simple-common-redis 传递),运行期必须可用,须随模块传递 -->
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-redis</artifactId>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>

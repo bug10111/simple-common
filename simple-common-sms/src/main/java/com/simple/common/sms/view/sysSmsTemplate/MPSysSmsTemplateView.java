@@ -25,12 +25,15 @@ class MPSysSmsTemplateView implements SysSmsTemplateView {
 
     @Override
     public IPage<SysSmsTemplate> findAll(FindAllSysSmsTemplateRequest findAllRequest) {
+        // 入参前置校验:空请求会退化成全表扫描,直接拒绝并给出明确提示
+        AssertUtils.notEmpty(findAllRequest, "查询请求不能为空");
         LambdaQueryWrapper<SysSmsTemplate> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ObjUtil.isNotEmpty(findAllRequest.getSignName()), SysSmsTemplate::getSignName, findAllRequest.getSignName())
                     .eq(ObjUtil.isNotEmpty(findAllRequest.getTemplateCode()), SysSmsTemplate::getTemplateCode, findAllRequest.getTemplateCode())
-                    .eq(ObjUtil.isNotEmpty(findAllRequest.getDeleted()), SysSmsTemplate::getDeleted, findAllRequest.getDeleted())
-                    .eq(ObjUtil.isNotEmpty(findAllRequest.getCreateTime()), SysSmsTemplate::getCreateTime, findAllRequest.getCreateTime())
-                    .eq(ObjUtil.isNotEmpty(findAllRequest.getUpdateTime()), SysSmsTemplate::getUpdateTime, findAllRequest.getUpdateTime());
+                    .eq(ObjUtil.isNotEmpty(findAllRequest.getSendType()), SysSmsTemplate::getSendType, findAllRequest.getSendType())
+                    // 固定排序保证分页结果稳定,避免翻页时数据重复或漏页
+                    .orderByDesc(SysSmsTemplate::getCreateTime)
+                    .orderByDesc(SysSmsTemplate::getId);
         return sysSmsTemplateRepository.selectPage(findAllRequest.getPage(SysSmsTemplate.class), queryWrapper);
     }
 
@@ -41,12 +44,17 @@ class MPSysSmsTemplateView implements SysSmsTemplateView {
 
     @Override
     public void updateById(SysSmsTemplate sysSmsTemplate) {
-        sysSmsTemplateRepository.updateById(sysSmsTemplate);
+        // 校验影响行数:更新不存在的主键应报错,而不是静默成功
+        int rows = sysSmsTemplateRepository.updateById(sysSmsTemplate);
+        AssertUtils.isTrue(rows > 0, "主键为{}的短信模板不存在，更新失败", sysSmsTemplate.getId());
     }
 
     @Override
     public void deleteByIds(List<String> ids) {
-        sysSmsTemplateRepository.deleteByIds(ids);
+        // MyBatis-Plus deleteBatchIds 对空集合抛 IllegalArgumentException,前置校验给出业务提示
+        AssertUtils.notEmpty(ids, "待删除的短信模板主键不能为空");
+        int rows = sysSmsTemplateRepository.deleteByIds(ids);
+        AssertUtils.isTrue(rows > 0, "待删除的短信模板不存在或已删除");
     }
 
     @Override
@@ -58,10 +66,11 @@ class MPSysSmsTemplateView implements SysSmsTemplateView {
 
     @Override
     public SysSmsTemplate findByType(String sendType) {
-        SysSmsTemplate sysSmsTemplate = sysSmsTemplateRepository.selectOne(new LambdaQueryWrapper<SysSmsTemplate>().eq(SysSmsTemplate::getSendType, sendType));
+        // send_type 预期唯一(见表唯一索引约束);命中多行时 MyBatis-Plus 会抛 TooManyResultsException,属数据异常应暴露
+        SysSmsTemplate sysSmsTemplate = sysSmsTemplateRepository.selectOne(
+                new LambdaQueryWrapper<SysSmsTemplate>().eq(SysSmsTemplate::getSendType, sendType));
         AssertUtils.notEmpty(sysSmsTemplate, "类型为{}的短信模板不存在", sendType);
         return sysSmsTemplate;
     }
 
 }
-

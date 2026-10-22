@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Created with IntelliJ IDEA
- * Description: 登陆成功日志记录
+ * Description: 登录成功日志记录
  *
  * @author qty
  */

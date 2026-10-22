@@ -13,8 +13,10 @@ import java.util.Map;
  * <p>
  * 授权中心变更投递引擎的载荷本体，经投递任务队列流转、由回调客户端 POST 到各实例接收端点。
  * 单一契约按 payloadType 区分语义，仅本类型相关字段有值（序列化忽略 null 字段）：
- * SECRET → projectCode + secrets；PERMISSION → projectCode + roleKey + permissions + changeType + timestamp；
+ * SECRET → projectCode + secrets；PERMISSION → projectCode + roleKey + tenantId + permissions + changeType + timestamp；
  * LOGOUT → projectCode + userId。接收端（/internal/sync/**）按类型落地各自缓存。
+ * tenantId 为角色租户归属，接收端以 getAuthKey(roleKey, projectCode, tenantId) 构建缓存键：
+ * 缺失 tenantId 会写入与变更源不同的键（租户 null vs 租户 X），变更对客户端不可见——多租户角色必填。
  * </p>
  *
  * @author qty
@@ -61,7 +63,9 @@ public class SyncPayload {
     private PermissionChangeTypeEnum changeType;
 
     /**
-     * 变更时间戳（PERMISSION 载荷；毫秒）
+     * 变更时间戳（PERMISSION 载荷；毫秒）。
+     * 当前接收端未基于该字段做乱序丢弃（按 changeType 幂等落地，见 DefaultSyncPayloadApplier）；
+     * 投递引擎存在重试/乱序形态，时间戳仅供排障观测，不承诺单调应用语义。
      */
     private Long timestamp;
 

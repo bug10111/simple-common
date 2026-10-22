@@ -5,6 +5,8 @@ import com.simple.common.auth.client.common.constant.TokenConstant;
 import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.token.TokenManager;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
+import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.auth.server.common.adapter.LoginTypeAdapter;
 import com.simple.common.auth.server.common.entity.AbsUserDetails;
@@ -15,8 +17,6 @@ import com.simple.common.auth.server.common.manager.user.LoginUserOperationManag
 import com.simple.common.auth.server.common.process.LoginSucProcess;
 import com.simple.common.auth.server.common.service.client.ClientDetailsService;
 import com.simple.common.auth.server.common.service.login.LoginService;
-import com.simple.common.auth.client.exchange.sync.payload.SyncPayload;
-import com.simple.common.auth.client.exchange.sync.payload.SyncPayloadType;
 import com.simple.common.auth.server.exchange.sync.producer.SyncDeliveryProducer;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.core.utils.HttpServletUtils;
@@ -75,8 +75,10 @@ public class DefaultLoginService implements LoginService {
         loginReturn.put(TokenConstant.bearerKey, TokenConstant.bearerValue);
         loginReturn.put(TokenConstant.accessTokenKey, accessToken);
         loginReturn.put(TokenConstant.refreshTokenKey, refreshToken);
-        loginReturn.put(TokenConstant.expKey, tokenData.getAccessTokenMap().get(TokenConstant.expKey).toString());
-        loginReturn.put(TokenConstant.scopesKey, tokenData.getSaveInfoMap().get(TokenConstant.scopesKey).toString());
+        Object expObj = tokenData.getAccessTokenMap().get(TokenConstant.expKey);
+        loginReturn.put(TokenConstant.expKey, expObj == null ? "" : expObj.toString());
+        Object scopesObj = tokenData.getSaveInfoMap().get(TokenConstant.scopesKey);
+        loginReturn.put(TokenConstant.scopesKey, scopesObj == null ? "" : scopesObj.toString());
         if (ObjUtil.isNotEmpty(absUserDetails.getExtensionResponse())) {
             loginReturn.putAll(absUserDetails.getExtensionResponse());
         }
@@ -99,35 +101,41 @@ public class DefaultLoginService implements LoginService {
         // 判断token类型
         AssertUtils.notEmpty(atiObj, LoginException.RE_LOGIN_EXPIRED, "token无效，ati信息缺失");
         String ati = atiObj.toString();
-        String jti = payload.get(TokenConstant.jtiKey).toString();
+        Object jtiObj = payload.get(TokenConstant.jtiKey);
+        AssertUtils.notEmpty(jtiObj, LoginException.RE_LOGIN_EXPIRED, "token无效，jti信息缺失");
+        String jti = jtiObj.toString();
 
         // 校验客户端
         HttpServletRequest request = HttpServletUtils.getRequest();
         ClientDetails clientDetails = clientDetailsService.getClientDetails(request);
         Object audObj = payload.get(TokenConstant.audKey);
         AssertUtils.notEmpty(audObj, LoginException.RE_LOGIN_EXPIRED, "token中缺少aud信息");
-        
-        // JJWT 会将 aud 解析为 Set<String>，需要特殊处理
-        String clientIdFromToken;
-        if (audObj instanceof Set<?> audSet) {
-            // 如果是集合，取第一个元素
-            AssertUtils.notEmpty(audSet, LoginException.RE_LOGIN_EXPIRED, "aud集合为空");
-            clientIdFromToken = audSet.iterator().next().toString();
-        } else if (audObj instanceof List<?> audList) {
-            // 兼容列表类型
-            AssertUtils.notEmpty(audList, LoginException.RE_LOGIN_EXPIRED, "aud列表为空");
-            clientIdFromToken = audList.get(0).toString();
+
+        // aud 归属校验：token 的 aud 集合必须包含当前客户端（JJWT 会将 aud 解析为 Set/List，
+        // 统一按集合包含判定，不取首元素——多受众令牌按迭代顺序取首元素会随机拒绝或放行错误客户端）
+        boolean audMatched;
+        if (audObj instanceof Collection<?> audCollection) {
+            AssertUtils.notEmpty(audCollection, LoginException.RE_LOGIN_EXPIRED, "aud集合为空");
+            audMatched = audCollection.contains(clientDetails.getClientId());
         } else {
             // 单个字符串
-            clientIdFromToken = audObj.toString();
+            audMatched = clientDetails.getClientId().equals(audObj.toString());
         }
-        
-        AssertUtils.isTrue(Objects.equals(clientDetails.getClientId(), clientIdFromToken), LoginException.RE_LOGIN_EXPIRED, "客户端ID不匹配");
+        AssertUtils.isTrue(audMatched, LoginException.RE_LOGIN_EXPIRED, "客户端ID不匹配");
 
         // 获取内省数据
         Map<Object, Object> userInfo = loginUserOperationManager.getUserInfo(jti);
         AssertUtils.notEmpty(userInfo, LoginException.RE_LOGIN_EXPIRED, "token无效，找不到jti为[{}]的信息", jti);
         AssertUtils.isTrue(userInfo.containsKey(ati), LoginException.RE_LOGIN_EXPIRED, "token无效，找不到ati为[{}]的信息", ati);
+
+        // 刷新令牌轮换原子化（单赢家消费）：先原子消费旧 jti——从用户 token 集合原子移除（仅首个请求
+        // 移除成功）并删除其内省数据，杜绝同一刷新令牌并发重放轮换出多套有效令牌；消费失败即判定
+        // 重放或已失效，直接拒绝
+        Object userIdObj = userInfo.get(TokenConstant.userIdKey);
+        AssertUtils.notEmpty(userIdObj, LoginException.RE_LOGIN_EXPIRED, "token无效，缺少用户ID信息");
+        if (!loginUserOperationManager.consumeToken(userIdObj.toString(), jti)) {
+            AssertUtils.error(LoginException.RE_LOGIN_EXPIRED, "刷新令牌已失效，请重新登录");
+        }
 
         TokenData tokenData = new TokenData();
         tokenData.refresh(userInfo, jti, ati);
@@ -136,19 +144,18 @@ public class DefaultLoginService implements LoginService {
         String accessToken = tokenManager.create(tokenData.getAccessTokenMap());
         String refreshToken = tokenManager.create(tokenData.getRefreshTokenMap());
 
-        // 先保存新token信息，再删除旧token，避免并发问题
+        // 旧 jti 已被原子消费失效，保存新token信息；新信息写入失败时本次刷新失败（旧令牌已不可重放，不产生回退窗口）
         loginUserOperationManager.saveUserInfo(tokenData, false);
-        
-        // 清除旧的信息
-        loginUserOperationManager.loginOut(userInfo.get(TokenConstant.userIdKey).toString(), jti);
 
         // 添加返回数据，type 字段使用响应契约值常量（不含空格）
         Map<String, String> loginReturn = new LinkedHashMap<>();
         loginReturn.put(TokenConstant.bearerKey, TokenConstant.bearerValue);
         loginReturn.put(TokenConstant.accessTokenKey, accessToken);
         loginReturn.put(TokenConstant.refreshTokenKey, refreshToken);
-        loginReturn.put(TokenConstant.expKey, tokenData.getAccessTokenMap().get(TokenConstant.expKey).toString());
-        loginReturn.put(TokenConstant.scopesKey, tokenData.getSaveInfoMap().get(TokenConstant.scopesKey).toString());
+        Object newExpObj = tokenData.getAccessTokenMap().get(TokenConstant.expKey);
+        loginReturn.put(TokenConstant.expKey, newExpObj == null ? "" : newExpObj.toString());
+        Object newScopesObj = tokenData.getSaveInfoMap().get(TokenConstant.scopesKey);
+        loginReturn.put(TokenConstant.scopesKey, newScopesObj == null ? "" : newScopesObj.toString());
         return loginReturn;
     }
 
@@ -168,6 +175,9 @@ public class DefaultLoginService implements LoginService {
         UserTemporary userTemporary = LoginUserUtils.getUserTemporary();
         String userId = userTemporary.getUserId();
 
+        // 无登录上下文时 userId 为 null，禁止携带 null 继续清理缓存键或广播 LOGOUT 载荷
+        AssertUtils.notEmpty(userId, LoginException.LOGIN_EXPIRED, "未检测到登录用户");
+
         // 退出当前登录用户执行全端下线：清除该用户在所有端的登录态（含同账号其他会话的 token 关联），
         // 并广播退出事件让各客户端同步清理本地缓存；若仅清除当前会话，同账号其他会话会因授权中心
         // 登录数据仍在而经内省回源后复活，导致退出登录后业务侧 token 继续可用
@@ -183,15 +193,15 @@ public class DefaultLoginService implements LoginService {
      */
     private AbsUserDetails getAbsUserDetails(ClientDetails clientDetails, Object adapter, LoginTypeAdapter loginType) {
         LoginManager loginManager = loginType.getLoginManager();
-        AssertUtils.notEmpty(loginManager, "登录失败！没有{}的实现", loginType.getAClass().getName());
+        AssertUtils.notEmpty(loginManager, "登录失败！没有{}的实现", loginType.getLoginManagerClass().getName());
 
         if (!loginManager.support(adapter)) {
-            AssertUtils.error("登陆失败", "登录失败！ LoginService 实现校验失败！");
+            AssertUtils.error("登录失败！LoginService 实现校验失败！");
         }
-        
+
         // 执行登录流程（AbsLoginManager 会自动执行完整流程）
         AbsUserDetails absUserDetails = loginManager.login(clientDetails, adapter);
-        
+
         return checkUserState(absUserDetails);
     }
 
@@ -202,7 +212,7 @@ public class DefaultLoginService implements LoginService {
      */
     protected AbsUserDetails checkUserState(AbsUserDetails absUserDetails) {
         AssertUtils.notNull(absUserDetails, "登录失败！AbsUserDetails 对象为空");
-        AssertUtils.notEmpty(absUserDetails.getUserId(), "登录失败,没有这个用户", "登录失败！userId 为空");
+        AssertUtils.notEmpty(absUserDetails.getUserId(), "登录失败，没有这个用户");
         AssertUtils.notEmpty(absUserDetails.getLoginRole(), "登录角色不能为空");
         AssertUtils.isTrue(absUserDetails.getIsEnabled() == 1, "登录失败，账号已禁用");
         AssertUtils.isTrue(absUserDetails.getIsAccountNonExpired() == 1, "帐户已过期，请联系管理员");

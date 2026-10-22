@@ -1,6 +1,7 @@
 package com.simple.common.auth.server.common.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.ToString;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 import lombok.experimental.Accessors;
@@ -25,7 +26,8 @@ public class ClientDetails {
     //客户端名称
     private String clientName;
 
-    //客户端密码（要加密后存储)，即秘钥
+    //客户端密码（要加密后存储)，即秘钥（toString/equals/hashCode 均排除，防凭证泄入日志）
+    @ToString.Exclude
     private String clientSecret;
 
     //微信appid
@@ -40,7 +42,7 @@ public class ClientDetails {
     //（可选）token有效时间（单位秒），不填默认(60 * 60 * 12, 12小时)
     private int accessTokenValidity;
 
-    //（可选）刷新令牌的有效时间（单位秒），不填默认(60 * 60 * 24, 30天)
+    //（可选）刷新令牌的有效时间（单位秒），不填默认(60 * 60 * 24 * 30, 30天)
     private int refreshTokenValidity;
 
 }

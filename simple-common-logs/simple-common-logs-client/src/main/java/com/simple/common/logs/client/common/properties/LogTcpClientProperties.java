@@ -2,10 +2,11 @@ package com.simple.common.logs.client.common.properties;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.core.Ordered;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 
@@ -29,7 +30,7 @@ public class LogTcpClientProperties {
     /**
      * 服务端主机地址
      */
-    @NotNull(message = "服务端主机地址不能为空")
+    @NotBlank(message = "服务端主机地址不能为空")
     private String host = "127.0.0.1";
 
     /**
@@ -68,9 +69,9 @@ public class LogTcpClientProperties {
      * 最小保证 2 个线程，避免单核环境下性能不足。
      * </p>
      */
-    @Min(value = 1, message = "工作线程数最小为 1")
+    @Min(value = 2, message = "工作线程数最小为 2")
     @Max(value = 64, message = "工作线程数最大为 64")
-    private int workerThreads = Math.max(2, Runtime.getRuntime().availableProcessors());
+    private int workerThreads = Math.min(64, Math.max(2, Runtime.getRuntime().availableProcessors()));
 
     /**
      * 缓冲队列容量，默认10000
@@ -101,8 +102,17 @@ public class LogTcpClientProperties {
     /**
      * 降级存储目录
      */
-    @NotNull(message = "降级存储目录不能为空")
+    @NotBlank(message = "降级存储目录不能为空")
     private String fallbackDir = "./logs_fallback";
+
+    /**
+     * 日志过滤器执行顺序（Spring Ordered 语义，值越小越先执行）。
+     * <p>
+     * 默认最高优先级 + 10。若部署环境存在更早消费请求体的过滤器
+     * （签名/解密等），可调小该值确保日志体缓存先行完成。
+     * </p>
+     */
+    private int filterOrder = Ordered.HIGHEST_PRECEDENCE + 10;
 
     /**
      * 降级文件最大大小(字节)，超过则轮转

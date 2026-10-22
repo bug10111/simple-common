@@ -1,7 +1,6 @@
 package com.simple.common.core.utils;
 
 import cn.hutool.core.date.DateTime;
-import cn.hutool.core.util.ObjUtil;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.MultiFormatWriter;
@@ -35,10 +34,15 @@ public class QRCodeUtils {
     private static final int height = 300;
 
     /**
+     * 批量生成的数量上限（防一次性提交海量图像任务耗尽线程/内存）
+     */
+    private static final int MAX_BATCH_SIZE = 1000;
+
+    /**
      * 批量生成二维码
      *
      * @param logoBase64 中心图片
-     * @param size       数量
+     * @param size       数量（1~1000）
      */
     public static void createZip(String logoBase64,  int size) {
         createZip(width, height,  logoBase64,  size);
@@ -50,9 +54,12 @@ public class QRCodeUtils {
      * @param width      宽
      * @param height     高
      * @param logoBase64 中心图片
-     * @param size       数量
+     * @param size       数量（1~{@value MAX_BATCH_SIZE}）
      */
     public static void createZip(int width, int height, String logoBase64, int size) {
+        if (size <= 0 || size > MAX_BATCH_SIZE) {
+            throw new IllegalArgumentException("批量生成数量size必须在1~" + MAX_BATCH_SIZE + "之间: " + size);
+        }
 
         String yyyyMMddHHmmss = DateUtils.format(DateTime.now(), "yyyyMMddHHmmss");
 
@@ -69,54 +76,34 @@ public class QRCodeUtils {
                 list.add(entity);
             }
 
-            if (ObjUtil.isNotEmpty(list)) {
+            try {
                 for (CreateZipEntity entity : list) {
                     ZipUtils.write(zipOut1, entity.getFileName(), entity.getFuture().join());
                 }
+            } catch (Exception e) {
+                // 单个失败取消其余未完成任务，避免僵尸任务继续消耗资源；带上条目名便于定位
+                list.forEach(entity -> entity.getFuture().cancel(true));
+                if (e instanceof RuntimeException re) {
+                    throw re;
+                }
+                throw new IllegalStateException("二维码批量生成失败", e);
             }
 
         });
     }
 
     /**
-     * 同步生成一个带 Logo 和底部文字的二维码 PNG 字节数组
+     * 同步生成一个带 Logo 和底部文字的二维码 PNG 并写入当前响应
      *
      * @param content    二维码内容
      * @param logoBase64 Logo 的 Base64 字符串（可为 null）
      * @param bottomText 底部文字（可为 null）
      */
-    @SneakyThrows
     public static void create(String content, String logoBase64, String bottomText) {
-        // 1. 设置二维码编码参数
-        Map<EncodeHintType, Object> hints = new HashMap<>();
-        hints.put(EncodeHintType.CHARACTER_SET, "UTF-8");
-        hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.H); // 高容错率，便于嵌入 Logo
-        hints.put(EncodeHintType.MARGIN, 1); // 白边最小
-
-        // 2. 生成二维码矩阵
-        BitMatrix bitMatrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, width, height, hints);
-
-        // 3. 转为 BufferedImage（默认黑白色）
-        BufferedImage qrImage = MatrixToImageWriter.toBufferedImage(bitMatrix, new MatrixToImageConfig());
-
-        // 4. 如果提供了 Logo，则叠加到中心
-        if (logoBase64 != null && !logoBase64.trim().isEmpty()) {
-            // 处理可能的 data:image/png;base64, 前缀
-            String base64Data = logoBase64.contains(",") ? logoBase64.split(",", 2)[1] : logoBase64;
-            byte[] logoBytes = Base64.getDecoder().decode(base64Data);
-            BufferedImage logo = ImageIO.read(new ByteArrayInputStream(logoBytes));
-            overlayLogo(qrImage, logo);
-        }
-
-        // 5. 如果有底部文字，扩展画布并绘制文字
-        if (bottomText != null && !bottomText.trim().isEmpty()) {
-            qrImage = addBottomText(qrImage, bottomText.trim());
-        }
-
-        // 6. 输出为 PNG 字节数组
-        @Cleanup java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-        ImageIO.write(qrImage, "png", baos);
-
+        // 委托字节版重载，消除两份并行维护的生成逻辑
+        byte[] png = create(width, height, content, logoBase64, bottomText);
+        java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+        baos.writeBytes(png);
         ResponseUtils.writeResponse(content + ".png", baos);
     }
 
@@ -150,6 +137,10 @@ public class QRCodeUtils {
             String base64Data = logoBase64.contains(",") ? logoBase64.split(",", 2)[1] : logoBase64;
             byte[] logoBytes = Base64.getDecoder().decode(base64Data);
             BufferedImage logo = ImageIO.read(new ByteArrayInputStream(logoBytes));
+            // ImageIO.read对不识别的图像格式返回null，提前定位到"Logo数据非法"，避免在缩放处以NPE暴露
+            if (logo == null) {
+                throw new IllegalArgumentException("Logo图片解析失败，请确认Base64内容为有效图片格式(png/jpeg等)");
+            }
             overlayLogo(qrImage, logo);
         }
 
@@ -205,11 +196,11 @@ public class QRCodeUtils {
         // 绘制原始二维码图像
         g.drawImage(image, 0, 0, null);
 
-        // 绘制居中文字
+        // 绘制居中文字（超宽时钳制到左边界，避免负x导致文字被两侧裁剪）
         g.setColor(Color.BLACK);
         g.setFont(new Font("Microsoft YaHei", Font.PLAIN, 16)); // 兼容中文
         FontMetrics fm = g.getFontMetrics();
-        int x = (width - fm.stringWidth(text)) / 2;
+        int x = Math.max(0, (width - fm.stringWidth(text)) / 2);
         int y = originalHeight + 15; // 文字基线位置
         g.drawString(text, x, y);
         g.dispose();

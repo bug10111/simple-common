@@ -5,7 +5,13 @@ package com.simple.common.websocket.common.constant;
  *
  * @author qty
  */
-public class WebSocketConstant {
+public final class WebSocketConstant {
+
+    /**
+     * 常量类禁止实例化
+     */
+    private WebSocketConstant() {
+    }
 
     /**
      * 握手类型参数名
@@ -36,6 +42,11 @@ public class WebSocketConstant {
      * 编解码方式：Protobuf
      */
     public static final String CODEC_PROTO = "proto";
+
+    /**
+     * 默认通配 cliKey：未按具体 cliKey 注册处理器时，消息回退到以该值注册的通配处理器
+     */
+    public static final String DEFAULT_CLI_KEY = "default";
 
     /**
      * Channel属性：类型

@@ -9,7 +9,7 @@ import org.springframework.http.HttpHeaders;
  * <p>
  * 提供OAuth客户端的认证和详情获取功能,包括从请求头中解析客户端信息、生成客户端Token等。
  * 默认抽象实现 {@link com.simple.common.auth.server.service.client.AbsClientDetailsService} 提供了
- * 客户端认证的通用流程框架,具体实现需继承并重写 {@code getClientDetailsFromDB} 方法。
+ * 客户端认证的通用流程框架,具体实现需继承并重写 {@code checkClientDetails(String, String)} 方法。
  * </p>
  *
  * <h3>使用场景：</h3>
@@ -27,14 +27,14 @@ import org.springframework.http.HttpHeaders;
  *     private ClientRepository clientRepository;
  *     
  *     @Override
- *     protected ClientDetails getClientDetailsFromDB(String clientId) {
+ *     public ClientDetails checkClientDetails(String clientId, String clientSecret) {
  *         // 从数据库加载客户端配置
  *         SysClientDetails entity = clientRepository.findByClientId(clientId);
  *         AssertUtils.isTrue(entity != null, "客户端不存在");
  *         return convertToClientDetails(entity);
  *     }
  * }
- * }</pre>
+ * </pre>
  *
  * @author qty
  */
@@ -98,8 +98,14 @@ public interface ClientDetailsService {
      * @see #getClientDetails(String)
      */
     default ClientDetails getClientDetails(HttpServletRequest request) {
-        // 获取请求头中的客户端信息
+        // 请求/头快速失败：头缺失时以契约定义的异常立即失败，不把 null 下沉给实现方各自解读
+        if (request == null) {
+            throw new IllegalArgumentException("获取客户端信息时 request 不能为 null");
+        }
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (header == null || header.isBlank()) {
+            throw new IllegalArgumentException("请求头中无client信息");
+        }
         return this.getClientDetails(header);
     }
 }

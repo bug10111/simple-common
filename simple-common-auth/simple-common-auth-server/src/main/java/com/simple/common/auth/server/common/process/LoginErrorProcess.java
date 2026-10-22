@@ -36,7 +36,9 @@ public interface LoginErrorProcess extends BasProcessService {
      * @param clientDetails 客户端信息
      * @param adapter       登录参数
      * @param ip            请求IP
-     * @return true-通过校验，false-不通过
+     * @return true-通过校验；false-超限拒绝（调用方会中断责任链并抛 LOGIN_ERROR_NUM 使登录失败）。注意
+     *         checkErrorNum 与 recordError 为两次独立缓存调用，实现方不得假设两调用间状态不变；
+     *         ip 为 null/空白的语义由实现方定义（默认实现按 UNKNOWN 归一）
      */
     boolean checkErrorNum(ClientDetails clientDetails, Object adapter, String ip);
 
@@ -46,6 +48,8 @@ public interface LoginErrorProcess extends BasProcessService {
      * @param clientDetails 客户端信息
      * @param adapter       登录参数
      * @param ip            请求IP
+     * 实现契约：必须以原子自增（如 Redis INCR）记录失败次数，每次登录失败恰好调用一次；
+     * check 与 record 之间的并发不受本接口保护，实现方不得依赖两次调用间状态一致性
      */
     void recordError(ClientDetails clientDetails, Object adapter, String ip);
 

@@ -27,6 +27,9 @@
             <artifactId>spring-boot-autoconfigure</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!-- 说明：spring-boot-autoconfigure 为本模块实际使用依赖——
+             @LocalExchange/@CloudExchange 通过 @ConditionalOnProperty 组合模式条件，
+             provided 仅覆盖编译期，运行期由 Spring Boot 应用自带的 autoconfigure 满足 -->
     </dependencies>
 
     <build>

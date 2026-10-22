@@ -17,7 +17,9 @@
             <groupId>com.deepoove</groupId>
             <artifactId>poi-tl</artifactId>
             <exclusions>
-                <!-- 排除 EasyExcel 自带的旧版 POI -->
+                <!-- poi-tl 会传递引入旧版本 POI,这里整体排除(含 poi/poi-ooxml/poi-ooxml-lite/poi-ooxml-schemas),
+                     由下方统一引入父 pom 管理版本的 POI;只排除个别工件会让旧 schemas 与新 poi-ooxml-lite 同包冲突,
+                     整体换血是刻意设计,勿改回通配符以外的精确排除 -->
                 <exclusion>
                     <groupId>org.apache.poi</groupId>
                     <artifactId>*</artifactId>

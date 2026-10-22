@@ -71,21 +71,24 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
     @PreDestroy
     public void shutdown() {
         log.info("开始关闭线程池！");
-        shutdownExecutor(executor);
-        shutdownExecutor(asyncExecutor);
+        // 属性缺失（极端初始化失败场景）时兜底，避免@PreDestroy内NPE掩盖关闭流程
+        ThreadProperties properties = this.threadProperties != null ? this.threadProperties : new ThreadProperties();
+        shutdownExecutor(executor, properties);
+        shutdownExecutor(asyncExecutor, properties);
         log.info("线程池关闭流程执行完毕！");
     }
 
     /**
      * 停止任务线程池
      */
-    public void shutdownExecutor(ExecutorService executorService) {
+    public void shutdownExecutor(ExecutorService executorService, ThreadProperties properties) {
         if (executorService == null || executorService.isShutdown()) {
             return;
         }
         executorService.shutdown();
         try {
-            long awaitSeconds = threadProperties.getShutdownAwaitTerminationSeconds();
+            // 等待秒数非法（<=0会让awaitTermination立即返回，静默跳过优雅排水）时收敛到默认值
+            long awaitSeconds = Math.max(1, properties.getShutdownAwaitTerminationSeconds());
             // 中断主线程，等待任务执行完毕
             if (!executorService.awaitTermination(awaitSeconds, TimeUnit.SECONDS)) {
                 // 终止失败，强行终止
@@ -93,13 +96,13 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
                 if (!droppedTasks.isEmpty()) {
                     log.warn("线程池 [{}] 强制关闭时丢弃了 {} 个未执行的任务", executorService, droppedTasks.size());
                 }
-                long nowAwaitSeconds = threadProperties.getShutdownNowAwaitTerminationSeconds();
+                long nowAwaitSeconds = Math.max(1, properties.getShutdownNowAwaitTerminationSeconds());
                 if (!executorService.awaitTermination(nowAwaitSeconds, TimeUnit.SECONDS)) {
                     log.warn("线程池 [{}] 强制关闭后仍未完全终止", executorService);
                 }
             }
         } catch (InterruptedException ie) {
-            // 有任何异常，强行终止任务
+            // 有中断发生，强行终止任务
             List<Runnable> droppedTasks = executorService.shutdownNow();
             if (!droppedTasks.isEmpty()) {
                 log.warn("线程池 [{}] 因中断强制关闭，丢弃了 {} 个未执行的任务", executorService, droppedTasks.size());
@@ -154,30 +157,26 @@ public class DefaultThreadService implements ThreadService, InitializingBean {
     /**
      * 打印线程异常信息
      * <p>
-     * 注意：已移除 Future.get() 阻塞调用，仅依赖传入的 Throwable 参数。
-     * 对于 ScheduledThreadPoolExecutor 和 ThreadPoolExecutor，
-     * 任务执行异常会通过第二个参数直接传递，无需额外获取。
+     * 注意：submit()/schedule() 提交的任务被 FutureTask 包装，异常被捕获进 Future 结果而非传入 t，
+     * 因此这里必须解包 Future 才能观测到失败；仅依赖 t 会静默吞掉所有经 submit 的任务异常。
      * </p>
      */
     private static void printException(Runnable r, Throwable t) {
         if (t != null) {
             log.error("线程池任务执行异常", t);
+            return;
         }
-    }
-
-    /**
-     * 覆盖接口默认方法，提供更明确的日志记录。
-     * 安全版周期任务：自动捕获异常，保证调度不中断。
-     */
-    @Override
-    public ScheduledFuture<?> scheduleWithFixedDelaySafe(Runnable runnable, long initialDelay, long delay, TimeUnit timeUnit) {
-        Runnable safeTask = () -> {
+        // 解包FutureTask：submit/schedule路径的异常存在Future结果里，t恒为null
+        if (r instanceof Future<?> future && future.isDone() && !future.isCancelled()) {
             try {
-                runnable.run();
-            } catch (Exception e) {
-                log.error("安全版周期任务单次执行异常，已自动恢复，不影响后续调度", e);
+                future.get();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (java.util.concurrent.ExecutionException e) {
+                log.error("线程池任务执行异常(Future结果)", e.getCause());
+            } catch (java.util.concurrent.CancellationException ignored) {
+                // 任务被取消属正常路径
             }
-        };
-        return scheduleWithFixedDelay(safeTask, initialDelay, delay, timeUnit);
+        }
     }
 }

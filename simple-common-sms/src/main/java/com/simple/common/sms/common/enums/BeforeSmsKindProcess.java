@@ -29,7 +29,7 @@ public enum BeforeSmsKindProcess implements DefaultKindProcess {
     private final int order;
 
     @Override
-    public Integer getOrdered() {
+    public int getOrdered() {
         return this.order;
     }
 

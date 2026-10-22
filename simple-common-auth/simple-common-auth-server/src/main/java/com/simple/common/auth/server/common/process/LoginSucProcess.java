@@ -17,8 +17,9 @@ import com.simple.common.core.common.service.process.BasProcessService;
  * 成功处理器的执行顺序通过 {@link com.simple.common.auth.server.common.enums.process.LoginSucKindProcess}
  * 枚举定义，框架默认提供以下处理器（按执行顺序）：</p>
  * <ol>
- *   <li>{@link com.simple.common.auth.server.process.SaveInfoLoginSucProcess} - 保存用户登录信息到Redis</li>
- *   <li>{@link com.simple.common.auth.server.process.LogLoginSucProcess} - 记录登录成功日志</li>
+ *   <li>各处理器经 {@link com.simple.common.core.common.service.process.BasProcessService#getProcess()} 声明的
+ *   {@link com.simple.common.auth.server.common.enums.process.LoginSucKindProcess} 枚举注册与排序，
+ *   实际执行的处理器及其顺序以枚举注册为准</li>
  * </ol>
  *
  * <h3>自定义扩展：</h3>
@@ -32,9 +33,9 @@ import com.simple.common.core.common.service.process.BasProcessService;
 public interface LoginSucProcess extends BasProcessService {
 
     /**
-     * 执行权限过滤器
+     * 执行登录成功后的处理逻辑（责任链中的一环，不负责权限校验；失败即中断责任链）
      *
-     * @param tokenData 登录中token数据对象
+     * @param tokenData 登录中token数据对象，不应为 {@code null}；实现方不得修改共享的登录状态
      */
     void execute(TokenData tokenData);
 }

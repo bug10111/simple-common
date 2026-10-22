@@ -8,8 +8,12 @@ package com.simple.common.eventbus.common.constants;
  */
 public final class EventConstant {
 
+    private EventConstant() {
+        // 常量类禁止实例化
+    }
+
     //所有系统
-    public static final String TARGET_ALL_X = "event.all";
+    public static final String TARGET_ALL = "event.all";
 
     //本系统
     public static final String THIS_MACHINE = "event.this";

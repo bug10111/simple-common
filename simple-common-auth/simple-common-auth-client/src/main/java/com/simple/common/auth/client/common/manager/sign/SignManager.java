@@ -16,8 +16,10 @@ package com.simple.common.auth.client.common.manager.sign;
  *
  * <h3>密钥管理：</h3>
  * <p>
- * 签名密钥由 {@link com.simple.common.auth.client.common.manager.secret.SignSecretManager} 统一管理，
- * 支持通过 CacheManager 配置切换 Redis/Local 缓存，应用启动时自动生成初始密钥。
+ * 签名密钥由 {@link com.simple.common.auth.client.util.SignSecretUtils} 统一管理（静态 AtomicReference，进程内可见），
+ * 应用启动时经实例注册自举加载初始密钥；密钥同步变更经授权中心投递引擎回调。
+ * nonce 防重放经 CacheManager（simple.sign.cache-type 决定 Redis/Local）存储：
+ * REDIS 形态集群共享 nonce 记录；nonce 记录为写入型消费（checkNonce 即记录已用 nonce），非只读校验。
  * </p>
  *
  * @author qty
@@ -28,11 +30,12 @@ public interface SignManager {
      * 校验请求时效性
      * <p>
      * 检查请求时间戳是否在允许的时间窗口内,防止过期请求被执行。
-     * 默认时间窗口为 5 分钟。
+     * 默认时间窗口为 5 分钟（simple.sign.default-time-window-ms）。
      * </p>
      *
-     * @param timestamp 请求时间戳(毫秒)
-     * @throws RuntimeException 当请求已过期时抛出异常
+     * @param timestamp 请求时间戳(毫秒),不允许为空/非数字/非正数
+     * @throws com.simple.common.core.exception.DefaultException 当请求已过期时抛出异常
+     * @throws IllegalArgumentException 当时间戳为空或不是合法数字/非正数时抛出
      */
     void checkTimestamp(String timestamp);
 
@@ -40,11 +43,12 @@ public interface SignManager {
      * 防重放校验
      * <p>
      * 检查 nonce (随机数) 是否已被使用过,防止同一请求被重复提交。
-     * nonce 会在 Redis 中缓存一定时间(通常为 5 分钟)。
+     * 通过即原子记录该 nonce（写入型消费，重复出现直接拒绝）；
+     * nonce 记录 TTL 严格覆盖时间戳窗口，受 simple.sign.cache-time 与时间窗口共同约束。
      * </p>
      *
-     * @param nonce 唯一标识符,通常为 UUID 或随机字符串
-     * @throws RuntimeException 当 nonce 已存在(重放攻击)时抛出异常
+     * @param nonce 唯一标识符,通常为 UUID 或随机字符串,不允许为空
+     * @throws com.simple.common.core.exception.DefaultException 当 nonce 已存在(重放攻击)时抛出异常
      */
     void checkNonce(String nonce);
 
@@ -87,8 +91,8 @@ public interface SignManager {
      * }</pre>
      *
      * @param message   原始消息内容(与客户端生成签名时相同)
-     * @param signature 客户端传来的签名字符串
-     * @return true 表示签名验证通过,false 表示验证失败
+     * @param signature 客户端传来的 Base64 签名字符串,为 null/空白时直接返回 false（不抛异常）
+     * @return true 表示签名验证通过,false 表示验证失败或入参为空（签名为 URL-safe Base64，非法字符按失败处理）
      */
     boolean verifyWeb(String message, String signature);
 
@@ -121,12 +125,13 @@ public interface SignManager {
      * <pre>{@code
      * // 生成新密钥
      * String secret = signManager.generateSecret();
-     * 
-     * // 添加并广播
+     *
+     * // 仅添加到本地缓存（如需分发请使用授权中心的密钥投递链路）
      * signManager.addSecret(secret);
      * }</pre>
      *
-     * @return 生成的随机密钥字符串（至少32位）
+     * @return 生成的随机密钥字符串（至少32位；DefaultSignManager 实现生成 32 位 UUID，
+     *         客户端侧密钥以授权中心下发为准，不建议本地生成）
      */
     String generateSecret();
 

@@ -4,6 +4,7 @@ import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.token.AbsTokenManager;
 import com.simple.common.auth.client.util.JwtUtils;
 import com.simple.common.core.utils.AssertUtils;
+import cn.hutool.core.util.ObjUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -27,24 +28,25 @@ public class JwtTokenManager extends AbsTokenManager {
 
     @Override
     public Map<String, Object> check(String token, boolean isRefresh) {
-        if (!JwtUtils.verify(token)) {
-            String tokenDigest = token == null ? "null" : (token.length() <= 10 ? token : token.substring(0, 10)) + "...[len=" + token.length() + "]";
-            log.warn("Token 验签失败，摘要: {}", tokenDigest);
-            AssertUtils.error(LoginException.RE_LOGIN_EXPIRED, "验签失败");
-        } else {
-            Map<String, Object> payload = JwtUtils.getPayload(token);
-            checkTime(payload, isRefresh);
-            return payload;
+        // 空/空白 token 显式拦截（JwtUtils.verify 对非法入参直接返回 false，此处给出明确业务语义）
+        if (ObjUtil.isEmpty(token)) {
+            log.warn("Token 校验失败：token为空");
+            AssertUtils.error(LoginException.RE_LOGIN_EXPIRED, "Token不能为空");
         }
-
-        //代码不会执行到这里来，这里是编译器报错
-        return null;
+        if (!JwtUtils.verify(token)) {
+            log.warn("Token 验签失败，摘要: {}", tokenDigest(token));
+            AssertUtils.error(LoginException.RE_LOGIN_EXPIRED, "验签失败");
+        }
+        Map<String, Object> payload = JwtUtils.getPayload(token);
+        checkTime(payload, isRefresh);
+        return payload;
     }
 
     @Override
     public void addSecret(String secret) {
         AssertUtils.notEmpty(secret, "JWT密钥不能为空");
-        AssertUtils.isTrue(secret.length() >= 32, "JWT密钥长度至少为32位，当前长度: " + secret.length());
+        // HS512 要求 ≥64 字节密钥（RFC 7518），32 位密钥弱化签名强度
+        AssertUtils.isTrue(secret.length() >= 64, "JWT密钥长度至少为64位（HS512要求），当前长度: " + secret.length());
 
         // 仅缓存到本地，不涉及远程广播
         JwtUtils.saveSecret(secret);
@@ -54,5 +56,12 @@ public class JwtTokenManager extends AbsTokenManager {
     @Override
     public String generateSecret() {
         return JwtUtils.createJWTSignerStr();
+    }
+
+    /**
+     * 非可逆摘要：仅记录长度信息用于日志排查，不输出任何凭证原文片段
+     */
+    private String tokenDigest(String token) {
+        return "[len=" + token.length() + "]";
     }
 }

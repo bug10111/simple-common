@@ -14,14 +14,17 @@
 
     <dependencies>
 
+        <!-- 共享库不透传 JDBC 驱动：使用方按需显式声明所用数据库驱动，避免驱动冲突与自动探测歧义 -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -39,6 +42,14 @@
             <artifactId>simple-common-core</artifactId>
         </dependency>
 
+        <!-- MPExceptionHandler 公共异常映射使用 spring-web 注解（ControllerAdvice/ExceptionHandler）
+             与 HttpStatus，显式声明避免依赖核心模块的间接传递（与 simple-common-annex 同口径 provided） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- 测试依赖：JUnit 5 与 H2 内存库，版本由父 BOM 管理 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -54,15 +65,6 @@
 
     </dependencies>
 
-    <!-- 模块级覆盖父 pom 的 surefire 2.12.4：旧版不识别 JUnit 5 测试（Tests run 恒为 0），升级至 3.2.5 使 JUnit Platform 生效 -->
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.2.5</version>
-            </plugin>
-        </plugins>
-    </build>
+    <!-- 父 pom 的 surefire 已升级至 3.2.5（兼容 JUnit 5/JDK17），模块级覆盖不再需要 -->
 
 </project>

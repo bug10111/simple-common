@@ -18,16 +18,24 @@ message LogData {
   string nickname = 8;         // 用户名
   string operName = 9;         // 操作名称
   string operParam = 10;       // 请求参数
-  int32 status = 11;           // 操作状态
-  string errorMsg = 12;        // 错误消息
-  string errorData = 13;       // 异常信息
+  // 操作状态：HTTP 状态码语义（200=成功，4xx/5xx=失败）。
+  // 注意：proto3 中 int32 未设置与 0 值不可区分，调用方应尽量显式设置状态。
+  int32 status = 11;
+  // 错误消息（自由文本，建议上限 64KB，超长请截断；含敏感信息时需脱敏后再发送）
+  string errorMsg = 12;
+  // 异常堆栈（自由文本，建议上限 64KB，超长请截断；可能包含敏感路径/参数，使用方需评估脱敏）
+  string errorData = 13;
   int64 requestTime = 14;      // 接口耗时（毫秒）
-  int64 createTime = 15;       // 创建时间
+  int64 createTime = 15;       // 创建时间（epoch 毫秒，UTC）
 }
 
 // 批量日志消息容器
 // 用于客户端批量发送和服务端批量处理，减少网络包和编解码开销
 message LogBatch {
+  // 批量日志条目无上限约束（传输层由帧长上限控制：单帧 <= 10MB，见
+  // LogDataEvent 与 LogProtobufDecoder 的 MAX_FRAME_LENGTH 约定）。
+  // 使用建议：单批不超过 500 条 / 1MB，超出部分应分批发送，
+  // 避免服务端一次性解码超大消息造成内存压力。
   repeated LogData logs = 1;
 }
 

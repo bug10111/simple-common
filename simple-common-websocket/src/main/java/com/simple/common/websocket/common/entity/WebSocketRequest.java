@@ -3,6 +3,7 @@ package com.simple.common.websocket.common.entity;
 import com.simple.common.core.utils.AssertUtils;
 import com.simple.common.websocket.utils.WebSocketUtils;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * WebSocket 统一消息实体，服务端与客户端双向通信均使用此格式。
@@ -21,6 +22,7 @@ import lombok.Data;
  * @param <T> 请求数据类型
  * @author qty
  */
+@Slf4j
 @Data
 public class WebSocketRequest<T> {
 
@@ -66,15 +68,21 @@ public class WebSocketRequest<T> {
      *
      * @param msg 消息内容（JSON字符串或纯文本）
      * @return true 发送成功
-     * @throws com.simple.common.core.exception.DefaultException 当 type 或 cliKey 为 null 时
+     * @throws com.simple.common.core.exception.DefaultException 当 type 或 cliKey 为空白时
      */
     public boolean reply(String msg) {
 
-        // 断言 type 和 cliKey 非空，有通道信息才能发送消息
-        AssertUtils.notNull(this.type, "type 不能为空，reply 需要通道类型信息");
-        AssertUtils.notNull(this.cliKey, "cliKey 不能为空，reply 需要客户端标识信息");
+        // 断言 type 和 cliKey 非空白，有通道信息才能发送消息（空白键永远无法匹配通道）
+        AssertUtils.notEmpty(this.type, "type 不能为空，reply 需要通道类型信息");
+        AssertUtils.notEmpty(this.cliKey, "cliKey 不能为空，reply 需要客户端标识信息");
 
-        return WebSocketUtils.sendMsg(this.type, this.cliKey, msg);
+        boolean sent = WebSocketUtils.sendMsg(this.type, this.cliKey, msg);
+        if (!sent) {
+
+            // 推送型场景调用方常忽略返回值，失败必须可观测，避免消息静默丢失
+            log.warn("reply消息发送失败 [type={}, cliKey={}]", this.type, WebSocketUtils.maskKey(this.cliKey));
+        }
+        return sent;
     }
 
 }

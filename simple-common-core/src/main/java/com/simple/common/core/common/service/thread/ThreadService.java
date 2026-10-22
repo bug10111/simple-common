@@ -1,5 +1,8 @@
 package com.simple.common.core.common.service.thread;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
@@ -9,7 +12,7 @@ import java.util.concurrent.TimeUnit;
  * 线程池任务调度服务接口。
  * <p>
  * 提供统一的线程池管理和任务调度功能,包括延迟任务、定时任务、异步执行等。
- * 默认实现 {@link com.simple.common.core.service.thread.DefaultThreadService} 
+ * 默认实现 {@link com.simple.common.core.service.thread.DefaultThreadService}
  * 基于 ScheduledThreadPoolExecutor 和 ThreadPoolExecutor 实现高性能线程池管理。
  * </p>
  *
@@ -23,6 +26,8 @@ import java.util.concurrent.TimeUnit;
  * @author qty
  */
 public interface ThreadService {
+
+    Logger LOGGER = LoggerFactory.getLogger(ThreadService.class);
 
     /**
      * 获取轻量级线程池执行器(用于延迟任务)
@@ -45,17 +50,6 @@ public interface ThreadService {
     ExecutorService getAsyncExecutor();
 
     /**
-     * 延时执行任务
-     *
-     * @param runnable 任务
-     * @param time     延迟时间
-     * @param timeUnit 时间单位
-     */
-    default void schedule(Runnable runnable, int time, TimeUnit timeUnit) {
-        getExecutor().schedule(runnable, time, timeUnit);
-    }
-
-    /**
      * 延时执行任务，并返回 ScheduledFuture 用于取消或检查状态
      *
      * @param runnable 任务
@@ -68,19 +62,8 @@ public interface ThreadService {
     }
 
     /**
-     * 定期以固定速率执行任务
-     *
-     * @param runnable    任务
-     * @param InitialTime 初始延迟时间
-     * @param fixedTime   任务完成后每fixedTime时间执行一次
-     * @param timeUnit    时间单位
-     */
-    default void scheduleWithFixedDelay(Runnable runnable, int InitialTime, int fixedTime, TimeUnit timeUnit) {
-        getExecutor().scheduleWithFixedDelay(runnable, InitialTime, fixedTime, timeUnit);
-    }
-
-    /**
-     * 定期以固定速率执行任务，并返回 ScheduledFuture 用于取消或检查状态
+     * 定期以固定延迟执行任务（fixed delay：下一次执行在上一次执行<b>完成</b>后 delay 时间开始，
+     * 有效周期 = 执行耗时 + delay；非固定速率）。
      *
      * @param runnable     任务
      * @param initialDelay 初始延迟时间
@@ -93,18 +76,9 @@ public interface ThreadService {
     }
 
     /**
-     * 定期以固定速率执行任务
-     *
-     * @param runnable 任务
-     * @param delay 任务完成后每delay时间执行一次
-     * @param timeUnit  时间单位
-     */
-    default void scheduleWithFixedDelay(Runnable runnable, int delay, TimeUnit timeUnit) {
-        scheduleWithFixedDelay(runnable, 0, delay, timeUnit);
-    }
-
-    /**
-     * 定期以固定速率执行任务，并返回 ScheduledFuture
+     * 定期以固定延迟执行任务，并返回 ScheduledFuture
+     * <p>任务抛出未捕获异常会导致后续调度被取消，可靠性要求高的场景请使用
+     * {@link #scheduleWithFixedDelaySafe(Runnable, long, long, TimeUnit)}。</p>
      *
      * @param runnable 任务
      * @param delay    任务完成后每delay时间执行一次
@@ -116,9 +90,10 @@ public interface ThreadService {
     }
 
     /**
-     * 定期以固定速率执行任务（安全版），自动捕获任务内部异常，确保单次失败后周期性调度继续。
+     * 定期以固定延迟执行任务（安全版），自动捕获任务内部异常并记录日志，确保单次失败后周期性调度继续。
      * <p>
-     * 实现原理：将原始 Runnable 包装一层 try-catch，仅记录异常日志，不向上抛出。
+     * 实现原理：将原始 Runnable 包装一层 try-catch，记录异常日志后吞掉，不向上传播，
+     * 从而不触发 ScheduledThreadPoolExecutor 的"任务异常即取消后续调度"行为。
      * 适用于对可靠性要求高、允许单次执行失败但必须保持调度不中断的场景。
      * </p>
      *
@@ -132,9 +107,10 @@ public interface ThreadService {
         Runnable safeTask = () -> {
             try {
                 runnable.run();
-            } catch (Exception e) {
-                // 具体日志实现在 DefaultThreadService 中已包含，此处仅捕获避免传播
-                // 为保持接口纯粹，日志可交由实现类统一处理
+            } catch (Throwable e) {
+                // 捕获Throwable（含Error）：吞掉异常但不丢失可观测性，否则单次失败即静默取消整个周期调度；
+                // Error（如OOM）同样会终止周期调度，与"不影响后续调度"契约一致，仅记录
+                LOGGER.error("安全版周期任务单次执行异常，已自动恢复，不影响后续调度", e);
             }
         };
         return scheduleWithFixedDelay(safeTask, initialDelay, delay, timeUnit);
@@ -154,7 +130,7 @@ public interface ThreadService {
     /**
      * 获取异步线程池的活跃线程数
      *
-     * @return 当前正在执行任务的线程数
+     * @return 当前正在执行任务的线程数；-1 表示当前执行器不支持该指标（非ThreadPoolExecutor实现）
      */
     default int getAsyncActiveCount() {
         ExecutorService executor = getAsyncExecutor();
@@ -167,7 +143,7 @@ public interface ThreadService {
     /**
      * 获取异步线程池的队列大小
      *
-     * @return 当前等待执行的任务数量
+     * @return 当前等待执行的任务数量；-1 表示当前执行器不支持该指标（非ThreadPoolExecutor实现）
      */
     default int getAsyncQueueSize() {
         ExecutorService executor = getAsyncExecutor();

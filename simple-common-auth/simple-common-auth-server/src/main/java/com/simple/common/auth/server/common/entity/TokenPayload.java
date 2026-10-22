@@ -27,7 +27,7 @@ public class TokenPayload {
     private String ati;
 
     /**
-     * 过期时间戳(秒)
+     * 过期时间戳(毫秒)：与 TokenPayload.create/refresh 的写入及 TokenManager 校验口径一致
      */
     private Long exp;
 

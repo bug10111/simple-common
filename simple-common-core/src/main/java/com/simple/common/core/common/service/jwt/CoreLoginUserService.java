@@ -3,7 +3,7 @@ package com.simple.common.core.common.service.jwt;
 /**
  * 核心登录用户服务接口。
  * <p>
- * 提供获取当前登录用户基本信息的功能,如用户ID、用户名等。
+ * 提供获取当前登录用户唯一标识(ID)的功能（仅 getUserId 一个方法，不提供用户名等其它信息）。
  * 该接口通常由认证模块实现,用于在业务代码中快速获取当前用户身份。
  * </p>
  *
@@ -23,7 +23,8 @@ package com.simple.common.core.common.service.jwt;
  *         // 从 SecurityContext 或 ThreadLocal 中获取用户ID
  *         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
  *         if (auth != null && auth.getPrincipal() instanceof UserDetails) {
- *             return ((UserDetails) auth.getPrincipal()).getUsername();
+ *             // 必须返回稳定唯一ID（数据库主键），禁止用可变更的用户名充当用户ID
+ *             return ((MyUserDetails) auth.getPrincipal()).getUserId();
  *         }
  *         return null;
  *     }
@@ -38,7 +39,7 @@ public interface CoreLoginUserService {
      * 获取当前登录用户ID
      * <p>
      * 从安全上下文或会话中获取当前登录用户的唯一标识。
-     * 如果用户未登录,返回null或抛出异常(取决于实现)。
+     * 如果用户未登录或当前线程无用户上下文，统一返回null，不抛异常（调用方按需判空）。
      * </p>
      *
      * <h3>使用示例：</h3>

@@ -5,18 +5,29 @@ import lombok.Getter;
 
 /**
  * Created by IntelliJ IDEA
- * Description: 限流规则
+ * Description: 限流维度枚举
  *
  * @author qty
  */
 @AllArgsConstructor
 @Getter
 public enum CurrentLimitingRulesEnum {
-    URL("根据路由限流"),
-    USER_ID("当前登录用户"),
-    IP("IP地址"),
+    /**
+     * 按请求路由限流
+     */
+    URL("按请求路由限流"),
+    /**
+     * 按当前登录用户限流
+     */
+    USER_ID("按当前登录用户限流"),
+    /**
+     * 按 IP 地址限流
+     */
+    IP("按 IP 地址限流"),
     ;
 
-    //限流方法
-    private final String name;
+    /**
+     * 限流维度描述（展示用）
+     */
+    private final String description;
 }

@@ -17,16 +17,21 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.handler.codec.http.websocketx.BinaryWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.TextWebSocketFrame;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
+import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * WebSocket消息处理器
  * <p>
  * 负责处理WebSocket消息的接收、解析和分发。
  * 同时检测同步请求的回复消息，通过 requestId 匹配对应的 CompletableFuture 完成同步等待。
+ * 握手完成后（{@code HandshakeComplete}）才将通道注册到路由表，
+ * 避免未完成升级的通道被业务侧误用。
  * </p>
  *
  * @author qty
@@ -55,19 +60,47 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
         }
     }
 
+    @Override
+    public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+
+        // 握手完成后才注册通道：注册过早会在升级完成前暴露通道，
+        // 业务线程可能向尚未完成协议升级的连接写入错误帧，且握手失败时会短暂暴露死通道
+        if (evt instanceof WebSocketServerProtocolHandler.HandshakeComplete) {
+            String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
+            String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
+            if (type != null && cliKey != null) {
+                WebSocketUtils.addMap(type, cliKey, ctx);
+                if (log.isDebugEnabled()) {
+                    log.debug("WebSocket连接注册成功 [type={}, cliKey={}, remote={}]",
+                            type, WebSocketUtils.maskKey(cliKey), ctx.channel().remoteAddress());
+                }
+            }
+        }
+        super.userEventTriggered(ctx, evt);
+    }
+
     /**
      * 处理WebSocket帧
      * <p>
      * Close/Ping/Pong 帧已由 WebSocketServerProtocolHandler 自动处理，此处仅处理数据帧。
+     * 本处理器继承 ChannelInboundHandlerAdapter，Netty 不会自动释放引用计数帧，
+     * 必须在 finally 中显式 release，避免每条入站消息泄漏一个 ByteBuf。
      * </p>
      */
     private void handleWebSocketFrame(ChannelHandlerContext ctx, WebSocketFrame frame) {
-        if (frame instanceof TextWebSocketFrame) {
-            handleTextFrame(ctx, (TextWebSocketFrame) frame);
-        } else if (frame instanceof BinaryWebSocketFrame) {
-            handleBinaryFrame(ctx, (BinaryWebSocketFrame) frame);
-        } else {
-            log.debug("收到非数据帧，已由协议处理器处理: {}", frame.getClass().getSimpleName());
+        try {
+            if (frame instanceof TextWebSocketFrame) {
+                handleTextFrame(ctx, (TextWebSocketFrame) frame);
+            } else if (frame instanceof BinaryWebSocketFrame) {
+                handleBinaryFrame(ctx, (BinaryWebSocketFrame) frame);
+            } else {
+                log.debug("收到非数据帧，已由协议处理器处理: {}", frame.getClass().getSimpleName());
+            }
+        } finally {
+
+            // ChannelInboundHandlerAdapter 不会自动释放 ReferenceCounted 帧，手动释放避免 ByteBuf 泄漏
+            // （两个数据帧处理路径均已拷贝负载：text() / readBytes，此处释放安全）
+            frame.release();
         }
     }
 
@@ -100,6 +133,16 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
                 return;
             }
 
+            // 通道鉴权前置：同步回复匹配与业务分发都必须在通道已完成认证的前提下进行。
+            // 若放在同步匹配之后，任何能猜测/观测到 requestId 的未认证连接都可向其他业务的
+            // 同步调用注入伪造回复，因此统一先校验通道标识再触碰同步管理器。
+            String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
+            String channelCliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
+            if (channelType == null || channelCliKey == null) {
+                sendError(ctx, WebsocketExceptionEnum.UNAUTHORIZED);
+                return;
+            }
+
             // 检测是否为同步请求的回复消息：若 requestId 不为空，尝试匹配待处理的同步请求
             String requestId = request.getRequestId();
             if (requestId != null) {
@@ -111,14 +154,6 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
                     return;
                 }
                 log.debug("同步请求ID未找到匹配项，按普通消息分发 [requestId={}]", requestId);
-            }
-
-            String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
-            String channelCliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
-
-            if (channelType == null || channelCliKey == null) {
-                sendError(ctx, WebsocketExceptionEnum.UNAUTHORIZED);
-                return;
             }
 
             // 将通道上下文注入请求对象，业务方法可通过 request.getType()/getCliKey()/reply() 使用
@@ -149,7 +184,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
             return;
         }
 
-        // 通道标识以 Channel 属性为准（与文本帧一致）
+        // 通道标识以 Channel 属性为准（与文本帧一致），同步回复匹配前先完成鉴权
         String channelType = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
         String channelCliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
         if (channelType == null || channelCliKey == null) {
@@ -235,7 +270,7 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void channelInactive(ChannelHandlerContext ctx) {
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
         String type = getChannelAttr(ctx, WebSocketConstant.ATTR_TYPE);
         String cliKey = getChannelAttr(ctx, WebSocketConstant.ATTR_CLI_KEY);
         if (type != null && cliKey != null) {
@@ -243,16 +278,37 @@ public class WebSocketServerHandler extends ChannelInboundHandlerAdapter {
                 log.debug("连接断开 [type={}, cliKey={}]", type, WebSocketUtils.maskKey(cliKey));
             }
         }
+        super.channelInactive(ctx);
     }
 
     private void sendError(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum) {
         sendError(ctx, exceptionEnum, null);
     }
 
+    /**
+     * 发送错误响应。
+     * <p>
+     * message 采用 JSON 序列化（而非字符串拼接）：extraMessage 含引号/反斜杠/换行等
+     * 动态内容（如异常消息）时不会再产生非法 JSON，也无法借拼接伪造任意响应字段。
+     * 同时按连接编解码方式选择帧格式：proto 连接回二进制信封（data 携带 JSON bytes），
+     * 避免错误响应在 proto 连接上无法解码而被静默丢弃。
+     * </p>
+     */
     private void sendError(ChannelHandlerContext ctx, WebsocketExceptionEnum exceptionEnum, String extraMessage) {
-        String message = exceptionEnum.getMessage() + (extraMessage != null ? ": " + extraMessage : "");
-        String json = String.format("{\"code\":%s,\"message\":\"%s\"}", exceptionEnum.getCode(), message);
-        ctx.writeAndFlush(new TextWebSocketFrame(json));
+        Map<String, Object> error = new LinkedHashMap<>();
+        error.put("code", exceptionEnum.getCode());
+        error.put("message", exceptionEnum.getMessage() + (extraMessage != null ? ": " + extraMessage : ""));
+        if (isProtoCodec(ctx)) {
+
+            // proto 连接：错误负载以 JSON bytes 装入二进制信封
+            com.simple.common.websocket.proto.WebSocketFrame reply =
+                    com.simple.common.websocket.proto.WebSocketFrame.newBuilder()
+                            .setData(ByteString.copyFrom(JSON.toJSONBytes(error)))
+                            .build();
+            ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(reply.toByteArray())));
+        } else {
+            ctx.writeAndFlush(new TextWebSocketFrame(JSON.toJSONString(error)));
+        }
     }
 
     private String getChannelAttr(ChannelHandlerContext ctx, String key) {

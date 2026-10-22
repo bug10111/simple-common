@@ -1,6 +1,5 @@
 package com.simple.common.auth.client.common.process;
 
-import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.core.common.service.process.BasProcessService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,13 +32,22 @@ import jakarta.servlet.http.HttpServletResponse;
 public interface AuthProcess extends BasProcessService {
 
     /**
-     * 执行权限过滤器
+     * 执行权限过滤。
+     * <p>
+     * 失败契约（实现方必须遵守，责任链按异常中断、按正常返回继续）：
+     * 校验失败<b>必须抛出异常</b>（如 {@code LoginException}），禁止仅记日志后正常返回（等于放行）；
+     * 禁止直接向 response 写入错误体（响应统一由全局异常处理器渲染）。
+     * </p>
+     * <p>
+     * 参数契约：token 可能为 null（匿名请求已在前置判断中拦截，仍需防御）；
+     * request/response/path 由框架保证非 null；ipAddr 可能因取源失败为 null。
+     * </p>
      *
-     * @param request  请求对象
-     * @param response 响应对象 用于设置响应头
-     * @param token    登录token
-     * @param path     请求地址
-     * @param ipAddr   IP地址
+     * @param request  请求对象，非 null
+     * @param response 响应对象，非 null（可用于设置响应头，不得写入错误体）
+     * @param token    登录token，可能为 null，实现方自行判空
+     * @param path     请求地址，非 null
+     * @param ipAddr   IP地址，可能为 null
      */
     void execute(HttpServletRequest request, HttpServletResponse response, String token, String path, String ipAddr);
 }

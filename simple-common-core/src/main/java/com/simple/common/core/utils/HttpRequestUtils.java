@@ -26,10 +26,17 @@ public class HttpRequestUtils {
     private static final String JSON_CONTENT_TYPE = "application/json";
 
     /**
+     * 默认请求超时时间（毫秒），outTime为null时的兜底，避免拆箱NPE
+     */
+    private static final int DEFAULT_TIMEOUT_MILLIS = 30_000;
+
+    /**
      * post请求（JSON 请求体）
      *
      * <p>历史重载：与 {@link #postJson(String, Map, Object, Integer)} 语义一致，保留以兼容既有调用方；
-     * 新增调用一律使用语义显式的 postJson / postForm。</p>
+     * 新增调用一律使用语义显式的 postJson / postForm。
+     * （原 {@code post(String, Map, Map, Integer)} form 形态重载已删除：其与 Object 形态构成静态分派陷阱，
+     * Map 实参被静默按表单发送，仓库内无任何调用方。）</p>
      *
      * @param url     请求路径
      * @param heads   请求头
@@ -39,21 +46,6 @@ public class HttpRequestUtils {
      */
     public static HttpRecord post(String url, Map<String, String> heads, Object body, Integer outTime) {
         return postJson(url, heads, body, outTime);
-    }
-
-    /**
-     * post表单请求（历史重载）
-     *
-     * @param url     请求路径
-     * @param heads   请求头
-     * @param form    表单参数
-     * @param outTime 请求超时时间 毫秒
-     * @return 数据返回
-     * @deprecated form 语义不显式，调用方改为使用 {@link #postForm(String, Map, Map, Integer)}
-     */
-    @Deprecated
-    public static HttpRecord post(String url, Map<String, String> heads, Map<String, Object> form, Integer outTime) {
-        return postForm(url, heads, form, outTime);
     }
 
     /**
@@ -74,7 +66,7 @@ public class HttpRequestUtils {
         if (ObjUtil.isNotEmpty(heads)) {
             post.headerMap(heads, true);
         }
-        return new HttpRecord(post.timeout(outTime).execute());
+        return new HttpRecord(post.timeout(defaultTimeout(outTime)).execute());
     }
 
     /**
@@ -91,7 +83,8 @@ public class HttpRequestUtils {
      */
     public static HttpRecord postJson(String url, Map<String, String> heads, Object body, Integer outTime) {
         HttpRequest post = HttpRequest.post(url);
-        if (ObjUtil.isNotEmpty(body)) {
+        // JSON体仅判null：{}、""、[] 是合法JSON载荷，非空判断会把它们静默丢掉
+        if (body != null) {
             post.body(JsonUtils.toJsonStr(body));
         }
 
@@ -99,7 +92,7 @@ public class HttpRequestUtils {
         if (ObjUtil.isNotEmpty(headers)) {
             post.headerMap(headers, true);
         }
-        return new HttpRecord(post.timeout(outTime).execute());
+        return new HttpRecord(post.timeout(defaultTimeout(outTime)).execute());
     }
 
     /**
@@ -112,15 +105,15 @@ public class HttpRequestUtils {
      * @return 数据返回
      */
     public static HttpRecord get(String url, Map<String, String> heads, Map<String, Object> map, Integer outTime) {
-        HttpRequest post = HttpRequest.get(url);
+        HttpRequest get = HttpRequest.get(url);
         if (ObjUtil.isNotEmpty(map)) {
-            post.form(map);
+            get.form(map);
         }
 
         if (ObjUtil.isNotEmpty(heads)) {
-            post.headerMap(heads, true);
+            get.headerMap(heads, true);
         }
-        return new HttpRecord(post.timeout(outTime).execute());
+        return new HttpRecord(get.timeout(defaultTimeout(outTime)).execute());
     }
 
     /**
@@ -152,6 +145,13 @@ public class HttpRequestUtils {
         }
         headers.put(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
         return headers;
+    }
+
+    /**
+     * 超时兜底：outTime为null时返回默认超时，避免自动拆箱NPE
+     */
+    private static int defaultTimeout(Integer outTime) {
+        return outTime == null ? DEFAULT_TIMEOUT_MILLIS : outTime;
     }
 
 }

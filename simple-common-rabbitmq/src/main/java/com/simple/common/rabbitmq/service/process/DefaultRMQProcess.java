@@ -6,6 +6,7 @@ import com.simple.common.rabbitmq.annotation.RabbitMqConsumption;
 import com.simple.common.rabbitmq.common.enums.RMQKindProcess;
 import com.simple.common.rabbitmq.common.service.process.RabbitMqProcess;
 import org.springframework.amqp.core.Message;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 /**
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
  *
  * @author qty
  */
+@Slf4j
 @Component
 public class DefaultRMQProcess implements RabbitMqProcess {
 
@@ -27,7 +29,7 @@ public class DefaultRMQProcess implements RabbitMqProcess {
 
     @Override
     public void execution(Message message, Channel channel, RabbitMqConsumption rabbitMqConsumption) {
-        // 可在此处添加默认前置处理逻辑
+        log.debug("占位前置处理器被触发（正常配置下不会执行，出现本日志说明枚举配置被误开启），queue={}", message.getMessageProperties().getConsumerQueue());
     }
 
 }

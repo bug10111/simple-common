@@ -1,17 +1,24 @@
 package com.simple.common.auth.client.manager.cache;
 
 import com.simple.common.auth.client.common.manager.cache.CacheManager;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Redis 缓存管理器实现。
+ * <p>
+ * Hash 值契约：写入时 Collection/Map 类型值序列化为 JSON 字符串，其余转 String；
+ * 读取返回 Redis 原始字符串，调用方需按「对象/JSON 字符串」双形态处理（与 Local 实现返回原始对象的差异见 CacheManager 契约）。
+ * </p>
  *
  * @author qty
  */
+@Slf4j
 public class RedisCacheManager implements CacheManager {
 
     private final StringRedisTemplate redisTemplate;
@@ -28,6 +35,19 @@ public class RedisCacheManager implements CacheManager {
     @Override
     public void set(String key, String value, long seconds) {
         redisTemplate.opsForValue().set(key, value, seconds, TimeUnit.SECONDS);
+    }
+
+    @Override
+    public boolean setIfAbsent(String key, String value, long seconds) {
+        // SET NX EX：检查与写入原子完成（防重放 nonce 等一次性语义依赖此原子性）
+        Boolean ok = redisTemplate.opsForValue().setIfAbsent(key, value, Duration.ofSeconds(seconds));
+        return Boolean.TRUE.equals(ok);
+    }
+
+    @Override
+    public String getAndDelete(String key) {
+        // GETDEL：读取与删除原子完成（一次性 Token 消费），老版本 spring-data-redis 不支持时抛异常，此处显式声明
+        return redisTemplate.opsForValue().getAndDelete(key);
     }
 
     @Override
@@ -95,6 +115,9 @@ public class RedisCacheManager implements CacheManager {
                     valueStr = v.toString();
                 }
                 stringMap.put(k.toString(), valueStr);
+            } else {
+                // null 键值对静默丢弃会让调用方误以为写入成功，至少告警暴露数据缺失
+                log.warn("hashPutAll skipped null key or value for key: {}, field={}, value={}", key, k, v);
             }
         });
         
@@ -123,6 +146,10 @@ public class RedisCacheManager implements CacheManager {
 
     @Override
     public Long hashDelete(String key, String... fields) {
+        // 与 setAdd 保持一致的空入参防御：HDEL 无字段参数会被 Redis 拒绝
+        if (fields == null || fields.length == 0) {
+            return 0L;
+        }
         return redisTemplate.opsForHash().delete(key, (Object[]) fields);
     }
 
@@ -147,6 +174,10 @@ public class RedisCacheManager implements CacheManager {
 
     @Override
     public Long setRemove(String key, String... values) {
+        // 与 setAdd 保持一致的空入参防御：SREM 无成员参数会被 Redis 拒绝
+        if (values == null || values.length == 0) {
+            return 0L;
+        }
         return redisTemplate.opsForSet().remove(key, (Object[]) values);
     }
 }

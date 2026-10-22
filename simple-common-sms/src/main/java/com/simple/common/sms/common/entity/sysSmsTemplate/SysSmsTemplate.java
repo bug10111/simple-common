@@ -11,16 +11,13 @@ import java.util.Date;
 
 /**
  * 短信模板(sys_sms_template)实体类
- * 注解@JSONField(serialize = false)，表示不返回这个字段
  * 注解@TableField，用于标志属性
  * value = "数据库字段"，用于标志数据库对应字段
  * exist = false，表示数据库没有这个字段
- * typeHandler = JacksonTypeHandler.class，表示对象JSON转化为实例，需要类上开启@TableName(autoResultMap = true)
+ * typeHandler = JacksonTypeHandler.class，表示对象JSON转化实例时需要类上开启@TableName(autoResultMap = true)
  * fill = FieldFill.INSERT，表示添加操作时要做的事情
  * 注解@TableLogic添加在属性上，结合配置文件，可设置逻辑删除
- * 注解@EqualsAndHashCode是为类生成Equals和HashCode方法
- * callSuper = false 代表方法不调用父类继承的属性，只匹配子类本身是否相同
- * callSuper = true 代表方法需要调用父类继承的属性，同时匹配本身和父类的属性
+ * equals/hashCode 由 @Data 生成
  *
  * @author qty
  */
@@ -60,7 +57,7 @@ public class SysSmsTemplate {
      */
     @TableLogic
     @TableField(value = "deleted")
-    private DeleteState deleted;
+    private DeleteState deleted = DeleteState.OK;
 
     /**
      * 创建时间
@@ -75,4 +72,3 @@ public class SysSmsTemplate {
     private Date updateTime;
 
 }
-

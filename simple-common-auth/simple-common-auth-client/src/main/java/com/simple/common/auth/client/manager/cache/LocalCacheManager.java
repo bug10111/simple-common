@@ -5,10 +5,12 @@ import com.simple.common.auth.client.common.manager.cache.CacheManager;
 import com.simple.common.cache.common.factory.LocalCacheFactory;
 import lombok.extern.slf4j.Slf4j;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 基于 Caffeine 的本地缓存实现，通过 LocalCacheFactory 管理缓存实例。
@@ -96,7 +98,11 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public long getExpire(String key) {
-        return -2;
+        if (stringCache.getIfPresent(key) == null) {
+            return -2;
+        }
+        // Caffeine 不暴露单条记录剩余 TTL，返回 -1 表示存在但无法获取剩余过期时间
+        return -1;
     }
 
     @Override
@@ -114,7 +120,8 @@ public class LocalCacheManager implements CacheManager {
                 try {
                     current = Long.parseLong(v);
                 } catch (NumberFormatException e) {
-                    log.warn("Value for key {} is not a number, reset to 0", k);
+                    // 损坏的计数器不得静默清零：数据丢失且与 Redis 实现行为不一致，直接失败暴露问题
+                    throw new IllegalStateException("缓存中的值不是合法数字，无法执行自增，key=" + k + ", value=" + v, e);
                 }
             }
             return String.valueOf(current + delta);
@@ -130,8 +137,9 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public Map<Object, Object> hashGetAll(String key) {
+        // 返回快照副本，避免调用方绕过 hashPut/hashDelete 直接改写缓存内部状态
         Map<Object, Object> map = hashCache.getIfPresent(key);
-        return map != null ? map : new ConcurrentHashMap<>();
+        return map != null ? new ConcurrentHashMap<>(map) : new ConcurrentHashMap<>();
     }
 
     @Override
@@ -141,17 +149,19 @@ public class LocalCacheManager implements CacheManager {
             log.warn("hashPutAll called with null or empty map for key: {}", key);
             return;
         }
-        
-        // 原子性地获取或创建 Map，然后合并数据
-        Map<Object, Object> existing = hashCache.get(key, k -> new ConcurrentHashMap<>());
-        
-        // 过滤掉 null 键值对，ConcurrentHashMap 不允许 null key/value
-        map.forEach((k, v) -> {
-            if (k != null && v != null) {
-                existing.put(k, v);
-            } else {
-                log.warn("Skipping null key or value in hashPutAll for key: {}, key={}, value={}", key, k, v);
-            }
+
+        // 在缓存的 per-key 锁内完成「获取或创建 + 合并」，避免与淘汰失效竞态时写入孤儿 Map
+        hashCache.asMap().compute(key, (k, existing) -> {
+            Map<Object, Object> target = existing != null ? existing : new ConcurrentHashMap<>();
+            // 过滤掉 null 键值对，ConcurrentHashMap 不允许 null key/value
+            map.forEach((mk, mv) -> {
+                if (mk != null && mv != null) {
+                    target.put(mk, mv);
+                } else {
+                    log.warn("Skipping null key or value in hashPutAll for key: {}, key={}, value={}", key, mk, mv);
+                }
+            });
+            return target;
         });
     }
 
@@ -200,18 +210,47 @@ public class LocalCacheManager implements CacheManager {
 
     @Override
     public Long setAdd(String key, String... values) {
-        // 原子性地获取或创建 Set，然后添加元素
-        Set<String> set = setCache.get(key, k -> ConcurrentHashMap.newKeySet());
-        for (String val : values) {
-            set.add(val);
+        // 与 RedisCacheManager 保持一致的空入参防御（SADD 不允许空成员列表）
+        if (values == null || values.length == 0) {
+            return 0L;
         }
-        return (long) values.length;
+        long count = 0;
+        Set<String> set = setCache.get(key, k -> ConcurrentHashMap.newKeySet());
+        for (String value : values) {
+            // null 成员会被 ConcurrentHashMap.newKeySet() 拒绝（NPE），跳过而非崩溃
+            if (value != null && set.add(value)) {
+                count++;
+            }
+        }
+        // 契约：返回实际新增的元素数量（已存在的元素不计入）
+        return count;
     }
 
     @Override
     public Set<String> setMembers(String key) {
+        // 返回快照副本，避免调用方直接改写缓存内部集合
         Set<String> set = setCache.getIfPresent(key);
-        return set != null ? set : Set.of();
+        return set != null ? new HashSet<>(set) : Set.of();
+    }
+
+    @Override
+    public boolean setIfAbsent(String key, String value, long seconds) {
+        if (key == null || value == null) {
+            return false;
+        }
+        // 原子写入字符串缓存；TTL 受缓存实例默认过期策略约束（见类注释），Local 实现为尽力而为
+        return stringCache.asMap().putIfAbsent(key, value) == null;
+    }
+
+    @Override
+    public String getAndDelete(String key) {
+        // compute 返回 null 即移除条目，检查+删除在同一 per-key 锁内原子完成
+        AtomicReference<String> ref = new AtomicReference<>();
+        stringCache.asMap().computeIfPresent(key, (k, v) -> {
+            ref.set(v);
+            return null;
+        });
+        return ref.get();
     }
 
     @Override

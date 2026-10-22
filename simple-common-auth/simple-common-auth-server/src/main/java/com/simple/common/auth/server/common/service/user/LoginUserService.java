@@ -1,6 +1,5 @@
 package com.simple.common.auth.server.common.service.user;
 
-import com.simple.common.auth.server.common.entity.AbsUserDetails;
 
 import java.util.Map;
 
@@ -55,6 +54,8 @@ public interface LoginUserService {
      * 获取当前登录用户内省信息
      * <p>
      * 获取当前登录用户的详细信息,通常用于Token刷新时更新用户数据。
+     * 登录上下文约束：无参方法依赖 ThreadLocal 登录上下文（LoginUserUtils.getUserTemporary()），
+     * 在异步/定时等无线程上下文的执行路径中不可用，调用方须先经认证拦截器构建上下文。
      * 该方法应该从安全上下文或会话中获取当前用户ID,然后查询完整的用户信息。
      * </p>
      *
@@ -76,8 +77,8 @@ public interface LoginUserService {
      * }
      * }</pre>
      *
-     * @return 用户详细信息Map,包含userId、username、nickName等字段
-     * @throws RuntimeException 当用户不存在或查询失败时抛出异常
+     * @return 内省信息Map，固定含 userInfo（用户内省数据 JSON）、userToken（该用户关联 token 集合 JSON）、userAuth（角色-权限映射 JSON）三个键；键名常量见 TokenConstant
+     * @throws LoginException 登录上下文缺失或内省数据已失效（缓存过期/被逐出）时抛出
      */
     Map<String, String> getUserInformation();
 

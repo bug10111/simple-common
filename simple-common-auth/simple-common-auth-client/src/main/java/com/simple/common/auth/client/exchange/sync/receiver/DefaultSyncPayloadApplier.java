@@ -121,7 +121,10 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
         Map<String, String> permissions = payload.getPermissions();
         String authKey = TokenConstant.getAuthKey(roleKey, payload.getProjectCode(), payload.getTenantId());
 
-        // 按变更类型分流落地
+        // 按变更类型分流落地。
+        // REFRESH（刷新权限·重新拉取最新数据）与 UPDATE 同策略落地：客户端侧无「主动回源授权中心」通道
+        // （权限回源仅发生在登录内省链路），别名落地为全量替换是当前链路下的唯一可执行语义；
+        // 空载荷 REFRESH 按无变更忽略（不会清空既有权限）
         switch (changeType) {
             case ADD -> handleAddPermission(authKey, permissions);
             case UPDATE, REFRESH -> handleUpdatePermission(authKey, permissions);
@@ -143,17 +146,18 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
             return;
         }
 
-        // 清除用户所有 jti 对应的登录信息
+        // 清除用户所有 jti 对应的登录信息。
+        // 删除纪律：先删关联 Set，再按快照清理明细——并发登录会向新 Set 写入，
+        // 先清明细后删 Set 的旧顺序会把新 jti 从追踪集合丢掉（其登录缓存永远无法再被登出清理）
         String userTokenKey = TokenConstant.getUserTokenKey(userId);
         Set<String> members = cacheManager.setMembers(userTokenKey);
+        cacheManager.delete(userTokenKey);
         if (members != null && !members.isEmpty()) {
             for (String jti : members) {
                 cacheManager.delete(TokenConstant.getUserInfoKey(jti));
             }
         }
 
-        // 清除用户 Token 关联 Set
-        cacheManager.delete(userTokenKey);
         log.info("用户 [{}] 退出登录通知已落地，本地令牌缓存已清除", userId);
     }
 
@@ -180,7 +184,11 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
     }
 
     /**
-     * 处理更新权限（全量替换）
+     * 处理更新权限（全量替换）。
+     * <p>
+     * 替换纪律：先写入新集合，再批量删除失效字段——任一时点读者都看不到空权限视图，
+     * 写入失败也不会丢失既有权限（先删后写在部分失败时会让角色权限永久清空直到下次同步）。
+     * </p>
      *
      * @param authKey     权限缓存键
      * @param permissions 权限数据
@@ -191,10 +199,10 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
             return;
         }
 
-        // 先清空旧缓存
-        cacheManager.delete(authKey);
+        // 快照旧字段集，用于增量删除失效字段
+        Map<Object, Object> oldEntries = cacheManager.hashGetAll(authKey);
 
-        // 再设置新权限
+        // 先写入新权限
         if (!permissions.isEmpty()) {
             Map<Object, Object> permissionMap = new HashMap<>(permissions);
             cacheManager.hashPutAll(authKey, permissionMap);
@@ -202,6 +210,15 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
             // 设置过期时间
             Integer expireSeconds = authProperties.getPermissionCacheExpire();
             cacheManager.expire(authKey, expireSeconds != null ? expireSeconds : 60 * 60 * 24);
+        }
+
+        // 再批量删除失效字段（单次调用，避免 N 次缓存往返）
+        String[] staleKeys = oldEntries.keySet().stream()
+                .filter(k -> !permissions.containsKey(String.valueOf(k)))
+                .map(String::valueOf)
+                .toArray(String[]::new);
+        if (staleKeys.length > 0) {
+            cacheManager.hashDelete(authKey, staleKeys);
         }
 
         log.info("角色权限缓存已全量更新，共 {} 个权限", permissions.size());
@@ -219,10 +236,8 @@ public class DefaultSyncPayloadApplier implements SyncPayloadApplier {
             return;
         }
 
-        // 删除指定的权限字段
-        for (String permissionKey : permissions.keySet()) {
-            cacheManager.hashDelete(authKey, permissionKey);
-        }
+        // 批量删除指定的权限字段（单次调用，避免 N 次缓存往返）
+        cacheManager.hashDelete(authKey, permissions.keySet().toArray(new String[0]));
 
         log.info("角色权限缓存已删除 {} 个权限", permissions.size());
     }

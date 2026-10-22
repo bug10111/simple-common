@@ -2,9 +2,12 @@ package com.simple.common.auth.client.common.config;
 
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
 import com.simple.common.core.common.properties.ApplicationProperties;
+import com.simple.common.core.utils.AssertUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 
 /**
  * 客户端权限配置抽象基类。
@@ -40,35 +43,57 @@ import org.springframework.context.annotation.Bean;
  */
 public abstract class AbsClientAuthConfig {
 
-    @Value("${spring.profiles.active}")
+    /**
+     * 生产环境 profile 标识；兼容旧配置读法，缺省不报错（实际判定走 {@link Environment}）。
+     */
+    @Value("${spring.profiles.active:}")
     private String produce;
 
     @Autowired
     private ApplicationProperties applicationProperties;
 
+    @Autowired
+    private Environment environment;
 
     @Bean
-    public ClientAuthInfo configure() {
+    public ClientAuthInfo clientAuthInfo() {
         ClientAuthInfo clientAuthInfo = new ClientAuthInfo();
         configure(clientAuthInfo);
-        clientAuthInfo.setDocument(produce);
-        clientAuthInfo.addScope("ALL",applicationProperties.getName());
+        clientAuthInfo.setProduce(produce);
+        // spring.application.name 未配置时 fail-fast，避免 ALL scope 落入 null 值污染授权数据
+        String applicationName = applicationProperties.getName();
+        AssertUtils.notEmpty(applicationName, "spring.application.name 未配置，客户端权限 ALL scope 无法标识当前服务");
+        clientAuthInfo.addScope("ALL", applicationName);
 
-        if (!produce.equals("produce")) {
+        if (!isProduce()) {
             clientAuthInfo
                             //放开接口文档
                             .antMatchers("/webjars/**").permitAll()
                             .antMatchers("/v3/**").permitAll()
-                            .antMatchers("/favicon.ico") .permitAll()
+                            .antMatchers("/favicon.ico").permitAll()
                             .antMatchers("/doc.html").permitAll()
 
                             //放开admin监控
                             .antMatchers("/actuator/**").permitAll();
         }
 
-        //实例同步接收端点：内网端点不鉴权（设计裁定），接收中心投递引擎变更载荷；部署侧由 nginx 不代理清单隔离外网
+        //实例同步接收端点：内网端点不鉴权（设计裁定），接收中心投递引擎变更载荷；部署侧由 nginx 不代理清单隔离外网。
+        //纵深防御：InternalSyncController 支持可选共享令牌校验（simple.auth.internal-sync-token，配置即强制校验）。
         clientAuthInfo.antMatchers("/internal/sync/**").permitAll();
         return clientAuthInfo;
+    }
+
+    /**
+     * 判定当前是否生产环境。
+     * <p>
+     * 通过 {@link Environment#acceptsProfiles(Profiles)} 判定，兼容多 profile
+     * （如 spring.profiles.active=prod,cloud）与未配置 profile 的场景，避免字符串等值比较漏判。
+     * </p>
+     *
+     * @return true 表示当前激活 profile 含 produce
+     */
+    protected boolean isProduce() {
+        return environment.acceptsProfiles(Profiles.of("produce"));
     }
 
     /**

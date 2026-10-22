@@ -9,6 +9,11 @@ import jakarta.servlet.http.HttpServletResponse;
  * 提供日志客户端的启动、停止和日志发送功能。
  * 默认实现 {@link com.simple.common.logs.client.service.DefaultLogService} 通过TCP协议
  * 将日志数据异步发送到日志服务器,支持高性能的日志收集和处理。
+ * <p>
+ * 日志投递为尽力而为(best-effort):当通道不可用或内部队列已满时,
+ * 事件可能被降级持久化或丢弃,不会阻塞或影响业务线程;
+ * 实现需保证不向调用方抛出异常。
+ * </p>
  * </p>
  *
  * <h3>使用场景：</h3>
@@ -56,10 +61,11 @@ public interface LogService {
      *   <li>通过TCP连接异步发送到日志服务器</li>
      * </ol>
      *
-     * @param request  HTTP 请求对象
-     * @param response HTTP 响应对象
-     * @param handler  处理器对象(Controller方法)
-     * @param ex       异常对象,如果请求处理过程中发生异常则不为null
+     * @param request  HTTP 请求对象,不能为 null
+     * @param response HTTP 响应对象,不能为 null
+     * @param handler  处理器对象(Controller方法),可能为 null(静态资源或未匹配到处理器时)
+     * @param ex       异常对象,如果请求处理过程中发生异常则不为 null
+     *                 <p>实现必须自行捕获内部异常,不得向调用方抛出异常。</p>
      */
     void send(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex);
 
@@ -76,6 +82,7 @@ public interface LogService {
      *   <li>配置正确的日志服务器地址和端口</li>
      *   <li>如果连接失败,会记录错误日志但不影响应用启动</li>
      * </ul>
+     * <p>实现应保证幂等:重复调用不得泄漏连接资源。</p>
      */
     void start();
 

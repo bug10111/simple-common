@@ -2,7 +2,7 @@ package com.simple.common.doc.common.function;
 
 /**
  * Created with IntelliJ IDEA
- * Description: doc有参数的函数
+ * Description: doc带参数的函数
  *
  * @author qty
  */
@@ -11,6 +11,11 @@ public interface DocFunction<T> {
 
     /**
      * 由单条业务数据创建表格行内容
+     * <p>
+     * 回调契约：
+     * 不得返回 null(调用方 addTable 对 null 返回快速失败并抛出业务异常);
+     * 数组元素个数应与表头列数一致,不一致时列内容错位。
+     * </p>
      *
      * @param t 单条业务数据
      * @return 表格行单元格内容,按列顺序排列

@@ -81,9 +81,11 @@ public interface AnnexService {
      * }</pre>
      *
      * @param file            上传的文件对象,不能为null
-     * @param applicationName 应用服务名称,用于组织文件目录结构,如 "user-service"
+     * @param applicationName 应用服务名称,用于组织文件目录结构,仅允许字母、数字、'-'、'_'、'.',如 "user-service"
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
-     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息;
+     *         当 shareType 为 PRIVATE 时,saveUrl 仅作为后续 generateUrl/delete 的入参标识,
+     *         不应作为可直接访问的链接暴露给终端用户
      * @throws RuntimeException 当文件为null或上传失败时抛出异常
      */
     UploadResponse upload(MultipartFile file, String applicationName, ShareType shareType);
@@ -104,14 +106,16 @@ public interface AnnexService {
      *     "avatars",  // 包名: avatars
      *     ShareType.PUBLIC
      * );
-     * // 文件路径: user-service/avatars/2024/01/15/avatar_xxx.jpg
+     * // 对象键: avatars/jpg/{uuid}.jpg (packageName 是前缀目录,不会覆盖同包下其他文件)
      * }</pre>
      *
      * @param file            上传的文件对象,不能为null
-     * @param applicationName 应用服务名称,如 "user-service"
-     * @param packageName     业务包名,如 "avatars"、"documents"、"reports" 等
+     * @param applicationName 应用服务名称,仅允许字母、数字、'-'、'_'、'.',如 "user-service"
+     * @param packageName     业务包名前缀,如 "avatars"、"documents"、"reports" 等;
+     *                        仅允许字母、数字、'-'、'_'、'.';含 '..'、'/'、'\\' 等字符会被实现拒绝,
+     *                        防止对象键越出预期前缀或与其他业务包冲突
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
-     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息;PRIVATE 时 saveUrl 仅作为内部标识,不应直接暴露
      * @throws RuntimeException 当文件为null或上传失败时抛出异常
      */
     UploadResponse upload(MultipartFile file, String applicationName, String packageName, ShareType shareType);
@@ -122,6 +126,8 @@ public interface AnnexService {
      * 通过输入流上传文件,支持自定义文件对比逻辑。
      * 适用于需要从其他系统获取文件流后上传的场景。
      * </p>
+     * <p>大小约束：默认实现会将整个流读入内存(readAllBytes)后计算指纹,
+     * 调用方必须先限制文件大小并校验文件类型,否则存在内存溢出风险。</p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
@@ -134,21 +140,22 @@ public interface AnnexService {
      *         "imports",
      *         ShareType.PUBLIC,
      *         inputStream,
-     *         (existingUrl) -> {
-     *             // 判断是否需要重新上传
-     *             return existingUrl == null || !fileExists(existingUrl);
+     *         (uploadResponse) -> {
+     *             // 返回 true 表示文件已存在、跳过上传(此时应把 uploadResponse 补全为最终结果);
+     *             // 返回 false 表示继续上传;algorithmValue 可能为 null,必须判空
+     *             return fileExists(uploadResponse.getAlgorithmValue());
      *         }
      *     );
      * }
      * }</pre>
      *
      * @param fileName        文件名(含扩展名),如 "avatar.jpg"
-     * @param applicationName 应用服务名称,如 "user-service"
-     * @param packageName     业务包名,如 "avatars",可为null
+     * @param applicationName 应用服务名称,仅允许字母、数字、'-'、'_'、'.',如 "user-service"
+     * @param packageName     业务包名前缀,如 "avatars",可为null;仅允许安全字符,非法字符将被拒绝
      * @param shareType       文件访问权限类型,PUBLIC(公开) 或 PRIVATE(私有)
-     * @param inputStream     文件输入流,调用方负责关闭
+     * @param inputStream     文件输入流,调用方负责关闭;默认实现会将其全量读入内存,调用方须先限制大小
      * @param uploadFunction  文件对比函数,用于判断是否需要重新上传,null表示总是上传
-     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
+     * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息;PRIVATE 时 saveUrl 仅作为内部标识
      * @throws RuntimeException 当上传失败时抛出异常
      */
     UploadResponse upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream,
@@ -160,6 +167,8 @@ public interface AnnexService {
      * 从存储服务下载文件并直接写入HTTP响应流。
      * 适用于Controller层直接返回文件下载的场景。
      * </p>
+     * <p>安全契约：实现必须校验 objectUrl 的主机与桶名属于当前实例配置的存储端点及允许的桶,
+     * 否则必须直接拒绝(防止跨桶读取/越权下载)。</p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
@@ -174,14 +183,14 @@ public interface AnnexService {
      * }</pre>
      *
      * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
-     * @throws RuntimeException 当入参不是完整对象存储 URL、文件不存在或下载失败时抛出异常
+     * @throws RuntimeException 当入参不是完整对象存储 URL、不属于本服务配置的端点/桶、文件不存在或下载失败时抛出异常
      */
     void writeGetObjectResponse(String objectUrl);
 
     /**
      * 生成带有效期的文件访问URL
      * <p>
-     * 为私有文件生成临时访问URL,默认有效期由配置决定。
+     * 为私有文件生成临时访问URL,有效期由配置决定。
      * 适用于需要临时分享私有文件的场景。
      * </p>
      *
@@ -194,7 +203,7 @@ public interface AnnexService {
      *
      * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
      * @return 带签名的临时访问URL,过期后无法访问
-     * @throws RuntimeException 当入参不是完整对象存储 URL 或生成URL失败时抛出异常
+     * @throws RuntimeException 当入参不是完整对象存储 URL、不属于本服务配置的端点/桶或生成URL失败时抛出异常
      */
     String generateUrl(String objectUrl);
 
@@ -202,18 +211,18 @@ public interface AnnexService {
      * 附件删除
      * <p>
      * 从存储服务中删除指定文件。
-     * 删除操作不可恢复,请谨慎使用。
+     * 删除操作不可恢复,请谨慎操作。
      * 建议在业务层做好软删除标记,定期清理已标记的文件。
      * </p>
      *
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 删除用户头像
-     * annexService.delete("http://minio.example.com/user-service-private/avatars/avatar_123.jpg");
+     * annexService.delete("http://minio.example.com/user-service-public/avatars/avatar_123.jpg");
      * }</pre>
      *
      * @param objectUrl 文件的完整对象存储 URL（形如 {服务地址}/{桶名}/{对象键}）,仅传对象键或文件标识将被拒绝
-     * @throws RuntimeException 当入参不是完整对象存储 URL 或删除失败时抛出异常
+     * @throws RuntimeException 当入参不是完整对象存储 URL、不属于本服务配置的端点/桶或删除失败时抛出异常
      */
     void delete(String objectUrl);
 
@@ -224,7 +233,7 @@ public interface AnnexService {
      * @param applicationName 系统服务名
      * @param packageName     包名
      * @param shareType       文件权限
-     * @param inputStream     文件流
+     * @param inputStream     文件流(默认实现全量读入内存,调用方须先限制大小并负责关闭)
      * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      */
     default UploadResponse upload(String fileName, String applicationName, String packageName, ShareType shareType, InputStream inputStream) {
@@ -237,7 +246,7 @@ public interface AnnexService {
      * @param fileName        文件名.格式
      * @param applicationName 系统服务名
      * @param shareType       文件权限
-     * @param inputStream     文件流
+     * @param inputStream     文件流(默认实现全量读入内存,调用方须先限制大小并负责关闭)
      * @return 上传响应结果,包含完整对象存储 URL（saveUrl）等信息
      */
     default UploadResponse upload(String fileName, String applicationName, ShareType shareType, InputStream inputStream) {

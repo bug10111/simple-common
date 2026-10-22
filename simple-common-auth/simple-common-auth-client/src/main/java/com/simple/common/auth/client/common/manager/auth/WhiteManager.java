@@ -30,26 +30,25 @@ public interface WhiteManager {
      * 校验请求是否在白名单中
      * <p>
      * 检查请求路径和IP地址是否在白名单配置中。
-     * 如果在白名单中,则直接放行,不进行后续的认证和权限校验。
-     * 如果不在白名单中,则抛出异常或继续执行认证流程。
+     * 契约：返回 true 表示「该路径配置了 IP 限制且请求 IP 在允许列表内」；
+     * 返回 false 表示「路径未配置 IP 限制」或「配置了限制但 IP 不在允许列表」——
+     * 两种情形本方法不抛异常，是否继续认证流程由调用方（拦截器）决定。
      * </p>
      * <h3>使用示例：</h3>
      * <pre>{@code
      * // 在认证拦截器中调用
-     * try {
-     *     whiteManager.checkWhiteIp(request.getPath(), request.getRemoteAddr());
-     *     // 在白名单中,直接放行
+     * if (whiteManager.checkWhiteIp(request.getRequestURI(), request.getRemoteAddr())) {
+     *     // 在IP白名单中,直接放行
      *     chain.doFilter(request, response);
-     * } catch (WhiteListException e) {
-     *     // 不在白名单中,继续执行认证逻辑
+     * } else {
+     *     // 不在IP白名单中,继续执行认证逻辑
      *     authenticate(request);
      * }
      * }</pre>
      *
      * @param path   当前请求的URL路径,如 /api/user/list
      * @param ipAddr 客户端IP地址,用于IP白名单校验
-     * @return 是否通过校验
-     * @throws RuntimeException 当请求不在白名单中且需要拦截时抛出(可选)
+     * @return 是否在IP白名单内（true=命中IP规则且IP允许）
      */
     boolean checkWhiteIp(String path, String ipAddr);
 

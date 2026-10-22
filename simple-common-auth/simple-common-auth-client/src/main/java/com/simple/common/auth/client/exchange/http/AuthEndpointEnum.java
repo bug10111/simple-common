@@ -38,17 +38,30 @@ public enum AuthEndpointEnum {
         return path;
     }
 
+    /**
+     * 声明的 HTTP 方法（GET/POST）。当前客户端按端点硬编码发起对应动词，
+     * 本字段仅作端点自描述元数据；变更本值不会改变实际请求（以免误导，见 {@link com.simple.common.auth.client.exchange.http.AuthCenterHttpClient}）。
+     */
     public String getMethod() {
         return method;
     }
 
     /**
      * 拼接完整 URL
+     * <p>
+     * baseUrl 非空校验 + 去尾部斜杠归一化：配置尾斜杠会产生 //auth/... 之类的畸形路径，
+     * 空值会产生 null/auth/... 并以晦涩的连接错误暴露。
+     * </p>
      *
      * @param baseUrl 授权中心基础 URL
      * @return 完整 URL
+     * @throws IllegalArgumentException baseUrl 为空/空白
      */
     public String buildUrl(String baseUrl) {
-        return baseUrl + path;
+        if (baseUrl == null || baseUrl.isBlank()) {
+            throw new IllegalArgumentException("授权中心基础 URL 不能为空，请配置 simple.auth.server-url");
+        }
+        String normalized = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return normalized + path;
     }
 }

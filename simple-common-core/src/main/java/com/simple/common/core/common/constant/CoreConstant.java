@@ -6,8 +6,10 @@ package com.simple.common.core.common.constant;
  *
  * @author qty
  */
-public class CoreConstant {
+public final class CoreConstant {
+
+    private CoreConstant() {
+    }
 
     public static final String EXCEPTION = "exception";
-
 }

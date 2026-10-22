@@ -1,10 +1,11 @@
 package com.simple.common.excel.common.service;
 
 import com.alibaba.excel.read.listener.ReadListener;
-import lombok.SneakyThrows;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 
 /**
  * EasyExcel 读取服务接口。
@@ -121,35 +122,42 @@ public interface EasyExcelReadService {
      * <pre>{@code
      * @PostMapping("/import")
      * public R importUsers(@RequestParam("file") MultipartFile file) {
-     *     List<UserDTO> userList = new ArrayList<>();
-     *     
+     *     // 大文件不要把所有行缓存到内存集合,应在 invoke 中按批(如每 1000 条)落库,
+     *     // 否则与"支持百万级数据读取,不会OOM"的设计目标相悖
      *     readService.read(file, 1, UserDTO.class, new ReadListener<UserDTO>() {
      *         @Override
      *         public void invoke(UserDTO data, AnalysisContext context) {
-     *             userList.add(data);
+     *             userService.save(data); // 逐行或按批处理
      *         }
      *         
      *         @Override
      *         public void doAfterAllAnalysed(AnalysisContext context) {
-     *             // 批量保存
-     *             userService.saveBatch(userList);
+     *             log.info("导入完成");
      *         }
      *     });
      *     
-     *     return R.ok("导入成功,共" + userList.size() + "条数据");
+     *     return R.ok("导入成功");
      * }
      * }</pre>
      *
-     * @param file          Spring MVC 上传的文件对象
-     * @param headRowNumber 表头行数,有两行的话就意味着从第三行开始读取数据
+     * @param file          Spring MVC 上传的文件对象,不能为 null 且不能为空文件
+     * @param headRowNumber 表头行数,必须为正数,如为2两行的话就意味着从第三行开始读取数据;当前实现固定读取第一个 sheet
      * @param head          数据实体类 Class
      * @param readListener  数据读取监听器
      * @param <T>           数据类型
-     * @throws RuntimeException 当文件为空或格式错误时抛出异常
+     * @throws IllegalArgumentException 当文件对象为 null 或无内容时抛出
+     * @throws UncheckedIOException     当读取上传文件内容失败时抛出(原始 IOException 为其原因)
+     * @throws RuntimeException         当文件格式错误或解析失败时抛出
      * @see #read(InputStream, int, Class, ReadListener)
      */
-    @SneakyThrows
     default <T> void read(MultipartFile file, int headRowNumber, Class<T> head, ReadListener<T> readListener) {
-        read(file.getInputStream(), headRowNumber, head, readListener);
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Excel 文件不能为空");
+        }
+        try {
+            read(file.getInputStream(), headRowNumber, head, readListener);
+        } catch (IOException e) {
+            throw new UncheckedIOException("读取上传的 Excel 文件失败: " + file.getOriginalFilename(), e);
+        }
     }
 }

@@ -10,9 +10,11 @@ import com.simple.common.eventbus.common.entity.EventData;
 import com.simple.common.eventbus.common.service.EventBusService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.annotation.AnnotationUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -28,9 +30,12 @@ public abstract class AbsEventBusService implements EventBusService {
     private ApplicationProperties applicationProperties;
 
     /**
-     * 注解缓存，避免重复反射
+     * 注解缓存，避免重复反射。
+     * <p>@Event 未标记 @Inherited 且事件实例可能为代理对象，使用 Spring AnnotationUtils.findAnnotation
+     * 沿父类/接口解析注解；用 Optional 包装以区分“已解析为无注解”与“尚未解析”，
+     * 避免无注解类型每次发布都重复走反射查找。</p>
      */
-    private final Map<Class<?>, Event> eventAnnotationCache = new ConcurrentHashMap<>();
+    private final Map<Class<?>, Optional<Event>> eventAnnotationCache = new ConcurrentHashMap<>();
 
     /**
      * 应用名称缓存，避免重复获取
@@ -60,7 +65,7 @@ public abstract class AbsEventBusService implements EventBusService {
      */
     @Override
     public void push(Object event) {
-        EventData eventData = getEvenData(event);
+        EventData eventData = getEventData(event);
         handler(eventData);
     }
 
@@ -73,7 +78,7 @@ public abstract class AbsEventBusService implements EventBusService {
      */
     @Override
     public void push(Object event, int time, TimeUnit timeUnit) {
-        EventData eventData = getEvenData(event);
+        EventData eventData = getEventData(event);
         handler(eventData, time, timeUnit);
     }
 
@@ -105,28 +110,34 @@ public abstract class AbsEventBusService implements EventBusService {
 
     /**
      * 根据事件对象构建EventData
-     * <p>优化：若 targets 中包含广播目标(TARGET_ALL_X)，则忽略其他单播目标，避免本机重复消费</p>
+     * <p>优化：若 targets 中包含广播目标(TARGET_ALL)，则忽略其他单播目标，避免本机重复消费</p>
      *
      * @param event 事件对象
      * @return EventData
      */
-    protected EventData getEvenData(Object event) {
+    protected EventData getEventData(Object event) {
         AssertUtils.notNull(event, "事件对象不能为空");
 
         Class<?> aClass = event.getClass();
-        Event annotation = eventAnnotationCache.computeIfAbsent(aClass, clazz -> clazz.getAnnotation(Event.class));
-        AssertUtils.notEmpty(annotation, "发布的事件必须带注解@Event");
+        // @Event 未标注 @Inherited，注解经父类/接口声明或事件以代理形式传入时 getAnnotation 会漏判，必须沿类型层级解析
+        Event annotation = eventAnnotationCache
+                .computeIfAbsent(aClass, clazz -> Optional.ofNullable(AnnotationUtils.findAnnotation(clazz, Event.class)))
+                .orElse(null);
+        AssertUtils.notNull(annotation, "发布的事件必须带注解@Event");
 
         String eventName = annotation.value();
         if (!StringUtils.hasLength(eventName)) {
             eventName = aClass.getSimpleName();
         }
 
-        // 双重检查锁正确写法
+        // 双重检查锁：应用名非空才缓存，否则 null 永远无法收敛（每次发布都进锁），
+        // 且 null 会作为本机路由键产生非法队列名/目标元素
         if (cachedApplicationName == null) {
             synchronized (this) {
                 if (cachedApplicationName == null) {
-                    cachedApplicationName = applicationProperties.getName();
+                    String applicationName = applicationProperties.getName();
+                    AssertUtils.notEmpty(applicationName, "应用名称不能为空（请检查 spring.application.name 配置）");
+                    cachedApplicationName = applicationName;
                 }
             }
         }
@@ -142,7 +153,10 @@ public abstract class AbsEventBusService implements EventBusService {
         eventData.setObjectivesApplication(optimizedTargets);
         eventData.setMsgData(jsonData);
 
-        log.trace("发送事件消息：[{}]", JsonUtils.toJsonStr(eventData));
+        // 热路径：TRACE 关闭时不做无谓的二次 JSON 序列化
+        if (log.isTraceEnabled()) {
+            log.trace("发送事件消息：[{}]", JsonUtils.toJsonStr(eventData));
+        }
         return eventData;
     }
 
@@ -163,7 +177,7 @@ public abstract class AbsEventBusService implements EventBusService {
             if (EventConstant.THIS_MACHINE.equals(target)) {
                 resolved = applicationName;
             }
-            if (EventConstant.TARGET_ALL_X.equals(resolved)) {
+            if (EventConstant.TARGET_ALL.equals(resolved)) {
                 hasAll = true;
             }
             targetSet.add(resolved);
@@ -171,7 +185,7 @@ public abstract class AbsEventBusService implements EventBusService {
 
         // 若包含广播目标，则仅保留广播目标（因为广播消息会发送到所有绑定队列，包括本机）
         if (hasAll) {
-            return Collections.singletonList(EventConstant.TARGET_ALL_X);
+            return Collections.singletonList(EventConstant.TARGET_ALL);
         }
 
         return new ArrayList<>(targetSet);

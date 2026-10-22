@@ -51,6 +51,9 @@ public class WebSocketUtils {
      */
     private static long defaultSyncTimeoutSeconds = 30;
 
+    private WebSocketUtils() {
+    }
+
     /**
      * 设置默认同步请求超时时间（由框架内部调用）
      *
@@ -61,19 +64,26 @@ public class WebSocketUtils {
     }
 
     /**
-     * 添加通道，如果已存在相同键的旧通道则关闭旧通道
+     * 添加通道，如果已存在相同键的旧通道则关闭旧通道。
+     * <p>
+     * 替换经 {@link ChannelMap#put} 在写锁内原子完成：
+     * 检测旧通道、关闭旧通道、写入新通道不存在 check-then-act 竞态，
+     * 并发重复注册同键时不会出现两条活连接互相覆盖或旧连接漏关。
+     * </p>
      *
      * @param type   类型标识
      * @param cliKey 客户端标识
      * @param chc    通道上下文
      */
     public static void addMap(String type, String cliKey, ChannelHandlerContext chc) {
-        ChannelHandlerContext oldCtx = map.get(type, cliKey);
-        if (oldCtx != null && oldCtx.channel().isActive()) {
+        if (type == null || cliKey == null || chc == null) {
+            return;
+        }
+        ChannelHandlerContext oldCtx = map.put(type, cliKey, chc);
+        if (oldCtx != null && oldCtx != chc) {
             oldCtx.close();
             log.debug("重复链接，关闭旧通道 [type={}, cliKey={}]", type, maskKey(cliKey));
         }
-        map.add(type, cliKey, chc);
     }
 
     /**
@@ -90,6 +100,8 @@ public class WebSocketUtils {
         ChannelHandlerContext storedCtx = map.get(type, cliKey);
         if (storedCtx != null && storedCtx.channel().id().equals(ctx.channel().id())) {
             map.del(type, cliKey);
+            // 与契约一致：移除的同时关闭通道连接（对已断开的通道 close 为幂等空操作）
+            storedCtx.close();
             log.debug("通道已移除 [type={}, cliKey={}]", type, maskKey(cliKey));
         }
     }
@@ -112,7 +124,12 @@ public class WebSocketUtils {
         int successCount = 0;
         for (ChannelHandlerContext ctx : ctxList) {
             if (ctx != null && ctx.channel().isActive()) {
-                ctx.writeAndFlush(new TextWebSocketFrame(msg));
+                ctx.writeAndFlush(new TextWebSocketFrame(msg)).addListener(future -> {
+                    if (!future.isSuccess()) {
+                        // 写失败必须可观测，避免调用方误以为消息已送达
+                        log.warn("消息写入失败 [type={}]", type, future.cause());
+                    }
+                });
                 successCount++;
             }
         }
@@ -132,7 +149,11 @@ public class WebSocketUtils {
         }
         ChannelHandlerContext ctx = map.get(type, cliKey);
         if (ctx != null && ctx.channel().isActive()) {
-            ctx.writeAndFlush(new TextWebSocketFrame(msg));
+            ctx.writeAndFlush(new TextWebSocketFrame(msg)).addListener(future -> {
+                if (!future.isSuccess()) {
+                    log.warn("消息写入失败 [type={}, cliKey={}]", type, maskKey(cliKey), future.cause());
+                }
+            });
             log.debug("消息发送成功 [type={}, cliKey={}]", type, maskKey(cliKey));
             return true;
         }
@@ -158,7 +179,11 @@ public class WebSocketUtils {
         int successCount = 0;
         for (ChannelHandlerContext ctx : ctxList) {
             if (ctx != null && ctx.channel().isActive()) {
-                ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data)));
+                ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data))).addListener(future -> {
+                    if (!future.isSuccess()) {
+                        log.warn("二进制消息写入失败 [type={}]", type, future.cause());
+                    }
+                });
                 successCount++;
             }
         }
@@ -179,7 +204,11 @@ public class WebSocketUtils {
         }
         ChannelHandlerContext ctx = map.get(type, cliKey);
         if (ctx != null && ctx.channel().isActive()) {
-            ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data)));
+            ctx.writeAndFlush(new BinaryWebSocketFrame(Unpooled.wrappedBuffer(data))).addListener(future -> {
+                if (!future.isSuccess()) {
+                    log.warn("二进制消息写入失败 [type={}, cliKey={}]", type, maskKey(cliKey), future.cause());
+                }
+            });
             log.debug("二进制消息发送成功 [type={}, cliKey={}]", type, maskKey(cliKey));
             return true;
         }
@@ -188,7 +217,7 @@ public class WebSocketUtils {
     }
 
     /**
-     * 向指定客户端发送 Protobuf 信封消息，自动组装 {@link WebSocketFrame}。
+     * 向指定客户端发送 Protobuf 信封消息，自动组装 {@link com.simple.common.websocket.proto.WebSocketFrame}。
      * <p>
      * 适用于 codec=proto 连接的服务端主动推送：业务只需提供 type/cliKey 与 data 字节，
      * 框架自动包上信封。requestId 非空时表示同步请求，客户端需携带相同 requestId 回复。
@@ -201,7 +230,7 @@ public class WebSocketUtils {
      * @return true 发送成功
      */
     public static boolean sendProtoMsg(String type, String cliKey, String requestId, byte[] data) {
-        if (data == null) {
+        if (type == null || cliKey == null || data == null) {
             return false;
         }
         com.simple.common.websocket.proto.WebSocketFrame.Builder builder =
@@ -220,7 +249,7 @@ public class WebSocketUtils {
      * <p>
      * 服务端向指定客户端发送请求消息，阻塞等待客户端处理完成后返回结果。
      * 适用于服务端主动向客户端发起命令调用、请求数据等场景。
-     * 使用默认超时时间 30 秒。
+     * 使用默认超时时间（simple.websocket.sync.timeout）。
      * </p>
      *
      * <h3>使用示例：</h3>
@@ -281,50 +310,55 @@ public class WebSocketUtils {
         // 创建 CompletableFuture 用于阻塞等待
         CompletableFuture<Object> future = new CompletableFuture<>();
 
-        // 注册到同步管理器，等待客户端回复
-        syncManager.register(requestId, future);
+        // 注册到同步管理器并携带超时截止时间：任何退出路径（含载荷构建异常）都能被清理任务回收
+        syncManager.register(requestId, future, System.currentTimeMillis() + unit.toMillis(timeout));
 
         // 构建消息并发送：按连接编解码方式选择文本(JSON)或二进制(Protobuf)帧
         boolean sent;
-        if (isProtoCodec(type, cliKey)) {
-            // 二进制通道：Protobuf 信封承载，data 为 byte[] 时直接透传，否则按 JSON bytes 封装
-            byte[] payload = data instanceof byte[] ? (byte[]) data : JsonUtils.toJsonStr(data).getBytes(StandardCharsets.UTF_8);
-            com.simple.common.websocket.proto.WebSocketFrame frame =
-                    com.simple.common.websocket.proto.WebSocketFrame.newBuilder()
-                            .setType(type)
-                            .setCliKey(cliKey)
-                            .setRequestId(requestId)
-                            .setData(ByteString.copyFrom(payload))
-                            .build();
-            sent = sendMsg(type, cliKey, frame.toByteArray());
-        } else {
-            // 文本通道：使用 WebSocketRequest 统一格式，客户端统一以此格式收发
-            WebSocketRequest<Object> request = new WebSocketRequest<>();
-            request.setRequestId(requestId);
+        try {
+            if (isProtoCodec(type, cliKey)) {
+                // 二进制通道：Protobuf 信封承载，data 为 byte[] 时直接透传，否则按 JSON bytes 封装
+                byte[] payload = data instanceof byte[] ? (byte[]) data : JsonUtils.toJsonStr(data).getBytes(StandardCharsets.UTF_8);
+                com.simple.common.websocket.proto.WebSocketFrame frame =
+                        com.simple.common.websocket.proto.WebSocketFrame.newBuilder()
+                                .setType(type)
+                                .setCliKey(cliKey)
+                                .setRequestId(requestId)
+                                .setData(ByteString.copyFrom(payload))
+                                .build();
+                sent = sendMsg(type, cliKey, frame.toByteArray());
+            } else {
+                // 文本通道：使用 WebSocketRequest 统一格式，客户端统一以此格式收发
+                WebSocketRequest<Object> request = new WebSocketRequest<>();
+                request.setRequestId(requestId);
 
-            // 兼容处理：若 data 为 JSON 字符串，自动 parse 为 Map 避免 JSON 序列化时二次转义
-            // 客户端 SepSyncEnvelope.Data 为 JsonElement 类型，期望嵌套对象而非字符串
-            Object payload = data;
-            if (data instanceof String) {
-                String str = ((String) data).trim();
-                if (str.startsWith("{") || str.startsWith("[")) {
-                    try {
-                        payload = JsonUtils.toJsonObj(str, Map.class);
-                    } catch (Exception e) {
-                        log.debug("data 字符串非合法 JSON，保持原样发送 [error={}]", e.getMessage());
+                // 兼容处理：若 data 为 JSON 字符串，自动 parse 为 Map 避免 JSON 序列化时二次转义
+                Object payload = data;
+                if (data instanceof String str) {
+                    String trimmed = str.trim();
+                    if (trimmed.startsWith("{") || trimmed.startsWith("[")) {
+                        try {
+                            payload = JsonUtils.toJsonObj(trimmed, Map.class);
+                        } catch (Exception e) {
+                            log.debug("data 字符串非合法 JSON，保持原样发送 [error={}]", e.getMessage());
+                        }
                     }
                 }
+                request.setData(payload);
+                String json = JsonUtils.toJsonStr(request);
+                sent = sendMsg(type, cliKey, json);
             }
-            request.setData(payload);
-            String json = JsonUtils.toJsonStr(request);
-
-            sent = sendMsg(type, cliKey, json);
+        } catch (RuntimeException e) {
+            // 载荷构建/序列化异常同样要回收注册，否则 pendingRequests 悬挂至清理任务兜底
+            syncManager.cancel(requestId);
+            throw e;
         }
+
         if (!sent) {
 
             // 发送失败，清理 Future
             syncManager.cancel(requestId);
-            throw new RuntimeException("客户端不在线 [type=" + type + ", cliKey=" + cliKey + "]");
+            throw new RuntimeException("客户端不在线 [type=" + type + ", cliKey=" + maskKey(cliKey) + "]");
         }
 
         try {
@@ -335,32 +369,40 @@ public class WebSocketUtils {
 
             // 超时，清理 Future
             syncManager.cancel(requestId);
-            throw new RuntimeException("同步请求超时 [type=" + type + ", cliKey=" + cliKey + ", timeout=" + timeout + unit.name().toLowerCase() + "]");
+            throw new RuntimeException("同步请求超时 [type=" + type + ", cliKey=" + maskKey(cliKey) + ", timeout=" + timeout + unit.name().toLowerCase() + "]", e);
         } catch (Exception e) {
 
             // 其他异常，清理 Future
             syncManager.cancel(requestId);
-            throw new RuntimeException("同步请求异常 [type=" + type + ", cliKey=" + cliKey + "]", e);
+            throw new RuntimeException("同步请求异常 [type=" + type + ", cliKey=" + maskKey(cliKey) + "]", e);
         }
     }
 
     /**
-     * 清理无效通道
+     * 清理无效通道。
+     * <p>
+     * 基于条目快照遍历；移除前二次校验存储的通道仍是快照中该失效通道——
+     * 遍历期间客户端可能已用相同 type+cliKey 重连并注册新通道，不能误删新连接。
+     * </p>
      *
      * @return 清理的通道数量
      */
     public static int cleanInactiveChannels() {
         int cleanedCount = 0;
-        List<Map.Entry<String, ChannelHandlerContext>> entries = map.entries();
-        for (Map.Entry<String, ChannelHandlerContext> entry : entries) {
-            ChannelHandlerContext ctx = entry.getValue();
+        List<Map.Entry<String, Map.Entry<String, ChannelHandlerContext>>> entries = map.entries();
+        for (Map.Entry<String, Map.Entry<String, ChannelHandlerContext>> entry : entries) {
+            String type = entry.getKey();
+            String cliKey = entry.getValue().getKey();
+            ChannelHandlerContext ctx = entry.getValue().getValue();
             if (ctx == null || !ctx.channel().isActive()) {
-                String keyStr = entry.getKey();
-                String type = map.parseKey1(keyStr);
-                String cliKey = map.parseKey2(keyStr);
-                map.del(type, cliKey);
-                cleanedCount++;
-                log.debug("清理无效通道 [type={}, cliKey={}]", type, maskKey(cliKey));
+
+                // 仅当存储的仍是该失效通道时才移除，防止误删遍历期间重连的新通道
+                ChannelHandlerContext currentCtx = map.get(type, cliKey);
+                if (currentCtx == ctx) {
+                    map.del(type, cliKey);
+                    cleanedCount++;
+                    log.debug("清理无效通道 [type={}, cliKey={}]", type, maskKey(cliKey));
+                }
             }
         }
         if (cleanedCount > 0) {
@@ -414,18 +456,18 @@ public class WebSocketUtils {
      * </p>
      */
     public static void clearAll() {
-        List<Map.Entry<String, ChannelHandlerContext>> entries = map.entries();
+        List<Map.Entry<String, Map.Entry<String, ChannelHandlerContext>>> entries = map.entries();
 
         // 逐个关闭通道连接，单个失败不影响其余
-        for (Map.Entry<String, ChannelHandlerContext> entry : entries) {
-            ChannelHandlerContext ctx = entry.getValue();
+        for (Map.Entry<String, Map.Entry<String, ChannelHandlerContext>> entry : entries) {
+            ChannelHandlerContext ctx = entry.getValue().getValue();
             if (ctx == null) {
                 continue;
             }
             try {
                 ctx.close();
             } catch (Exception e) {
-                log.warn("通道关闭失败 [channel={}]", entry.getKey(), e);
+                log.warn("通道关闭失败 [type={}, cliKey={}]", entry.getKey(), entry.getValue().getKey(), e);
             }
         }
 

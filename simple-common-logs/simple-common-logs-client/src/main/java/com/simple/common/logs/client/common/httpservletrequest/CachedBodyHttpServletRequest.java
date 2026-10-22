@@ -22,8 +22,12 @@ import java.nio.charset.StandardCharsets;
  * - application/xml
  * - text/xml
  * - text/plain
- * - application/x-www-form-urlencoded
  * - multipart/form-data (仅缓存元数据，不缓存文件内容)
+ * </p>
+ * <p>
+ * 注意：application/x-www-form-urlencoded 不在缓存之列——该类型由容器延迟解析，
+ * 提前消费请求体会导致 getParameter 系列方法取不到参数；
+ * 表单参数日志改由参数表（ParameterMap）途径采集，语义不受影响。
  * </p>
  *
  * @author qty
@@ -38,8 +42,7 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
             ContentType.JSON.getValue(),
             ContentType.XML.getValue(),
             "text/xml",
-            "text/plain",
-            ContentType.FORM_URLENCODED.getValue()
+            "text/plain"
     };
 
     /**
@@ -66,6 +69,11 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
             long contentLength = request.getContentLengthLong();
             if (contentLength > properties.getMaxBodyCacheSize()) {
                 log.debug("请求体大小 {} 字节超过缓存限制 {} 字节，跳过缓存", contentLength, properties.getMaxBodyCacheSize());
+                shouldCache = false;
+            } else if (contentLength < 0) {
+                // 无 Content-Length 的 chunked/流式请求体不缓存：
+                // 体积未知，全量读入内存存在 OOM 风险；半途放弃已消费的流还会破坏请求
+                log.debug("请求体无 Content-Length（chunked 传输），跳过缓存");
                 shouldCache = false;
             }
         }
@@ -102,7 +110,16 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
         if (body == null || body.length == 0) {
             return "";
         }
-        return new String(body, StandardCharsets.UTF_8);
+        // 按请求自身字符编码解码，缺省回退 UTF-8，避免非 UTF-8 载荷被破坏
+        String encoding = getCharacterEncoding();
+        if (encoding == null || encoding.isBlank()) {
+            return new String(body, StandardCharsets.UTF_8);
+        }
+        try {
+            return new String(body, encoding);
+        } catch (java.io.UnsupportedEncodingException e) {
+            return new String(body, StandardCharsets.UTF_8);
+        }
     }
 
     /**
@@ -142,7 +159,10 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
     @Override
     public BufferedReader getReader() throws IOException {
-        return new BufferedReader(new InputStreamReader(getInputStream()));
+        // 按请求自身字符编码读取，缺省回退 UTF-8，避免非 UTF-8 载荷被默认编码破坏
+        String encoding = getCharacterEncoding();
+        return new BufferedReader(new InputStreamReader(getInputStream(),
+                encoding != null && !encoding.isBlank() ? encoding : StandardCharsets.UTF_8.name()));
     }
 
     private static class CachedBodyServletInputStream extends ServletInputStream {
@@ -163,6 +183,17 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
         }
 
         @Override
+        public int read(byte[] b, int off, int len) throws IOException {
+            // 重写批量读取：父类默认逐字节循环拷贝严重放大开销；
+            // 以读取结果判定完成，修复"恰好读满缓冲区时 isFinished 仍为 false"的问题
+            int read = bodyStream.read(b, off, len);
+            if (read == -1) {
+                finished = true;
+            }
+            return read;
+        }
+
+        @Override
         public boolean isFinished() {
             return finished;
         }
@@ -174,8 +205,9 @@ public class CachedBodyHttpServletRequest extends HttpServletRequestWrapper {
 
         @Override
         public void setReadListener(ReadListener readListener) {
-            // 该包装器不支持异步非阻塞 I/O，若调用则抛出异常
-            throw new UnsupportedOperationException("CachedBodyHttpServletRequest does not support async read listener");
+            // 按 Servlet 规范：非异步请求调用 setReadListener 必须抛 IllegalStateException
+            // （UnsupportedOperationException 不在容器/框架的预期异常面内，会破坏异步错误处理）
+            throw new IllegalStateException("CachedBodyHttpServletRequest does not support ReadListener (non-async request)");
         }
     }
 }

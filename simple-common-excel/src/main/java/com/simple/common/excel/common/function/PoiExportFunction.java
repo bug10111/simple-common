@@ -34,7 +34,7 @@ import org.apache.poi.ss.usermodel.Row;
  * };
  * 
  * // 使用导出函数
- * excelService.export("用户列表", userList, exportFunction);
+ * poiWriteService.exportResponse(exportFunction, userList, head, width, 1000, "用户列表");
  * }</pre>
  *
  * @param <T> 导出数据实体类型
@@ -51,7 +51,8 @@ public interface PoiExportFunction<T> {
      * </p>
      *
      * @param row    当前行的POI Row对象,可通过createCell创建单元格
-     * @param entity 当前行对应的数据实体对象
+     * @param entity 当前行对应的数据实体对象,可能为 null(调用方直接遍历数据列表,未做空值过滤),实现需自行判空
+     * @throws RuntimeException 单元格填充异常会中断整个导出流程,实现抛出的异常不会被吞掉
      */
     void execute(Row row, T entity);
 }

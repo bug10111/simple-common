@@ -14,7 +14,7 @@ import lombok.Getter;
 public enum LoginSucKindProcess implements DefaultKindProcess {
 
     SAVE_INFO("保存用户信息", true, 1),
-    LOGIN_LOG("登陆日志", true, 2),
+    LOGIN_LOG("登录日志", true, 2),
 
     ;
 
@@ -28,7 +28,7 @@ public enum LoginSucKindProcess implements DefaultKindProcess {
     private final int order;
 
     @Override
-    public Integer getOrdered() {
+    public int getOrdered() {
         return this.order;
     }
 
@@ -37,4 +37,11 @@ public enum LoginSucKindProcess implements DefaultKindProcess {
         return this.getLabel();
     }
 
+    /**
+     * 稳定键段：返回枚举名而非中文标签，避免标签改词漂移派生键
+     */
+    @Override
+    public String getCode() {
+        return name();
+    }
 }

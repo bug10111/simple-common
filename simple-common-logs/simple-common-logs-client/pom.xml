@@ -24,6 +24,14 @@
             <artifactId>simple-common-core</artifactId>
         </dependency>
 
+        <!-- 上报埋点含 MVC 拦截器/过滤器（WebMvcConfigurer/HandlerInterceptor/Filter/HttpServletRequest），
+             编译期需要 web 栈；与 simple-common-core 同口径 provided（由宿主 web 环境提供，不传递给消费方） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>

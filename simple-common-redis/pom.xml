@@ -18,6 +18,11 @@
             <artifactId>simple-common-core</artifactId>
         </dependency>
 
+        <!--
+            双客户端栈为有意设计：spring-boot-starter-data-redis（Lettuce 连接工厂 + StringRedisTemplate）
+            服务注解式方法缓存（RedisCacheAspect）；原生 Redisson 客户端服务分布式锁/信号量/闭锁与
+            RRateLimiter 限流（redisson-spring-data 集成未引入，两套连接池不共享配置，属预期形态）。
+        -->
         <dependency>
             <groupId>org.redisson</groupId>
             <artifactId>redisson</artifactId>
@@ -26,6 +31,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- 缓存 Key 生成策略经 HttpServletUtils 取请求 URI，编译期需要 servlet API；
+             与 simple-common-core 同口径 provided（由宿主 web 环境提供，不传递给消费方） -->
+        <dependency>
+            <groupId>org.apache.tomcat.embed</groupId>
+            <artifactId>tomcat-embed-core</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

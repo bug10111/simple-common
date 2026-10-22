@@ -1,6 +1,5 @@
 package com.simple.common.core.function;
 
-import com.simple.common.core.exception.AbstractException;
 import com.simple.common.core.exception.DefaultException;
 
 /**

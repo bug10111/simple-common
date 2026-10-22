@@ -10,6 +10,7 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * 日志数据事件
@@ -23,6 +24,16 @@ public class LogDataEvent implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
+
+    /**
+     * TCP 帧最大长度（字节，仅消息体，不含长度前缀）。
+     * <p>
+     * 客户端 {@code LogProtobufEncoder} 与服务端 {@code LogProtobufDecoder} 共用的传输约束：
+     * 超过该值的批次客户端直接丢弃并告警，服务端对非法帧直接断连。
+     * 两端必须使用同一常量，避免限制漂移。
+     * </p>
+     */
+    public static final int MAX_FRAME_LENGTH = 10 * 1024 * 1024;
 
     /**
      * 追踪ID
@@ -177,7 +188,9 @@ public class LogDataEvent implements Serializable {
                                          .setErrorMsg(errorMsg != null ? errorMsg : "")
                                          .setErrorData(errorData != null ? errorData : "")
                                          .setRequestTime(requestTime != null ? requestTime : 0L)
-                                         .setCreateTime(createTimestamp > 0 ? createTimestamp : System.currentTimeMillis());
+                                         // 创建时间原样透传（未设置则为 0/缺省），
+                                         // 不再以发送时间兜底改写：避免审计时间被静默替换、toProto 在重试/往返间不再幂等
+                                         .setCreateTime(createTimestamp);
         return builder.build();
     }
 
@@ -189,6 +202,8 @@ public class LogDataEvent implements Serializable {
      * @return LogDataEvent 对象
      */
     public static LogDataEvent fromProto(LogData logData) {
+        // 入参前置校验：空入参快速失败并给出明确信息，而非在随机字段访问处抛出晦涩 NPE
+        Objects.requireNonNull(logData, "logData must not be null");
         LogDataEvent event = new LogDataEvent();
         event.setTraceId(logData.getTraceId());
         event.setTitle(logData.getTitle());
@@ -242,8 +257,11 @@ public class LogDataEvent implements Serializable {
      * @return LogBatch 对象
      */
     public static LogBatch toBatchProto(List<LogDataEvent> events) {
+        // 入参与元素前置校验：批量转换入口统一快速失败，避免深层晦涩 NPE
+        Objects.requireNonNull(events, "events must not be null");
         LogBatch.Builder batchBuilder = LogBatch.newBuilder();
         for (LogDataEvent event : events) {
+            Objects.requireNonNull(event, "events element must not be null");
             batchBuilder.addLogs(event.toProto());
         }
         return batchBuilder.build();

@@ -14,14 +14,24 @@
 
     <dependencies>
 
+        <!-- JJWT API：编译期直接依赖（此前经 jjwt-impl 传递引入，属脆弱形态） -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>${jjwt.version}</version>
+        </dependency>
+
+        <!-- JJWT 运行期提供者：经 ServiceLoader 装载，仅需 runtime -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-impl</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-jackson</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>
@@ -37,6 +47,15 @@
         <dependency>
             <groupId>com.simple.common</groupId>
             <artifactId>simple-common-cache</artifactId>
+        </dependency>
+
+        <!-- 客户端鉴权含 MVC 配置/拦截器/CSRF 控制器（WebMvcConfigurer/HandlerInterceptor/HttpServletRequest/
+             org.springframework.web.bind.annotation.*），编译期需要 web 栈；
+             与 simple-common-core 同口径 provided（由宿主 web 环境提供，不传递给消费方） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

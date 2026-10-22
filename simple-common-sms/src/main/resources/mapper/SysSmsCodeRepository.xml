@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.simple.common.sms.view.sysSmsCode.SysSmsCodeRepository">
 
-    <insert id="insertBatch" keyProperty="id" useGeneratedKeys="true">
+    <insert id="insertBatch">
         insert into sys_sms_code(id, date, send_type, phone, code, ip, req_status, req_results, status, deleted, create_time, update_time)
         values
         <foreach collection="entities" item="entity" separator=",">
@@ -11,7 +11,7 @@
         </foreach>
     </insert>
 
-    <insert id="insertOrUpdateBatch" keyProperty="id" useGeneratedKeys="true">
+    <insert id="insertOrUpdateBatch">
         insert into sys_sms_code(id, date, send_type, phone, code, ip, req_status, req_results, status, deleted, create_time, update_time)
         values
         <foreach collection="entities" item="entity" separator=",">
@@ -19,7 +19,6 @@
             #{entity.updateTime})
         </foreach>
         on duplicate key update
-        id = values(id),
         date = values(date),
         send_type = values(send_type),
         phone = values(phone),
@@ -28,10 +27,7 @@
         req_status = values(req_status),
         req_results = values(req_results),
         status = values(status),
-        deleted = values(deleted),
-        create_time = values(create_time),
         update_time = values(update_time)
     </insert>
 
 </mapper>
-

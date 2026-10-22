@@ -36,7 +36,7 @@ public class LocalCacheFactory {
 
     /**
      * 移除监听器执行器 - 设计亮点
-     * 为什么要异步执行？
+     * 为什么使用异步执行？
      * 1. 避免阻塞缓存操作线程
      * 2. 防止监听器逻辑影响缓存性能
      * 默认使用 ForkJoinPool，可根据需要替换为虚拟线程等
@@ -71,6 +71,10 @@ public class LocalCacheFactory {
 
     /**
      * 创建手动加载缓存
+     * <p>
+     * 注意：本方法具有 get-or-create 语义——同名同类型的缓存已注册时直接返回既有实例，
+     * configurator 不会再次执行。受 Java 泛型擦除限制，工厂无法校验重复注册时的 K/V 泛型
+     * 是否与首次一致；对同一 cacheName 使用不同泛型参数属于编程错误，请为不同缓存使用不同名称。
      *
      * @param cacheName    缓存唯一标识
      * @param configurator 配置函数（使用 lambda 表达式配置参数）
@@ -84,6 +88,9 @@ public class LocalCacheFactory {
 
     /**
      * 创建自动加载缓存
+     * <p>
+     * 注意：本方法具有 get-or-create 语义——同名同类型的缓存已注册时直接返回既有实例，
+     * loader 与 configurator 不会再次生效；重复注册时请复用首次创建的 LoadingCache 实例。
      *
      * @param cacheName    缓存唯一标识
      * @param loader       缓存加载器（定义如何加载数据）
@@ -114,7 +121,10 @@ public class LocalCacheFactory {
     /**
      * 移除并失效指定缓存实例
      * <p>
-     * 移除后缓存将不再可用，并触发 Caffeine 的资源清理（如监听器、统计等）。
+     * 移除后注册表不再保留该实例；随即调用 {@code invalidateAll()} 失效全部条目并调用
+     * {@code cleanUp()} 同步执行 Caffeine 的挂起维护任务（淘汰计算、移除监听器回调、统计回收），
+     * 而不是等待下一次访问才触发。注意：此前已持有该 Cache 引用的线程仍持有的是一个
+     * 已脱离注册表的独立实例，应停止使用。
      * 若缓存不存在，则静默忽略。
      *
      * @param cacheName 缓存名称
@@ -126,6 +136,8 @@ public class LocalCacheFactory {
         Cache<?, ?> removed = cacheRegistry.remove(key);
         if (removed != null) {
             removed.invalidateAll();
+            // 立即执行挂起的维护任务（过期/淘汰/监听器回调），避免清理延迟到下一次访问
+            removed.cleanUp();
             log.debug("缓存已移除并失效: name={}, type={}", cacheName, cacheType);
             return true;
         }
@@ -137,33 +149,45 @@ public class LocalCacheFactory {
     /**
      * 统一缓存创建入口（核心方法）
      * 设计要点：
-     * 1. 使用 computeIfAbsent 保证原子性操作
+     * 1. 先查注册表，未命中时在锁外完成配置与构建，最后用 putIfAbsent 注册
      * 2. 通过复合键保证缓存实例唯一性
      * 3. 分离配置与应用逻辑
+     * <p>
+     * 为什么不使用 computeIfAbsent：映射函数会在 ConcurrentHashMap 桶锁内执行，
+     * 1) JDK 禁止在映射函数内再修改本 map（configurator 直接或间接调用 createCache/removeCache
+     * 会抛 IllegalStateException 甚至死锁）；2) 慢配置（同步 IO、远端配置读取）会阻塞
+     * 哈希到同一桶的全部操作。putIfAbsent 方案在并发下可能多构建一个被丢弃的实例，
+     * 构建成本远低于全局锁竞争，正确性优先。
      */
     @SuppressWarnings("unchecked")
     private <K, V, C extends Cache<K, V>> C getOrCreate(String cacheName, CacheType cacheType, Consumer<CacheSpec<K, V>> configurator) {
         CacheKey key = new CacheKey(cacheName, cacheType);
 
-        return (C) cacheRegistry.computeIfAbsent(key, k -> {
-            // 初始化配置规格对象
-            CacheSpec<K, V> spec = new CacheSpec<>();
+        // 快速路径：已注册的缓存直接返回（get-or-create 语义）
+        Cache<?, ?> existing = cacheRegistry.get(key);
+        if (existing != null) {
+            return (C) existing;
+        }
 
-            // 应用用户配置
-            configurator.accept(spec);
+        // 初始化配置规格对象并应用用户配置（在注册表锁外执行用户代码）
+        CacheSpec<K, V> spec = new CacheSpec<>();
+        configurator.accept(spec);
 
-            // 配置校验
-            spec.validate();
+        // 配置校验
+        spec.validate();
 
-            // 构建 Caffeine 实例
-            Caffeine<Object, Object> builder = Caffeine.newBuilder();
+        // 构建 Caffeine 实例
+        Caffeine<Object, Object> builder = Caffeine.newBuilder();
 
-            // 应用配置到构建器
-            applyConfig(builder, spec);
+        // 应用配置到构建器
+        applyConfig(builder, spec);
 
-            // 根据类型构建具体缓存实例
-            return buildCache(builder, cacheType, spec);
-        });
+        // 根据类型构建具体缓存实例
+        Cache<K, V> created = buildCache(builder, cacheType, spec);
+
+        // putIfAbsent 保证并发下仅注册一个实例；竞争失败方丢弃多构建的实例
+        Cache<?, ?> previous = cacheRegistry.putIfAbsent(key, created);
+        return (C) (previous != null ? previous : created);
     }
 
     /**
@@ -208,7 +232,7 @@ public class LocalCacheFactory {
             builder.executor(removalListenerExecutor).removalListener(spec.removalListener);
         }
 
-        // 自动刷新配置（需要加载器）
+        // 自动刷新配置（需要加载器，validate 已拒绝无 loader 场景）
         if (spec.refreshAfterWrite != null && spec.loader != null) {
             builder.refreshAfterWrite(spec.refreshAfterWrite, TimeUnit.SECONDS);
         }
@@ -271,12 +295,35 @@ public class LocalCacheFactory {
          * 1. 最大容量限制
          * 2. 过期时间限制
          * 3. 软引用回收（不推荐单独使用，必须配合 maximumSize）
+         * <p>
+         * 同时对数值参数做边界校验，让非法配置在配置点快速失败，
+         * 而不是深入 Caffeine 内部构建时才抛出难以定位的 IllegalArgumentException。
          */
         void validate() {
             boolean hasEvictionPolicy = maximumSize != null || expireAfterWrite != null || expireAfterAccess != null || softValues;
 
             if (!hasEvictionPolicy) {
                 throw new IllegalStateException("必须设置至少一种淘汰策略: maximumSize/expireAfterWrite/expireAfterAccess/softValues");
+            }
+
+            if (initialCapacity != null && initialCapacity < 0) {
+                throw new IllegalArgumentException("initialCapacity 不能为负数: " + initialCapacity);
+            }
+            if (maximumSize != null && maximumSize <= 0) {
+                throw new IllegalArgumentException("maximumSize 必须大于 0: " + maximumSize);
+            }
+            if (expireAfterWrite != null && expireAfterWrite < 0) {
+                throw new IllegalArgumentException("expireAfterWrite 不能为负数: " + expireAfterWrite);
+            }
+            if (expireAfterAccess != null && expireAfterAccess < 0) {
+                throw new IllegalArgumentException("expireAfterAccess 不能为负数: " + expireAfterAccess);
+            }
+            if (refreshAfterWrite != null && refreshAfterWrite <= 0) {
+                throw new IllegalArgumentException("refreshAfterWrite 必须大于 0: " + refreshAfterWrite);
+            }
+            // MANUAL 缓存没有 loader，refreshAfterWrite 会被静默忽略；直接拒绝，避免调用方误以为刷新生效
+            if (refreshAfterWrite != null && loader == null) {
+                throw new IllegalStateException("refreshAfterWrite 必须搭配 CacheLoader 使用（请使用 createLoadingCache 创建）");
             }
 
             // 若仅使用 softValues 而未设置 maximumSize，给出警告（但仍允许创建）
@@ -292,7 +339,7 @@ public class LocalCacheFactory {
          * <p>
          * 建议：根据预期数据量设置合理的初始容量，避免频繁扩容带来的性能开销
          *
-         * @param initialCapacity 初始容量大小
+         * @param initialCapacity 初始容量大小，不能为负数
          * @return 当前配置实例，支持链式调用
          */
         public CacheSpec<K, V> initialCapacity(int initialCapacity) {
@@ -305,7 +352,7 @@ public class LocalCacheFactory {
          * <p>
          * 当缓存条目数达到最大值时，Caffeine 会根据 LRU 策略自动淘汰旧条目
          * <p>
-         * 注意：这是推荐的淘汰策略之一，建议根据实际内存情况合理设置
+         * 注意：这是推荐的淘汰策略之一，建议根据实际内存情况合理设置；必须大于 0
          *
          * @param maximumSize 最大容量
          * @return 当前配置实例，支持链式调用
@@ -320,7 +367,7 @@ public class LocalCacheFactory {
          * <p>
          * 缓存条目在最后一次写入后经过指定时间会自动过期
          *
-         * @param seconds 过期时间（秒）
+         * @param seconds 过期时间（秒），不能为负数
          * @return 当前配置实例，支持链式调用
          */
         public CacheSpec<K, V> expireAfterWrite(long seconds) {
@@ -333,7 +380,7 @@ public class LocalCacheFactory {
          * <p>
          * 缓存条目在最后一次访问（读或写）后经过指定时间会自动过期
          *
-         * @param seconds 过期时间（秒）
+         * @param seconds 过期时间（秒），不能为负数
          * @return 当前配置实例，支持链式调用
          */
         public CacheSpec<K, V> expireAfterAccess(long seconds) {
@@ -345,11 +392,12 @@ public class LocalCacheFactory {
          * 设置写入后刷新时间
          * <p>
          * 缓存条目在最后一次写入后经过指定时间会异步刷新，
-         * 需要配合 LoadingCache 和 CacheLoader 使用
+         * 必须配合 LoadingCache 和 CacheLoader 使用（仅 createLoadingCache 支持；
+         * 在手动缓存上配置会被拒绝，因为 refreshAfterWrite 没有 loader 时无法生效）
          * <p>
-         * 注意：仅对 LoadingCache 生效，刷新操作不会阻塞读取
+         * 注意：刷新操作不会阻塞读取
          *
-         * @param seconds 刷新时间（秒）
+         * @param seconds 刷新时间（秒），必须大于 0
          * @return 当前配置实例，支持链式调用
          */
         public CacheSpec<K, V> refreshAfterWrite(long seconds) {

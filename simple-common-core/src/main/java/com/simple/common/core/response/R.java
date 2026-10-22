@@ -4,6 +4,8 @@ import com.simple.common.core.exception.AbstractException;
 import com.simple.common.core.exception.DefaultExceptionEnum;
 import lombok.Data;
 
+import java.util.Objects;
+
 /**
  * Created by IntelliJ IDEA
  * 统一数据返回,选择性使用，使用时，建议满足HttpState规范
@@ -26,6 +28,7 @@ public class R<T> {
     }
 
     public R(AbstractException abstractException) {
+        Objects.requireNonNull(abstractException, "abstractException must not be null");
         this.code = abstractException.getCode();
         this.message = abstractException.getMessage();
         this.data = null;
@@ -47,7 +50,7 @@ public class R<T> {
         this.data = data;
     }
 
-    public static R<Object> ok() {
+    public static <T> R<T> ok() {
         return new R<>(DefaultExceptionEnum.OK);
     }
 
@@ -59,8 +62,19 @@ public class R<T> {
         return new R<>(DefaultExceptionEnum.ERROR);
     }
 
-    public static <T> R<T> error(T t) {
-        return new R<>(DefaultExceptionEnum.ERROR, t);
+    /**
+     * 携带错误数据的失败响应。注意：纯文本失败请使用 {@link #error(String)}，
+     * 避免误把提示文本塞进 data 丢掉 message
+     */
+    public static <T> R<T> errorWithData(T data) {
+        return new R<>(DefaultExceptionEnum.ERROR, data);
+    }
+
+    /**
+     * 纯文本消息的失败响应（code=500）
+     */
+    public static <T> R<T> error(String message) {
+        return new R<>(DefaultExceptionEnum.ERROR.getCode(), message);
     }
 
     public static <T> R<T> error(String code, String message) {
