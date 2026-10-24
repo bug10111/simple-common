@@ -64,6 +64,7 @@ public class TokenData {
                                                          .setAppNames(clientDetails.getResourceIds())
                                                          .setScopes(clientDetails.getScope())
                                                          .setLoginRole(absUserDetails.getLoginRole())
+                                                         .setSuperAdmin(absUserDetails.getSuperAdmin())
                                                          .setUserId(absUserDetails.getUserId())
                                                          .setNickname(absUserDetails.getNickname())
                                                          .setLoginKey(absUserDetails.getLoginKey())

@@ -67,6 +67,11 @@ public class TokenPayload {
     private Set<String> loginRole;
 
     /**
+     * 平台超级管理员显式标识（授权中心登录时置位；null=未置位，载荷落缓存时按 null 属性剔除）
+     */
+    private Boolean superAdmin;
+
+    /**
      * 用户ID
      */
     private String userId;

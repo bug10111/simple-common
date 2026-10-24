@@ -47,6 +47,9 @@ public class AbsUserDetails {
     //数据权限（用户所有角色合并后的数据权限）
     private DataPermission dataPermission;
 
+    //平台超级管理员显式标识（授权中心登录时按业务定义置位，随载荷进入 login:info 缓存；null=未置位，按非超管处理）
+    private Boolean superAdmin;
+
     //帐户是否过期：1-未过期，0-已过期
     @JsonIgnore
     private int isAccountNonExpired = 0;

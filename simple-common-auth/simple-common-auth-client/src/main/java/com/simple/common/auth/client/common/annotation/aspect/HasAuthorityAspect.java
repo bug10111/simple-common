@@ -2,9 +2,9 @@ package com.simple.common.auth.client.common.annotation.aspect;
 
 import com.simple.common.auth.client.common.annotation.HasAuthority;
 import com.simple.common.auth.client.common.entity.auth.ClientAuthInfo;
+import com.simple.common.auth.client.common.entity.login.UserTemporary;
 import com.simple.common.auth.client.common.enums.login.LoginException;
 import com.simple.common.auth.client.common.manager.user.LoginInfoManager;
-import com.simple.common.auth.client.common.properties.AuthProperties;
 import com.simple.common.auth.client.util.LoginUserUtils;
 import com.simple.common.core.utils.AssertUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -39,9 +39,6 @@ public class HasAuthorityAspect {
     @Autowired
     private ClientAuthInfo clientAuthInfo;
 
-    @Autowired
-    private AuthProperties authProperties;
-
     @Qualifier(LoginInfoManager.client_manager_name)
     @Autowired
     private LoginInfoManager loginInfoManager;
@@ -49,7 +46,8 @@ public class HasAuthorityAspect {
     /**
      * 前置通知：校验方法上的 @HasAuthority 注解。
      * <p>
-     * 超级管理员（loginRole 包含 superAdminRoleKey）直接放行，不参与权限校验。
+     * 平台超级管理员（登录上下文携带 superAdmin 显式标识，由授权中心在登录时按业务定义置位）
+     * 直接放行，不参与权限校验；角色名不参与豁免判定，租户管理员不因角色命名获得平台权限。
      * 权限值判定为 ANY-of：值数组中任一权限命中即通过。
      * </p>
      *
@@ -69,11 +67,13 @@ public class HasAuthorityAspect {
             return;
         }
 
-        // 超级管理员直接放行
-        Set<String> loginRole = LoginUserUtils.getUserTemporary().getLoginRole();
-        if (loginRole != null && loginRole.contains(authProperties.getSuperAdminRoleKey())) {
+        // 平台超级管理员（显式标识）直接放行；getUserTemporary 未登录返回空对象，标识缺省 false 不放行
+        UserTemporary userTemporary = LoginUserUtils.getUserTemporary();
+        if (userTemporary.isSuperAdmin()) {
             return;
         }
+
+        Set<String> loginRole = userTemporary.getLoginRole();
 
         // 解析最具体的目标类方法（JDK 代理场景 signature.getMethod() 可能落在接口方法上）
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();

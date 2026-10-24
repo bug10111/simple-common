@@ -84,6 +84,17 @@ public class UserTemporary {
     private HashSet<String> loginRole;
 
     /**
+     * 平台超级管理员显式标识
+     * <p>
+     * true 时由 @HasAuthority 切面直接放行全部权限校验。该标识只能由授权中心在登录时
+     * 按"角色 roleKey=admin 且角色归属租户 tenantCode=platform"的业务定义置位，
+     * 与 loginRole 中是否包含某个角色名解耦：租户自己的 admin 角色不代表平台超管，
+     * 角色命名不参与豁免判定。
+     * </p>
+     */
+    private boolean superAdmin;
+
+    /**
      * 扩展信息
      */
     private Object extension;
