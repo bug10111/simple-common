@@ -72,6 +72,34 @@ public class TokenPayload {
     private Boolean superAdmin;
 
     /**
+     * 行事域标识（代管行事上下文三要素之一，授权中心代管签发时置位）
+     * <p>固定值=平台域，以载荷结构字段结构化表达（非租户码/角色键判断）；
+     * null=非代管令牌，载荷落缓存时按 null 属性剔除（superAdmin 显式标识先例同款扩展点）。</p>
+     */
+    private String actingDomain;
+
+    /**
+     * 行事企业标识（代管行事上下文三要素之二）
+     * <p>行事期间的企业；与数据权限槽位的企业标识（dataPermission.tenantId）同值，
+     * RLS 通道消费点零改动；null=非代管令牌，载荷落缓存时按 null 属性剔除。</p>
+     */
+    private String actingTenantId;
+
+    /**
+     * 行事岗位集（代管行事上下文三要素之三）
+     * <p>行事期间授权岗位集合，签发时单岗位、按集合形态承载以兼容升格；
+     * null=非代管令牌，载荷落缓存时按 null 属性剔除。</p>
+     */
+    private List<String> actingRoleIds;
+
+    /**
+     * 审计归属标记（代管行事上下文）
+     * <p>值形态 platform:{平台员工标识}；行事上下文读取出参、审计归属标记旁路入参、
+     * 存量表审计列值形态三处同源；null=非代管令牌，载荷落缓存时按 null 属性剔除。</p>
+     */
+    private String auditMarker;
+
+    /**
      * 用户ID
      */
     private String userId;
