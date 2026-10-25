@@ -98,6 +98,14 @@ public class DefaultLoginService implements LoginService {
         Map<String, Object> payload = tokenManager.check(refreshTokenStr, true);
         Object atiObj = payload.get(TokenConstant.atiKey);
 
+        // 代管行事令牌禁入租户刷新链（D2 同通道传递）：行事令牌刷新归 delegation 刷新端点
+        // （行事三要素锁定轮换），误入本链按明确错误拒绝（禁走到内省空判后以「找不到内省信息」误导排障）
+        Object actingDomainObj = payload.get(TokenConstant.actingDomainKey);
+        if (actingDomainObj != null && !String.valueOf(actingDomainObj).isBlank()) {
+            AssertUtils.error(LoginException.RE_LOGIN_EXPIRED,
+                    "代管行事令牌不走租户刷新链路，请经 /delegation/acting/refresh 刷新");
+        }
+
         // 判断token类型
         AssertUtils.notEmpty(atiObj, LoginException.RE_LOGIN_EXPIRED, "token无效，ati信息缺失");
         String ati = atiObj.toString();

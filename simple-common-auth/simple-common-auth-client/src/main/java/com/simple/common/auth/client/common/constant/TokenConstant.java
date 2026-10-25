@@ -124,9 +124,36 @@ public class TokenConstant {
     public static final String extensionKey = "extension";
 
     /**
+     * 身份归属域 key（登录主体认证域的结构化标识；平台域令牌固定值=platform）
+     */
+    public static final String domainKey = "domain";
+
+    /**
      * 数据权限 key
      */
     public static final String dataPermissionKey = "dataPermission";
+
+    /**
+     * 行事域标识 key（代管行事上下文三要素之一，delegation 签发时置位；与 TokenPayload.actingDomain 字段名逐字一致）
+     * <p>载荷该键非空=代管行事令牌（D2 同通道传递）：业务端校验链按行事分支放行
+     * （吊销态判定+载荷自包含构造用户上下文），不走认证域会话内省（行事令牌无 login:info 会话）。</p>
+     */
+    public static final String actingDomainKey = "actingDomain";
+
+    /**
+     * 行事企业标识 key（代管行事上下文三要素之二；与数据权限槽位 dataPermission.tenantId 同值）
+     */
+    public static final String actingTenantIdKey = "actingTenantId";
+
+    /**
+     * 审计归属标记载荷键（代管行事上下文；值形态 platform:{平台员工标识}）
+     */
+    public static final String auditMarkerKey = "auditMarker";
+
+    /**
+     * 平台超管显式标识载荷键（与 TokenPayload.superAdmin 字段名一致；行事令牌自载荷透传）
+     */
+    public static final String superAdminKey = "superAdmin";
 
     /**
      * Token过期时间 key

@@ -24,7 +24,17 @@ public enum AuthEndpointEnum {
      * 未注册客户端被明确拒绝并引导控制台注册。
      * </p>
      */
-    REGISTER_INSTANCE("/auth/api/instance/register", "POST");
+    REGISTER_INSTANCE("/auth/api/instance/register", "POST"),
+
+    /**
+     * 代管行事令牌校验（delegation 对外表端点组，D2 同通道传递消费点）
+     * <p>
+     * 端点在授权中心白名单内（凭代管令牌本身鉴权：验签+有效期+吊销键空间检查，fail-closed），
+     * 作为业务侧行事令牌吊销态判定的唯一权威来源——行事令牌吊销键空间（delegation:acting:）
+     * 归属签发域缓存，业务实例缓存（LOCAL/独立 Redis 逻辑库）不承载该键空间，禁止本地臆断。
+     * </p>
+     */
+    DELEGATION_ACTING_VALIDATE("/delegation/acting/validate", "POST");
 
     private final String path;
     private final String method;

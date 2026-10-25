@@ -102,6 +102,21 @@ public class UserTemporary {
     private String domain;
 
     /**
+     * 审计归属标记（代管行事令牌透传；值形态 platform:{平台员工标识}）
+     * <p>delegation 签行事令牌时随载荷置位（D2 同通道传递），行事期间业务操作按该标记落审计归属；
+     * 普通令牌该字段为 null（不参与序列化），既有消费方零影响。</p>
+     */
+    private String auditMarker;
+
+    /**
+     * 行事域标识（代管行事令牌透传；非空=当前登录上下文为代管行事上下文）
+     * <p>仅由校验链行事分支（本地验签+delegation 吊销态实时判定通过后）自载荷构造，
+     * 供后续链路结构化识别行事上下文（如授权范围门对平台代管凭据的项目绑定已在签发侧校验四锁定，
+     * 不适用按客户端注册 scope 的 containsAll 契约）；普通令牌恒 null。</p>
+     */
+    private String actingDomain;
+
+    /**
      * 扩展信息
      */
     private Object extension;

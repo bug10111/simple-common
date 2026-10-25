@@ -42,6 +42,18 @@ public class CheckScopeAuthProcess implements AuthProcess {
                         String token, String path, String ipAddr) {
         // 需要鉴权
         if (clientAuthInfo.getAuthentication()) {
+            // 代管行事上下文（D2 同通道传递）不适用本客户端 scope 契约：行事令牌是平台签发的代管凭据
+            // （无本服务客户端注册），其项目绑定在 delegation 签发侧校验四锁定（行事岗位项目=行事企业项目），
+            // 凭据有效性（验签+吊销态实时判定）已由 CHECK_TOKEN 行事分支完成；此处跳过 containsAll 门，
+            // 后续 @HasAuthority 权限门照常生效（fail-closed 语义不变，普通令牌零影响）
+            if (LoginUserUtils.getUserTemporary().getActingDomain() != null
+                    && !LoginUserUtils.getUserTemporary().getActingDomain().isBlank()) {
+                if (log.isDebugEnabled()) {
+                    log.debug("URL==>[{}]代管行事上下文，跳过客户端 scope 契约校验", path);
+                }
+                return;
+            }
+
             Set<String> requiredScopes = clientAuthInfo.getScope();
             Set<String> userScopes = LoginUserUtils.getUserTemporary().getScopes();
 

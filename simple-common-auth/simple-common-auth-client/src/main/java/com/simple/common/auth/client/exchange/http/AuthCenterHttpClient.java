@@ -56,6 +56,31 @@ public class AuthCenterHttpClient {
     }
 
     /**
+     * 代管行事令牌校验（D2 同通道传递）。
+     * <p>
+     * 调用授权中心既有 delegation 校验端点（端点自校验：验签+有效期+吊销键空间
+     * delegation:acting:revoke:{jti|ati} 检查，fail-closed），作为业务侧行事令牌
+     * 吊销态判定的唯一权威来源——行事令牌吊销键空间归属签发域缓存，业务实例缓存
+     * （LOCAL/独立 Redis 逻辑库）不承载该键空间。端点凭代管令牌本身鉴权，无需客户端凭证。
+     * 令牌仅进请求体不进日志（凭证材料不入日志面）。
+     * </p>
+     *
+     * @param token 代管行事令牌
+     * @return HTTP 响应（body 为 R&lt;校验结果&gt;，校验结果含 valid/status/message；调用方负责关闭）
+     */
+    public HttpResponse validateActingToken(String token) {
+        String url = AuthEndpointEnum.DELEGATION_ACTING_VALIDATE.buildUrl(authProperties.getServerUrl());
+        Map<String, String> body = new HashMap<>();
+        body.put("token", token);
+        log.debug("请求代管行事令牌校验: {}", url);
+        return HttpRequest.post(url)
+                .header("Content-Type", "application/json")
+                .body(JsonUtils.toJsonStr(body))
+                .timeout(authProperties.getTimeOut())
+                .execute();
+    }
+
+    /**
      * 实例注册（注册自举）
      * <p>
      * 携带 Basic 客户端凭证（clientId + clientSecret）上报实例身份与接收回调地址，
