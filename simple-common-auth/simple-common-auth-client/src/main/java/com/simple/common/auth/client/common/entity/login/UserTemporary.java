@@ -95,6 +95,13 @@ public class UserTemporary {
     private boolean superAdmin;
 
     /**
+     * 身份归属域（平台控制台登录置位，固定值=platform；null/空=租户域令牌）
+     * <p>由授权中心登录时随内省数据写入，消费方按该字段结构化区分令牌域归属
+     * （非租户码/角色键字面量特判），如 /auth/user-info 按域路由取登录账号。</p>
+     */
+    private String domain;
+
+    /**
      * 扩展信息
      */
     private Object extension;

@@ -50,6 +50,12 @@ public class AbsUserDetails {
     //平台超级管理员显式标识（授权中心登录时按业务定义置位，随载荷进入 login:info 缓存；null=未置位，按非超管处理）
     private Boolean superAdmin;
 
+    //身份归属域（平台控制台登录置位，固定值=platform；null=租户域登录，随载荷与内省数据透传）
+    private String domain;
+
+    //平台岗位集（平台登录时承载平台岗位绑定集，平台令牌岗位授权的权威口径载体；null=非平台登录）
+    private java.util.List<String> platformRoleIds;
+
     //帐户是否过期：1-未过期，0-已过期
     @JsonIgnore
     private int isAccountNonExpired = 0;

@@ -72,6 +72,24 @@ public class TokenPayload {
     private Boolean superAdmin;
 
     /**
+     * 身份归属域（登录主体认证域的结构化标识）
+     * <p>授权中心平台控制台登录（N12）时置位，固定值=platform（平台域令牌）；
+     * 租户域登录不置位，null=租户域令牌，载荷落缓存时按 null 属性剔除
+     * （superAdmin/actingDomain 显式标识先例同款扩展点）。
+     * 与行事域标识 actingDomain 语义分工：domain=登录主体归属域（谁在认证），
+     * actingDomain=代管行事域（是否在代管行事），两者独立置位互不推导。</p>
+     */
+    private String domain;
+
+    /**
+     * 平台岗位集（平台令牌岗位授权的权威口径载体）
+     * <p>平台登录时承载 platform 岗位绑定集（X1 契约出参岗位段），
+     * 供代管令牌签发准入校验（选定岗位∈平台令牌岗位集）与平台域消费方读取；
+     * 租户域登录不置位，null=非平台令牌，载荷落缓存时按 null 属性剔除。</p>
+     */
+    private List<String> platformRoleIds;
+
+    /**
      * 行事域标识（代管行事上下文三要素之一，授权中心代管签发时置位）
      * <p>固定值=平台域，以载荷结构字段结构化表达（非租户码/角色键判断）；
      * null=非代管令牌，载荷落缓存时按 null 属性剔除（superAdmin 显式标识先例同款扩展点）。</p>

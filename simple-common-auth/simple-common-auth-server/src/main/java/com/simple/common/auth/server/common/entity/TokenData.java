@@ -71,6 +71,9 @@ public class TokenData {
                                                          .setRet(clientDetails.getRefreshTokenValidity())
                                                          .setEt(clientDetails.getAccessTokenValidity())
                                                          .setExtension(JsonUtils.toJsonStr(absUserDetails.getExtension()))
+                                                         // 身份归属域与平台岗位集（平台控制台登录置位）：null 时经 toMap 剔除，租户域令牌载荷零变化
+                                                         .setDomain(absUserDetails.getDomain())
+                                                         .setPlatformRoleIds(absUserDetails.getPlatformRoleIds())
                                                          .setDataPermission(JsonUtils.toJsonStr(absUserDetails.getDataPermission()));
 
         Map<String, Object> payloadMap = BeanUtils.toMap(saveInfoPayload);
