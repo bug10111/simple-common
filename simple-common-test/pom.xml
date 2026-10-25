@@ -77,6 +77,19 @@
             <artifactId>spring-boot-starter</artifactId>
         </dependency>
 
+        <!-- 本模块是可运行的 Web 应用，Web 栈依赖须自行声明：simple-common-core 的 starter-web 为 provided，不向消费方传递 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <exclusions>
+                <!-- 保持 undertow 为唯一 Servlet 容器 -->
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
